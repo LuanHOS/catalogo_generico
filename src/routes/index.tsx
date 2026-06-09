@@ -5,8 +5,9 @@ import { cart, useCart } from "@/lib/cart";
 import { brl, useWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "sonner";
-import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck } from "lucide-react";
+import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -80,23 +81,27 @@ function Index() {
   const items = useCart();
   const whatsNumber = useWhatsAppNumber();
 
+  // Estados do Modo Privado
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [vipCodeInput, setVipCodeInput] = useState("");
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  
+  // Estados para a Faixa do Admin
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isPrivateModeActive, setIsPrivateModeActive] = useState(false);
+
   useEffect(() => {
     (async () => {
-      const [c, p, s] = await Promise.all([
+      const savedCode = localStorage.getItem("vip_code") || "";
+      
+      const [sessionRes, c, p, s] = await Promise.all([
+        supabase.auth.getSession(),
         supabase.from("categories").select("*").order("sort_order"),
-        supabase
-          .from("products")
-          .select(
-            "id, name, description, price, sale_price, in_stock, stock, max_per_cart, sort_order, category_id, image_url, created_at, updated_at",
-          )
-          .order("sort_order"),
-        supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme"]),
+        // AQUI ESTÁ A CHAVE DE SEGURANÇA! Trocamos o .from("products") pela nossa função RPC
+        // @ts-ignore
+        supabase.rpc("get_catalog_secure", { p_code: savedCode }),
+        supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode"]),
       ]);
-      if (c.error || p.error) {
-        setLoadError(c.error?.message ?? p.error?.message ?? "Erro ao carregar catálogo");
-      }
-      setCats(c.data ?? []);
-      setProds((p.data ?? []) as Product[]);
       
       const settingsMap = new Map(s.data?.map(x => [x.key, x.value]) || []);
       if (settingsMap.has("catalog_name")) setCatalogName(settingsMap.get("catalog_name")!);
@@ -104,9 +109,56 @@ function Index() {
       const themeId = settingsMap.get("system_theme") || "strong-gray";
       applyTheme(themeId);
       
+      const privateModeStatus = settingsMap.get("private_mode") === "true";
+      setIsPrivateModeActive(privateModeStatus);
+
+      // Checa se o usuário atual é admin para podermos mostrar a faixa de aviso
+      if (sessionRes.data.session?.user) {
+        const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", sessionRes.data.session.user.id).eq("role", "admin").maybeSingle();
+        if (roleData) setIsAdmin(true);
+      }
+      
+      if (c.error) {
+        setLoadError(c.error.message);
+      }
+      
+      if (p.error) {
+         if (p.error.message.includes("ACCESS_DENIED")) {
+             setAccessDenied(true);
+         } else {
+             setLoadError(p.error.message ?? "Erro ao carregar catálogo");
+         }
+      } else {
+         setProds((p.data ?? []) as Product[]);
+         setAccessDenied(false);
+      }
+
+      setCats(c.data ?? []);
       setLoading(false);
     })();
   }, []);
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setVerifyingCode(true);
+    const code = vipCodeInput.trim();
+    // @ts-ignore
+    const p = await supabase.rpc("get_catalog_secure", { p_code: code });
+    setVerifyingCode(false);
+    
+    if (p.error) {
+      if (p.error.message.includes("ACCESS_DENIED")) {
+        toast.error("Senha inválida ou revogada.", { description: "Peça uma senha válida ao proprietário." });
+      } else {
+        toast.error("Erro ao verificar senha.");
+      }
+    } else {
+      localStorage.setItem("vip_code", code);
+      setProds((p.data ?? []) as Product[]);
+      setAccessDenied(false);
+      toast.success("Acesso liberado com sucesso!");
+    }
+  }
 
   const filtered = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase("pt-BR");
@@ -126,18 +178,17 @@ function Index() {
     if (!items.length) return;
     setCheckoutLoading(true);
 
-    // 1. Puxa os produtos atualizados do banco para garantir que não foram excluídos
-    const { data: currentProducts, error: checkError } = await supabase
-      .from("products")
-      .select("id, name, category_id, price, sale_price");
+    // 1. Puxa os produtos atualizados do banco usando a rota segura
+    // @ts-ignore
+    const { data: currentProducts, error: checkError } = await supabase.rpc("get_catalog_secure", { p_code: localStorage.getItem("vip_code") || "" });
 
     if (checkError || !currentProducts) {
-      toast.error("Erro ao verificar a disponibilidade dos produtos.");
+      toast.error("Erro ao verificar a disponibilidade. Sua senha pode ter expirado.");
       setCheckoutLoading(false);
       return;
     }
 
-    const currentProductMap = new Map(currentProducts.map(p => [p.id, p]));
+    const currentProductMap = new Map((currentProducts as Product[]).map(p => [p.id, p]));
     
     // 2. Filtra o carrinho mantendo apenas itens que AINDA existem no banco de dados
     const validItems = items.filter(i => currentProductMap.has(i.id));
@@ -199,18 +250,25 @@ function Index() {
     setCartOpen(false);
 
     // Recarrega os produtos para atualizar o estoque visualmente na tela
-    const p = await supabase
-      .from("products")
-      .select("id, name, description, price, sale_price, in_stock, stock, max_per_cart, sort_order, category_id, image_url, created_at, updated_at")
-      .order("sort_order");
+    // @ts-ignore
+    const p = await supabase.rpc("get_catalog_secure", { p_code: localStorage.getItem("vip_code") || "" });
     if (p.data) setProds(p.data as Product[]);
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       <Toaster position="top-center" richColors />
+      
+      {/* FAIXA DO ADMIN: Aviso visual de que o site está trancado para os outros */}
+      {isAdmin && isPrivateModeActive && (
+        <div className="bg-yellow-500 text-yellow-950 px-4 py-1.5 text-center text-xs font-black uppercase tracking-wide flex items-center justify-center gap-2 relative z-50">
+          <span>👁️ Visualizando como Admin</span>
+          <span className="hidden sm:inline opacity-80">- O Modo Privado está ATIVO para clientes.</span>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase shadow-sm">
@@ -248,112 +306,144 @@ function Index() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="border-b border-border/60 bg-gradient-to-br from-secondary via-background to-secondary/40">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Bem-vindo(a)</p>
-          <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl">
-            {catalogName === "Catálogo de Produtos" ? (
-              "Catálogo de Produtos."
-            ) : (
-              <>
-                Catálogo de Produtos do(a)<br />{catalogName}.
-              </>
-            )}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            Consulte o estoque, monte seu pedido e finalize direto pelo WhatsApp.
-          </p>
-        </div>
-      </section>
-
-      {/* Filters */}
-      <div className="sticky top-[64px] z-20 border-b border-border/60 bg-background/95 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 py-3">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSearchTerm(searchInput);
-              if (searchInput.trim()) setActiveCat("all");
-            }}
-            className="flex gap-2"
-          >
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={searchInput}
-                onChange={(e) => {
-                  setSearchInput(e.target.value);
-                  if (!e.target.value.trim()) setSearchTerm("");
-                }}
-                placeholder="Buscar produto"
-                className="h-11 w-full rounded-full border border-input bg-card pl-10 pr-4 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-ring"
-              />
+      {/* A MÁGICA ACONTECE AQUI: A TELA DE BLOQUEIO */}
+      {accessDenied ? (
+        <main className="relative mx-auto max-w-7xl px-4 py-20 flex flex-col items-center justify-center min-h-[70vh] z-10">
+           <div className="bg-card w-full max-w-md p-8 rounded-3xl shadow-2xl border border-border text-center relative z-20">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-6">
+                 <Lock className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-black font-display mb-2">Acesso Restrito</h2>
+              <p className="text-muted-foreground font-medium mb-6">
+                Este catálogo é exclusivo para clientes autorizados. Por favor, insira sua senha de acesso para visualizar os produtos.
+              </p>
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                 <Input 
+                   type="password" 
+                   placeholder="Sua senha VIP" 
+                   value={vipCodeInput} 
+                   onChange={e => setVipCodeInput(e.target.value)}
+                   className="h-12 text-center text-lg font-bold"
+                 />
+                 <Button type="submit" disabled={verifyingCode || !vipCodeInput.trim()} className="w-full h-12 rounded-full text-base font-black shadow-sm">
+                   {verifyingCode ? "Verificando..." : "Acessar Catálogo"}
+                 </Button>
+              </form>
+           </div>
+           
+           {/* Fundo Embaçado */}
+           <div className="fixed inset-0 z-0 top-[64px] bg-background/50 backdrop-blur-xl pointer-events-none" />
+        </main>
+      ) : (
+        <>
+          {/* Hero */}
+          <section className="border-b border-border/60 bg-gradient-to-br from-secondary via-background to-secondary/40">
+            <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Bem-vindo(a)</p>
+              <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl">
+                {catalogName === "Catálogo de Produtos" ? (
+                  "Catálogo de Produtos."
+                ) : (
+                  <>
+                    Catálogo de Produtos do(a)<br />{catalogName}.
+                  </>
+                )}
+              </h1>
+              <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
+                Consulte o estoque, monte seu pedido e finalize direto pelo WhatsApp.
+              </p>
             </div>
-            <button
-              type="submit"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-black text-primary-foreground shadow-sm transition hover:opacity-90"
-            >
-              Buscar
-            </button>
-          </form>
+          </section>
 
-          <div className="mt-3 flex items-center gap-2 overflow-x-auto">
-            <CatChip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
-              Todos
-            </CatChip>
-            {cats.map((c) => (
-              <CatChip key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)}>
-                {c.name}
-              </CatChip>
-            ))}
-          </div>
-        </div>
-      </div>
+          {/* Filters */}
+          <div className="sticky top-[64px] z-20 border-b border-border/60 bg-background/95 backdrop-blur">
+            <div className="mx-auto max-w-7xl px-4 py-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSearchTerm(searchInput);
+                  if (searchInput.trim()) setActiveCat("all");
+                }}
+                className="flex gap-2"
+              >
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={searchInput}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                      if (!e.target.value.trim()) setSearchTerm("");
+                    }}
+                    placeholder="Buscar produto"
+                    className="h-11 w-full rounded-full border border-input bg-card pl-10 pr-4 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-black text-primary-foreground shadow-sm transition hover:opacity-90"
+                >
+                  Buscar
+                </button>
+              </form>
 
-      {/* Products */}
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        {loading ? (
-          <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
-        ) : loadError ? (
-          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
-            <p className="text-lg font-semibold text-destructive">Não foi possível carregar o catálogo.</p>
-            <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+              <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+                <CatChip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
+                  Todos
+                </CatChip>
+                {cats.map((c) => (
+                  <CatChip key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)}>
+                    {c.name}
+                  </CatChip>
+                ))}
+              </div>
+            </div>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
-            <p className="text-lg font-semibold">
-              {searchTerm ? "Produto não encontrado." : "Nenhum produto por aqui ainda."}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {searchTerm
-                ? "Tente buscar por outro nome ou limpe a pesquisa."
-                : "O estoque está sendo organizado. Volte logo!"}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filtered.map((p) => (
-              <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
-            ))}
-          </div>
-        )}
 
-        {items.length > 0 && (
-          <div className="mt-12 flex justify-center">
-            <button
-              onClick={finalizar}
-              disabled={checkoutLoading}
-              className="inline-flex items-center gap-3 rounded-full bg-whatsapp px-8 py-5 text-lg font-black text-whatsapp-foreground shadow-xl shadow-black/15 transition hover:scale-[1.02] active:scale-100 disabled:opacity-70 disabled:hover:scale-100"
-            >
-              {checkoutLoading ? "Processando..." : "Finalizar Compra pelo WhatsApp"}
-              {!checkoutLoading && <span className="rounded-full bg-black/15 px-3 py-1 text-sm">{brl(total)}</span>}
-            </button>
-          </div>
-        )}
-      </main>
+          {/* Products */}
+          <main className="mx-auto max-w-7xl px-4 py-8">
+            {loading ? (
+              <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
+            ) : loadError ? (
+              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
+                <p className="text-lg font-semibold text-destructive">Não foi possível carregar o catálogo.</p>
+                <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+                <p className="text-lg font-semibold">
+                  {searchTerm ? "Produto não encontrado." : "Nenhum produto por aqui ainda."}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {searchTerm
+                    ? "Tente buscar por outro nome ou limpe a pesquisa."
+                    : "O estoque está sendo organizado. Volte logo!"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {filtered.map((p) => (
+                  <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
+                ))}
+              </div>
+            )}
 
-      <footer className="mt-10 border-t border-border/60 bg-secondary/40">
+            {items.length > 0 && (
+              <div className="mt-12 flex justify-center">
+                <button
+                  onClick={finalizar}
+                  disabled={checkoutLoading}
+                  className="inline-flex items-center gap-3 rounded-full bg-whatsapp px-8 py-5 text-lg font-black text-whatsapp-foreground shadow-xl shadow-black/15 transition hover:scale-[1.02] active:scale-100 disabled:opacity-70 disabled:hover:scale-100"
+                >
+                  {checkoutLoading ? "Processando..." : "Finalizar Compra pelo WhatsApp"}
+                  {!checkoutLoading && <span className="rounded-full bg-black/15 px-3 py-1 text-sm">{brl(total)}</span>}
+                </button>
+              </div>
+            )}
+          </main>
+        </>
+      )}
+
+      <footer className="mt-10 border-t border-border/60 bg-secondary/40 relative z-10">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
