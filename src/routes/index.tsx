@@ -79,6 +79,7 @@ function Index() {
   const filtered = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase("pt-BR");
     return prods.filter((p) => {
+      if (!p.in_stock) return false; // Produto completamente oculto da loja
       const matchesCat = activeCat === "all" || p.category_id === activeCat;
       const searchable = `${p.name} ${p.description ?? ""}`.toLocaleLowerCase("pt-BR");
       const matchesSearch = !query || searchable.includes(query);
@@ -348,7 +349,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
-  const outOfStock = !p.in_stock || p.stock <= 0;
+  const outOfStock = p.stock <= 0;
   const currentMax = Math.min(p.max_per_cart, p.stock);
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
@@ -420,7 +421,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
-  const outOfStock = !p.in_stock || p.stock <= 0;
+  const outOfStock = p.stock <= 0;
   const currentMax = Math.min(p.max_per_cart, p.stock);
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);

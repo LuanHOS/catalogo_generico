@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Banca da Pamela" }] }),
@@ -158,17 +158,20 @@ function Dashboard({ email }: { email: string }) {
   const [tab, setTab] = useState<"orders" | "products" | "categories" | "finances" | "admins" | "settings">("orders");
   const [pendingCount, setPendingCount] = useState(0);
 
-  useEffect(() => {
-    supabase.from('orders').select('id', { count: 'exact' }).eq('status', 'pending')
+  const fetchPendingCount = useCallback(() => {
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending')
       .then(({ count }) => setPendingCount(count || 0));
+  }, []);
+
+  useEffect(() => {
+    fetchPendingCount();
     
     const sub = supabase.channel('orders_channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        supabase.from('orders').select('id', { count: 'exact' }).eq('status', 'pending')
-          .then(({ count }) => setPendingCount(count || 0));
+        fetchPendingCount();
       }).subscribe();
     return () => { supabase.removeChannel(sub); };
-  }, []);
+  }, [fetchPendingCount]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -202,7 +205,7 @@ function Dashboard({ email }: { email: string }) {
         ))}
       </div>
 
-      {tab === "orders" && <OrdersPanel />}
+      {tab === "orders" && <OrdersPanel onStatusChange={fetchPendingCount} />}
       {tab === "products" && <ProductsPanel />}
       {tab === "categories" && <CategoriesPanel />}
       {tab === "finances" && <FinancesPanel />}
@@ -213,7 +216,7 @@ function Dashboard({ email }: { email: string }) {
 }
 
 /* ---------- Orders ---------- */
-function OrdersPanel() {
+function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [showManual, setShowManual] = useState(false);
@@ -229,7 +232,11 @@ function OrdersPanel() {
     if (newStatus === 'canceled' && !confirm("Tem certeza que deseja cancelar? O estoque será devolvido.")) return;
     const { error } = await supabase.rpc("update_order_status", { order_id: id, new_status: newStatus });
     if (error) toast.error("Erro ao atualizar pedido: " + error.message);
-    else { toast.success("Status atualizado"); fetchOrders(); }
+    else { 
+      toast.success("Status atualizado"); 
+      fetchOrders(); 
+      if (onStatusChange) onStatusChange();
+    }
   }
 
   const filtered = statusFilter === "all" ? orders : orders.filter(o => o.status === statusFilter);
@@ -286,7 +293,7 @@ function OrdersPanel() {
           </div>
         ))}
       </div>
-      {showManual && <ManualOrderModal onClose={() => setShowManual(false)} onSaved={fetchOrders} />}
+      {showManual && <ManualOrderModal onClose={() => setShowManual(false)} onSaved={() => { fetchOrders(); if (onStatusChange) onStatusChange(); }} />}
     </div>
   );
 }
@@ -295,6 +302,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
   
   useEffect(() => {
       supabase.from("products").select("*").order("name").then(({data}) => setProducts(data as Product[] || []));
@@ -335,6 +343,8 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
       onClose();
   };
 
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+
   return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
          <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh]">
@@ -344,10 +354,14 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
              </div>
              
              <div className="flex-1 overflow-y-auto flex flex-col sm:flex-row">
-                 <div className="w-full sm:w-3/5 p-6 space-y-4 border-b sm:border-b-0 sm:border-r border-border">
-                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide">Produtos Disponíveis</h3>
-                     <div className="grid gap-2">
-                     {products.map(p => (
+                 <div className="w-full sm:w-3/5 p-6 border-b sm:border-b-0 sm:border-r border-border flex flex-col">
+                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Produtos Disponíveis</h3>
+                     <div className="relative mb-4">
+                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                         <Input placeholder="Buscar produto pelo nome..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                     </div>
+                     <div className="grid gap-2 overflow-y-auto flex-1 pr-1">
+                     {filteredProducts.map(p => (
                          <div key={p.id} className={"flex justify-between border border-border p-3 rounded-xl items-center " + (p.stock <= 0 ? "opacity-50 bg-secondary" : "bg-card")}>
                              <div>
                                 <div className="font-semibold text-sm">{p.name}</div>
@@ -361,6 +375,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                              </div>
                          </div>
                      ))}
+                     {filteredProducts.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum produto encontrado.</p>}
                      </div>
                  </div>
                  <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col">
@@ -405,23 +420,52 @@ function FinancesPanel() {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
       setLoading(true);
-      supabase.from("orders")
-          .select("*")
-          .eq("status", "completed")
-          .gte("created_at", `${startDate}T00:00:00Z`)
-          .lte("created_at", `${endDate}T23:59:59Z`)
-          .then(({ data }) => {
-              setOrders(data || []);
-              setLoading(false);
-          });
+      Promise.all([
+          supabase.from("orders")
+              .select("*")
+              .eq("status", "completed")
+              .gte("created_at", `${startDate}T00:00:00Z`)
+              .lte("created_at", `${endDate}T23:59:59Z`),
+          supabase.from("products").select("id, name, cost")
+      ]).then(([ordersRes, prodsRes]) => {
+          setOrders(ordersRes.data || []);
+          setProducts(prodsRes.data as Product[] || []);
+          setLoading(false);
+      });
   }, [startDate, endDate]);
 
   const totalEarned = orders.reduce((acc, o) => acc + Number(o.total), 0);
-  const totalItems = orders.reduce((acc, o) => acc + (Array.isArray(o.items) ? o.items.reduce((sum: number, i: any) => sum + Number(i.quantity), 0) : 0), 0);
+  
+  let totalCosts = 0;
+  const itemStats: Record<string, { name: string, qty: number, revenue: number }> = {};
+
+  orders.forEach(o => {
+      if (Array.isArray(o.items)) {
+          o.items.forEach((i: any) => {
+              const qty = Number(i.quantity) || 0;
+              const price = Number(i.price) || 0;
+              const p = products.find(prod => prod.id === i.id);
+              const cost = p ? Number(p.cost) : 0;
+              
+              totalCosts += (cost * qty);
+
+              if (!itemStats[i.id]) {
+                  itemStats[i.id] = { name: i.name, qty: 0, revenue: 0 };
+              }
+              itemStats[i.id].qty += qty;
+              itemStats[i.id].revenue += (price * qty);
+          });
+      }
+  });
+
+  const netProfit = totalEarned - totalCosts;
+  const totalItems = Object.values(itemStats).reduce((acc, item) => acc + item.qty, 0);
+  const top10 = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 10);
 
   return (
       <div className="space-y-6">
@@ -439,22 +483,57 @@ function FinancesPanel() {
           {loading ? (
               <p className="text-muted-foreground text-center py-10">Carregando métricas...</p>
           ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="border border-border bg-card rounded-xl p-8 flex flex-col justify-center items-center text-center">
-                      <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                          <TrendingUp className="h-7 w-7 text-primary" />
+              <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                              <TrendingUp className="h-6 w-6 text-primary" />
+                          </div>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Lucro Bruto (Receita)</h3>
+                          <p className="text-2xl font-black mt-1 text-foreground">{brl(totalEarned)}</p>
                       </div>
-                      <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide">Total Ganho no Período</h3>
-                      <p className="text-4xl font-black mt-2 text-foreground">{brl(totalEarned)}</p>
-                  </div>
-                  <div className="border border-border bg-card rounded-xl p-8 flex flex-col justify-center items-center text-center">
-                      <div className="h-14 w-14 rounded-full bg-accent/10 flex items-center justify-center mb-4">
-                          <ShoppingBag className="h-7 w-7 text-accent-foreground" />
+                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                          <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3">
+                              <DollarSign className="h-6 w-6 text-green-600" />
+                          </div>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Lucro Líquido</h3>
+                          <p className="text-2xl font-black mt-1 text-green-600">{brl(netProfit)}</p>
                       </div>
-                      <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide">Produtos Vendidos</h3>
-                      <p className="text-4xl font-black mt-2 text-foreground">{totalItems}</p>
+                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                          <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center mb-3">
+                              <ShoppingBag className="h-6 w-6 text-accent-foreground" />
+                          </div>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Produtos Vendidos</h3>
+                          <p className="text-2xl font-black mt-1 text-foreground">{totalItems}</p>
+                      </div>
                   </div>
-              </div>
+
+                  <div className="mt-8 border border-border bg-card rounded-xl overflow-hidden">
+                      <div className="bg-secondary/50 px-6 py-4 border-b border-border">
+                          <h3 className="font-display font-black text-lg">Top 10 Produtos Mais Vendidos</h3>
+                      </div>
+                      {top10.length === 0 ? (
+                          <p className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</p>
+                      ) : (
+                          <div className="divide-y divide-border">
+                              {top10.map((item, idx) => (
+                                  <div key={idx} className="flex items-center justify-between p-4 px-6 hover:bg-secondary/20 transition">
+                                      <div className="flex items-center gap-4">
+                                          <span className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary text-sm font-black text-muted-foreground">
+                                              {idx + 1}º
+                                          </span>
+                                          <span className="font-semibold">{item.name}</span>
+                                      </div>
+                                      <div className="text-right">
+                                          <div className="font-black text-primary">{item.qty} un.</div>
+                                          <div className="text-xs text-muted-foreground">{brl(item.revenue)}</div>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+              </>
           )}
       </div>
   );
@@ -666,20 +745,16 @@ function ProductForm({
     setUploading(true);
     
     try {
-      // 1. Configura a compressão da imagem
       const options = {
-        maxSizeMB: 0.3, // Limite de 300KB
-        maxWidthOrHeight: 1200, // Excelente resolução para web
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 1200,
         useWebWorker: true,
       };
       
-      // 2. Executa a compressão
       const compressedFile = await imageCompression(file, options);
-      
       const ext = compressedFile.name.split(".").pop() || "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
       
-      // 3. Faz o upload da imagem já comprimida para o Supabase
       const { error } = await supabase.storage.from("product-images").upload(path, compressedFile, { upsert: false });
       if (error) { 
         toast.error(error.message); 
@@ -687,7 +762,6 @@ function ProductForm({
         return; 
       }
       
-      // 4. Gera a URL pública permanente
       const { data } = supabase.storage.from("product-images").getPublicUrl(path);
 
       if (!data?.publicUrl) {
