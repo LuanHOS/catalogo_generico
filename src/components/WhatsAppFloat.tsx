@@ -4,7 +4,7 @@ export function WhatsAppFloat() {
   const number = useWhatsAppNumber();
   return (
     <a
-      href={whatsappLink("Olá Pamela! Vim pelo catálogo da Banca 🌸", number)}
+      href={whatsappLink("Olá! Vim através do Catálogo de Produtos.", number)}
       target="_blank"
       rel="noreferrer"
       aria-label="Falar no WhatsApp"

@@ -46,7 +46,6 @@ type Product = {
 type OrderRow = { id: string; created_at: string; status: string; total: number; items: any };
 
 export const SYSTEM_THEMES = [
-  // Fortes
   { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
   { id: "strong-blue", name: "Azul Forte", group: "strong", primary: "#1D4ED8", primaryFg: "#FFFFFF", secondary: "#EFF6FF", accent: "#DBEAFE" },
   { id: "strong-red", name: "Vermelho Forte", group: "strong", primary: "#B91C1C", primaryFg: "#FFFFFF", secondary: "#FEF2F2", accent: "#FEE2E2" },
@@ -57,18 +56,6 @@ export const SYSTEM_THEMES = [
   { id: "strong-black", name: "Preto", group: "strong", primary: "#000000", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
   { id: "strong-teal", name: "Azul Petróleo", group: "strong", primary: "#0F766E", primaryFg: "#FFFFFF", secondary: "#F0FDFA", accent: "#CCFBF1" },
   { id: "strong-brown", name: "Marrom Forte", group: "strong", primary: "#78350F", primaryFg: "#FFFFFF", secondary: "#FEF3C7", accent: "#FFEDD5" },
-
-  // Pastéis
-  { id: "pastel-blue", name: "Azul Pastel", group: "pastel", primary: "#BFDBFE", primaryFg: "#1E3A8A", secondary: "#EFF6FF", accent: "#DBEAFE" },
-  { id: "pastel-pink", name: "Rosa Pastel", group: "pastel", primary: "#FBCFE8", primaryFg: "#831843", secondary: "#FDF2F8", accent: "#FCE7F3" },
-  { id: "pastel-green", name: "Verde Pastel", group: "pastel", primary: "#BBF7D0", primaryFg: "#14532D", secondary: "#F0FDF4", accent: "#DCFCE7" },
-  { id: "pastel-yellow", name: "Amarelo Pastel", group: "pastel", primary: "#FEF08A", primaryFg: "#713F12", secondary: "#FEFCE8", accent: "#FEF9C3" },
-  { id: "pastel-orange", name: "Laranja Pastel", group: "pastel", primary: "#FED7AA", primaryFg: "#7C2D12", secondary: "#FFF7ED", accent: "#FFEDD5" },
-  { id: "pastel-purple", name: "Roxo Pastel", group: "pastel", primary: "#E9D5FF", primaryFg: "#4C1D95", secondary: "#FAF5FF", accent: "#F3E8FF" },
-  { id: "pastel-teal", name: "Ciano Pastel", group: "pastel", primary: "#99F6E4", primaryFg: "#134E4A", secondary: "#F0FDFA", accent: "#CCFBF1" },
-  { id: "pastel-peach", name: "Pêssego Pastel", group: "pastel", primary: "#FFDCD1", primaryFg: "#7A2B14", secondary: "#FFFBF9", accent: "#FFEFEA" },
-  { id: "pastel-gray", name: "Cinza Pastel", group: "pastel", primary: "#E5E7EB", primaryFg: "#1F2937", secondary: "#F9FAFB", accent: "#F3F4F6" },
-  { id: "pastel-beige", name: "Bege Pastel", group: "pastel", primary: "#E5E5CA", primaryFg: "#3B3B24", secondary: "#FCFCF9", accent: "#F4F4EB" }
 ];
 
 export function applyTheme(themeId: string) {
@@ -798,7 +785,7 @@ function ProductForm({
   const [price, setPrice] = useState(product ? String(product.price) : "");
   const [salePrice, setSalePrice] = useState(product?.sale_price != null ? String(product.sale_price) : "");
   const [cost, setCost] = useState(product ? String(product.cost) : "");
-  const [maxPerCart, setMaxPerCart] = useState(product ? String(product.max_per_cart) : "10");
+  const [maxPerCart, setMaxPerCart] = useState(product ? String(product.max_per_cart) : "0");
   const [stock, setStock] = useState(product ? String(product.stock) : "0");
   const [inStock, setInStock] = useState(product?.in_stock ?? true);
   const [categoryId, setCategoryId] = useState<string>(product?.category_id ?? "");
@@ -855,7 +842,7 @@ function ProductForm({
       sale_price: saleNum && saleNum > 0 ? saleNum : null,
       cost: Number(cost) || 0,
       stock: Number(stock) || 0,
-      max_per_cart: Math.max(1, parseInt(maxPerCart || "10", 10)),
+      max_per_cart: Math.max(0, parseInt(maxPerCart || "0", 10)),
       in_stock: inStock,
       category_id: categoryId || null,
       image_url: imageUrl || null,
@@ -938,7 +925,8 @@ function ProductForm({
           </div>
           <div>
             <Label>Limite por carrinho</Label>
-            <Input type="number" min={1} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
+            <Input type="number" min={0} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">Deixem em 0 caso queira deixar sem limite</p>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2">
             <div>
@@ -1265,24 +1253,8 @@ function SettingsPanel() {
 
         <form onSubmit={submitTheme} className="mt-4 space-y-6">
           <div>
-            <Label className="mb-3 block text-xs font-black text-muted-foreground uppercase tracking-wider">Tons Pastéis</Label>
             <div className="flex flex-wrap gap-3">
-              {SYSTEM_THEMES.filter((t) => t.group === "pastel").map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => { setTheme(t.id); applyTheme(t.id); }}
-                  className={`h-10 w-10 rounded-full border-4 transition-all hover:scale-110 ${theme === t.id ? "border-foreground scale-110 shadow-md" : "border-transparent shadow-sm"}`}
-                  style={{ backgroundColor: t.primary }}
-                  title={t.name}
-                />
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label className="mb-3 block text-xs font-black text-muted-foreground uppercase tracking-wider">Tons Fortes</Label>
-            <div className="flex flex-wrap gap-3">
-              {SYSTEM_THEMES.filter((t) => t.group === "strong").map((t) => (
+              {SYSTEM_THEMES.map((t) => (
                 <button
                   key={t.id}
                   type="button"

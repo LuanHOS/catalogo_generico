@@ -33,7 +33,6 @@ type Product = {
 type Category = { id: string; name: string; sort_order: number };
 
 export const SYSTEM_THEMES = [
-  // Fortes
   { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
   { id: "strong-blue", name: "Azul Forte", group: "strong", primary: "#1D4ED8", primaryFg: "#FFFFFF", secondary: "#EFF6FF", accent: "#DBEAFE" },
   { id: "strong-red", name: "Vermelho Forte", group: "strong", primary: "#B91C1C", primaryFg: "#FFFFFF", secondary: "#FEF2F2", accent: "#FEE2E2" },
@@ -44,18 +43,6 @@ export const SYSTEM_THEMES = [
   { id: "strong-black", name: "Preto", group: "strong", primary: "#000000", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
   { id: "strong-teal", name: "Azul Petróleo", group: "strong", primary: "#0F766E", primaryFg: "#FFFFFF", secondary: "#F0FDFA", accent: "#CCFBF1" },
   { id: "strong-brown", name: "Marrom Forte", group: "strong", primary: "#78350F", primaryFg: "#FFFFFF", secondary: "#FEF3C7", accent: "#FFEDD5" },
-
-  // Pastéis
-  { id: "pastel-blue", name: "Azul Pastel", group: "pastel", primary: "#BFDBFE", primaryFg: "#1E3A8A", secondary: "#EFF6FF", accent: "#DBEAFE" },
-  { id: "pastel-pink", name: "Rosa Pastel", group: "pastel", primary: "#FBCFE8", primaryFg: "#831843", secondary: "#FDF2F8", accent: "#FCE7F3" },
-  { id: "pastel-green", name: "Verde Pastel", group: "pastel", primary: "#BBF7D0", primaryFg: "#14532D", secondary: "#F0FDF4", accent: "#DCFCE7" },
-  { id: "pastel-yellow", name: "Amarelo Pastel", group: "pastel", primary: "#FEF08A", primaryFg: "#713F12", secondary: "#FEFCE8", accent: "#FEF9C3" },
-  { id: "pastel-orange", name: "Laranja Pastel", group: "pastel", primary: "#FED7AA", primaryFg: "#7C2D12", secondary: "#FFF7ED", accent: "#FFEDD5" },
-  { id: "pastel-purple", name: "Roxo Pastel", group: "pastel", primary: "#E9D5FF", primaryFg: "#4C1D95", secondary: "#FAF5FF", accent: "#F3E8FF" },
-  { id: "pastel-teal", name: "Ciano Pastel", group: "pastel", primary: "#99F6E4", primaryFg: "#134E4A", secondary: "#F0FDFA", accent: "#CCFBF1" },
-  { id: "pastel-peach", name: "Pêssego Pastel", group: "pastel", primary: "#FFDCD1", primaryFg: "#7A2B14", secondary: "#FFFBF9", accent: "#FFEFEA" },
-  { id: "pastel-gray", name: "Cinza Pastel", group: "pastel", primary: "#E5E7EB", primaryFg: "#1F2937", secondary: "#F9FAFB", accent: "#F3F4F6" },
-  { id: "pastel-beige", name: "Bege Pastel", group: "pastel", primary: "#E5E5CA", primaryFg: "#3B3B24", secondary: "#FCFCF9", accent: "#F4F4EB" }
 ];
 
 export function applyTheme(themeId: string) {
@@ -368,7 +355,7 @@ function Index() {
 
       <footer className="mt-10 border-t border-border/60 bg-secondary/40">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
-          © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
+          © {new Date().getFullYear()} Catálogo de Produtos — Feito com 💛
         </div>
       </footer>
 
@@ -432,7 +419,8 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
   const outOfStock = !p.in_stock || p.stock <= 0;
-  const currentMax = Math.min(p.max_per_cart, p.stock);
+  // Se max_per_cart for 0, o limite é o próprio estoque
+  const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
 
@@ -504,7 +492,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
   const outOfStock = !p.in_stock || p.stock <= 0;
-  const currentMax = Math.min(p.max_per_cart, p.stock);
+  const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
 
@@ -636,7 +624,7 @@ function CartDrawer({
             <ul className="space-y-3">
               {items.map((i) => {
                 const p = prods.find((prod) => prod.id === i.id);
-                const currentMax = p ? Math.min(p.max_per_cart, p.stock) : i.max;
+                const currentMax = p ? (p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock) : i.max;
 
                 return (
                   <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
