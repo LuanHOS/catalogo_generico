@@ -1,94 +1,85 @@
--- Adiciona o controle de estoque real na tabela de produtos
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0;
-
--- Cria a tabela de Pedidos
-CREATE TABLE IF NOT EXISTS public.orders (
+-- Cria a tabela de senhas de acesso exclusivas
+CREATE TABLE IF NOT EXISTS public.access_codes (
     id uuid primary key default gen_random_uuid(),
-    created_at timestamptz default now(),
-    status text not null default 'pending', -- pending, completed, canceled
-    total numeric not null,
-    items jsonb not null
+    code text not null unique,
+    created_at timestamptz default now()
 );
 
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;
 
--- Apenas admins podem ler/editar os pedidos
-CREATE POLICY "Admins can manage orders"
-    ON public.orders FOR ALL
+-- Apenas admins gerenciam as senhas VIP
+CREATE POLICY "Admins can manage access codes"
+    ON public.access_codes FOR ALL
     USING (public.has_role(auth.uid(), 'admin'));
 
--- Função segura (RPC) para o cliente criar o pedido do catálogo público.
--- Ela insere o pedido e já deduz o estoque em uma única transação de forma segura.
-CREATE OR REPLACE FUNCTION public.checkout_order(order_total numeric, order_items jsonb)
-RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    new_order_id uuid;
-    item jsonb;
-    prod_id uuid;
-    qty integer;
+-- ATUALIZAÇÃO CRÍTICA DE SEGURANÇA: Tranca a tabela de produtos
+-- O usuário comum perde o acesso direto à tabela de produtos. 
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+DO $$
 BEGIN
-    INSERT INTO public.orders (total, items, status)
-    VALUES (order_total, order_items, 'pending')
-    RETURNING id INTO new_order_id;
-
-    FOR item IN SELECT * FROM jsonb_array_elements(order_items)
-    LOOP
-        prod_id := (item->>'id')::uuid;
-        qty := (item->>'quantity')::integer;
-
-        -- Diminui o estoque e garante que não fique menor que zero
-        UPDATE public.products
-        SET stock = GREATEST(stock - qty, 0)
-        WHERE id = prod_id;
-    END LOOP;
-
-    RETURN new_order_id;
-END;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'products' AND policyname = 'Admins can manage products'
+    ) THEN
+        CREATE POLICY "Admins can manage products"
+            ON public.products FOR ALL
+            USING (public.has_role(auth.uid(), 'admin'));
+    END IF;
+END
 $$;
 
--- Função (RPC) para o admin atualizar o status do pedido.
--- Ela devolve o estoque caso um pedido seja cancelado!
-CREATE OR REPLACE FUNCTION public.update_order_status(order_id uuid, new_status text)
-RETURNS void
+-- O "Pulo do Gato": A função segura (RPC) que o site vai usar para buscar os produtos.
+-- Ela checa a senha ANTES de devolver qualquer dado.
+CREATE OR REPLACE FUNCTION public.get_catalog_secure(p_code text DEFAULT '')
+RETURNS TABLE (
+  id uuid, category_id uuid, name text, description text, image_url text,
+  price numeric, sale_price numeric, in_stock boolean, stock integer,
+  max_per_cart integer, sort_order integer, created_at timestamptz, updated_at timestamptz
+)
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER -- Garante que a função pule o RLS apenas para executar a checagem com segurança
 AS $$
 DECLARE
-    curr_status text;
-    order_items jsonb;
-    item jsonb;
-    prod_id uuid;
-    qty integer;
+    v_private_mode boolean;
+    v_code_valid boolean;
+    v_is_admin boolean;
 BEGIN
-    SELECT status, items INTO curr_status, order_items FROM public.orders WHERE id = order_id;
-    
-    IF curr_status = new_status THEN
-        RETURN;
+    -- Verifica se quem está chamando já tem sessão de admin
+    SELECT EXISTS (
+        SELECT 1 FROM public.user_roles 
+        WHERE user_id = auth.uid() AND role = 'admin'
+    ) INTO v_is_admin;
+
+    -- Busca o status do interruptor do modo privado
+    SELECT value = 'true' INTO v_private_mode
+    FROM public.app_settings
+    WHERE key = 'private_mode';
+
+    v_private_mode := COALESCE(v_private_mode, false);
+
+    -- Lógica implacável de bloqueio
+    IF v_private_mode AND NOT v_is_admin THEN
+        IF p_code = '' THEN
+            RAISE EXCEPTION 'ACCESS_DENIED';
+        END IF;
+
+        -- Verifica se a senha digitada existe na lista de ativas
+        SELECT EXISTS (
+            SELECT 1 FROM public.access_codes 
+            WHERE code = p_code
+        ) INTO v_code_valid;
+        
+        IF NOT v_code_valid THEN
+            RAISE EXCEPTION 'ACCESS_DENIED';
+        END IF;
     END IF;
 
-    UPDATE public.orders SET status = new_status WHERE id = order_id;
-
-    -- Se está mudando PARA cancelado, devolve os itens para o estoque
-    IF new_status = 'canceled' AND curr_status != 'canceled' THEN
-        FOR item IN SELECT * FROM jsonb_array_elements(order_items)
-        LOOP
-            prod_id := (item->>'id')::uuid;
-            qty := (item->>'quantity')::integer;
-            UPDATE public.products SET stock = stock + qty WHERE id = prod_id;
-        END LOOP;
-    END IF;
-
-    -- Se era cancelado e voltou para pendente/concluído, tira do estoque de novo
-    IF curr_status = 'canceled' AND (new_status = 'pending' OR new_status = 'completed') THEN
-        FOR item IN SELECT * FROM jsonb_array_elements(order_items)
-        LOOP
-            prod_id := (item->>'id')::uuid;
-            qty := (item->>'quantity')::integer;
-            UPDATE public.products SET stock = GREATEST(stock - qty, 0) WHERE id = prod_id;
-        END LOOP;
-    END IF;
+    -- Se modo privado estiver desligado, ou a senha for válida, ou for o admin, libera os produtos!
+    RETURN QUERY
+    SELECT p.id, p.category_id, p.name, p.description, p.image_url,
+           p.price, p.sale_price, p.in_stock, p.stock,
+           p.max_per_cart, p.sort_order, p.created_at, p.updated_at
+    FROM public.products p
+    ORDER BY p.sort_order;
 END;
 $$;

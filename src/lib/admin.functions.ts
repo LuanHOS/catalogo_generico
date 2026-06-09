@@ -291,3 +291,62 @@ export const updateSystemTheme = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { theme: data.theme };
   });
+
+/* ---------- Configuração do Modo Privado ---------- */
+const privateModeSchema = z.object({
+  enabled: z.boolean(),
+});
+
+export const updatePrivateMode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => privateModeSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerIsAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .upsert({ key: "private_mode", value: data.enabled ? "true" : "false" }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { enabled: data.enabled };
+  });
+
+/* ---------- Gerenciar Senhas VIP (Acesso Restrito) ---------- */
+export const listAccessCodes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertCallerIsAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.from("access_codes").select("*").order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { codes: data ?? [] };
+  });
+
+const createCodeSchema = z.object({ code: z.string().trim().min(1).max(50) });
+
+export const createAccessCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(input => createCodeSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerIsAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    const { data: existing } = await supabaseAdmin.from("access_codes").select("id").eq("code", data.code).maybeSingle();
+    if (existing) throw new Error("Esta senha já existe no sistema.");
+
+    const { error } = await supabaseAdmin.from("access_codes").insert({ code: data.code });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const deleteCodeSchema = z.object({ id: z.string().uuid() });
+
+export const deleteAccessCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(input => deleteCodeSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerIsAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("access_codes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

@@ -13,6 +13,10 @@ import {
   updateWhatsAppNumber,
   updateCatalogName,
   updateSystemTheme,
+  updatePrivateMode,
+  listAccessCodes,
+  createAccessCode,
+  deleteAccessCode,
 } from "@/lib/admin.functions";
 import { brl, DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
@@ -21,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
@@ -1173,27 +1177,56 @@ function SettingsPanel() {
   const [number, setNumber] = useState("");
   const [catalogName, setCatalogName] = useState("");
   const [theme, setTheme] = useState("");
+  
+  // Novos estados do Modo Privado
+  const [privateMode, setPrivateMode] = useState(false);
+  const [accessCodes, setAccessCodes] = useState<{id: string, code: string, created_at: string}[]>([]);
+  const [newCode, setNewCode] = useState("");
+  
   const [loading, setLoading] = useState(true);
   const [savingNumber, setSavingNumber] = useState(false);
   const [savingName, setSavingName] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
+  const [savingPrivate, setSavingPrivate] = useState(false);
+  const [loadingCodes, setLoadingCodes] = useState(false);
   
   const saveNumberFn = useServerFn(updateWhatsAppNumber);
   const saveNameFn = useServerFn(updateCatalogName);
   const saveThemeFn = useServerFn(updateSystemTheme);
+  const savePrivateModeFn = useServerFn(updatePrivateMode);
+  const listCodesFn = useServerFn(listAccessCodes);
+  const createCodeFn = useServerFn(createAccessCode);
+  const deleteCodeFn = useServerFn(deleteAccessCode);
 
   useEffect(() => {
     Promise.all([
       supabase.from("app_settings").select("value").eq("key", "whatsapp_number").maybeSingle(),
       supabase.from("app_settings").select("value").eq("key", "catalog_name").maybeSingle(),
-      supabase.from("app_settings").select("value").eq("key", "system_theme").maybeSingle()
-    ]).then(([waRes, catRes, themeRes]) => {
+      supabase.from("app_settings").select("value").eq("key", "system_theme").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "private_mode").maybeSingle()
+    ]).then(([waRes, catRes, themeRes, privRes]) => {
       setNumber(waRes.data?.value ?? DEFAULT_WHATSAPP_NUMBER);
       setCatalogName(catRes.data?.value ?? "Catálogo de Produtos");
       setTheme(themeRes.data?.value ?? "strong-gray");
+      setPrivateMode(privRes.data?.value === "true");
       setLoading(false);
     });
   }, []);
+
+  const fetchCodes = useCallback(async () => {
+    setLoadingCodes(true);
+    try {
+      const res = await listCodesFn();
+      setAccessCodes(res.codes);
+    } catch(e) {
+      toast.error("Erro ao carregar senhas VIP.");
+    }
+    setLoadingCodes(false);
+  }, [listCodesFn]);
+
+  useEffect(() => {
+    if (privateMode) fetchCodes();
+  }, [privateMode, fetchCodes]);
 
   async function submitNumber(e: React.FormEvent) {
     e.preventDefault();
@@ -1239,10 +1272,97 @@ function SettingsPanel() {
     }
   }
 
+  async function togglePrivateMode(checked: boolean) {
+    setSavingPrivate(true);
+    try {
+       await savePrivateModeFn({ data: { enabled: checked } });
+       setPrivateMode(checked);
+       toast.success(checked ? "Modo Privado ativado." : "Modo Privado desativado.");
+    } catch(err) {
+       toast.error("Erro ao alterar modo.");
+    }
+    setSavingPrivate(false);
+  }
+
+  async function handleCreateCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newCode.trim()) return;
+    try {
+      await createCodeFn({ data: { code: newCode } });
+      setNewCode("");
+      toast.success("Senha criada com sucesso.");
+      fetchCodes();
+    } catch(err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar senha");
+    }
+  }
+
+  async function handleDeleteCode(id: string) {
+    if (!confirm("Remover esta senha? Quem estiver usando perderá o acesso na mesma hora.")) return;
+    try {
+      await deleteCodeFn({ data: { id } });
+      toast.success("Senha revogada.");
+      fetchCodes();
+    } catch(err) {
+      toast.error("Erro ao remover senha.");
+    }
+  }
+
   if (loading) return <p className="text-muted-foreground font-semibold">Carregando…</p>;
 
   return (
     <div className="space-y-4">
+      
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-lg font-black flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" /> Catálogo Exclusivo (Modo Privado)
+            </h3>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
+              Exija uma senha para os clientes visualizarem os produtos. Você continua tendo acesso livre.
+            </p>
+          </div>
+          <Switch checked={privateMode} onCheckedChange={togglePrivateMode} disabled={savingPrivate} />
+        </div>
+
+        {privateMode && (
+          <div className="mt-6 border-t border-border pt-6">
+            <h4 className="font-bold mb-3">Senhas de Acesso Ativas</h4>
+            <form onSubmit={handleCreateCode} className="flex gap-2 mb-4">
+              <Input 
+                value={newCode} 
+                onChange={e => setNewCode(e.target.value)} 
+                placeholder="Nova senha (ex: cliente123)" 
+                className="max-w-xs" 
+              />
+              <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+            </form>
+
+            {loadingCodes ? (
+              <p className="text-sm text-muted-foreground">Carregando senhas...</p>
+            ) : accessCodes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma senha cadastrada. Crie uma acima.</p>
+            ) : (
+              <ul className="space-y-2">
+                {accessCodes.map(c => (
+                  <li key={c.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-2 bg-secondary/30 max-w-md">
+                    <span className="font-mono font-bold">{c.code}</span>
+                    <button 
+                      onClick={() => handleDeleteCode(c.id)} 
+                      className="text-muted-foreground hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition"
+                      title="Revogar Acesso"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
           <Palette className="h-5 w-5 text-primary" /> Cores do Sistema

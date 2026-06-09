@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_codes: {
+        Row: {
+          id: string
+          code: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -168,6 +186,26 @@ export type Database = {
           order_items: Json
         }
         Returns: string
+      }
+      get_catalog_secure: {
+        Args: {
+          p_code?: string
+        }
+        Returns: {
+          id: string
+          category_id: string | null
+          name: string
+          description: string | null
+          image_url: string | null
+          price: number
+          sale_price: number | null
+          in_stock: boolean
+          stock: number
+          max_per_cart: number
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }[]
       }
       has_role: {
         Args: {
