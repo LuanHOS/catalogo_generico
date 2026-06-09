@@ -4,11 +4,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const FIXED_ADMIN_USERNAME = "admin";
-const FIXED_ADMIN_EMAIL = "admin@banquinha.local";
+const FIXED_ADMIN_EMAIL = "admin@catalogo.local";
 const FIXED_ADMIN_PASSWORD = "admincatalogo";
 
 function toAdminEmail(user: string) {
-  return user.includes("@") ? user : `${user}@banquinha.local`;
+  return user.includes("@") ? user : `${user}@catalogo.local`;
 }
 
 function usernameFromEmail(email: string) {
