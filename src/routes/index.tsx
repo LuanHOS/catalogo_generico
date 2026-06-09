@@ -5,6 +5,7 @@ import { cart, useCart } from "@/lib/cart";
 import { brl, useWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Button } from "@/components/ui/button";
+import { toast, Toaster } from "sonner";
 import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -26,6 +27,7 @@ type Product = {
   price: number;
   sale_price: number | null;
   in_stock: boolean;
+  stock: number;
   max_per_cart: number;
 };
 type Category = { id: string; name: string; sort_order: number };
@@ -50,6 +52,7 @@ function Index() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [detail, setDetail] = useState<Product | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const items = useCart();
   const whatsNumber = useWhatsAppNumber();
 
@@ -60,7 +63,7 @@ function Index() {
         supabase
           .from("products")
           .select(
-            "id, name, description, price, sale_price, in_stock, max_per_cart, sort_order, category_id, image_url, created_at, updated_at",
+            "id, name, description, price, sale_price, in_stock, stock, max_per_cart, sort_order, category_id, image_url, created_at, updated_at",
           )
           .order("sort_order"),
       ]);
@@ -86,10 +89,37 @@ function Index() {
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
 
-  function finalizar() {
+  async function finalizar() {
     if (!items.length) return;
+    setCheckoutLoading(true);
+
+    const itemsJson = items.map((i) => {
+      const p = prods.find((prod) => prod.id === i.id);
+      return {
+        id: i.id,
+        name: i.name,
+        price: i.price,
+        quantity: i.qty,
+        category_id: p?.category_id || null,
+      };
+    });
+
+    const { data: orderId, error } = await supabase.rpc("checkout_order", {
+      order_total: total,
+      order_items: itemsJson,
+    });
+
+    setCheckoutLoading(false);
+
+    if (error) {
+      toast.error("Erro ao criar pedido.", { description: error.message });
+      return;
+    }
+
+    const orderHash = String(orderId).split("-")[0];
+
     const lines = [
-      "*Pedido — Banca da Pamela*",
+      `*Pedido #${orderHash} — Banca da Pamela*`,
       "",
       ...items.map((i, idx) => {
         const sub = i.price * i.qty;
@@ -100,13 +130,21 @@ function Index() {
     ];
     window.open(whatsappLink(lines.join("\n"), whatsNumber), "_blank");
     
-    // LINHAS ADICIONADAS: Limpa o carrinho e fecha a gaveta lateral
+    // Limpa o carrinho e fecha a gaveta lateral
     cart.clear();
     setCartOpen(false);
+
+    // Recarrega os produtos para atualizar o estoque visualmente na tela
+    const p = await supabase
+      .from("products")
+      .select("id, name, description, price, sale_price, in_stock, stock, max_per_cart, sort_order, category_id, image_url, created_at, updated_at")
+      .order("sort_order");
+    if (p.data) setProds(p.data as Product[]);
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <Toaster position="top-center" richColors />
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
@@ -235,10 +273,11 @@ function Index() {
           <div className="mt-12 flex justify-center">
             <button
               onClick={finalizar}
-              className="inline-flex items-center gap-3 rounded-full bg-whatsapp px-8 py-5 text-lg font-black text-whatsapp-foreground shadow-xl shadow-black/15 transition hover:scale-[1.02] active:scale-100"
+              disabled={checkoutLoading}
+              className="inline-flex items-center gap-3 rounded-full bg-whatsapp px-8 py-5 text-lg font-black text-whatsapp-foreground shadow-xl shadow-black/15 transition hover:scale-[1.02] active:scale-100 disabled:opacity-70 disabled:hover:scale-100"
             >
-              Finalizar Compra pelo WhatsApp
-              <span className="rounded-full bg-black/15 px-3 py-1 text-sm">{brl(total)}</span>
+              {checkoutLoading ? "Processando..." : "Finalizar Compra pelo WhatsApp"}
+              {!checkoutLoading && <span className="rounded-full bg-black/15 px-3 py-1 text-sm">{brl(total)}</span>}
             </button>
           </div>
         )}
@@ -251,7 +290,13 @@ function Index() {
       </footer>
 
       {cartOpen && (
-        <CartDrawer onClose={() => setCartOpen(false)} total={total} onFinalize={finalizar} />
+        <CartDrawer 
+          onClose={() => setCartOpen(false)} 
+          total={total} 
+          onFinalize={finalizar} 
+          checkoutLoading={checkoutLoading}
+          prods={prods}
+        />
       )}
       {detail && <ProductDetail p={detail} onClose={() => setDetail(null)} />}
       <WhatsAppFloat />
@@ -303,13 +348,14 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
-  const disabled = !p.in_stock;
-  const reachedMax = qty >= p.max_per_cart;
+  const outOfStock = !p.in_stock || p.stock <= 0;
+  const currentMax = Math.min(p.max_per_cart, p.stock);
+  const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
 
   function addToCart(e: React.MouseEvent) {
     e.stopPropagation();
-    cart.add({ id: p.id, name: p.name, price: eff, max: p.max_per_cart });
+    cart.add({ id: p.id, name: p.name, price: eff, max: currentMax });
   }
 
   return (
@@ -326,8 +372,8 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
             <ShoppingBag className="h-12 w-12 opacity-30" />
           </div>
         )}
-        {!p.in_stock && (
-          <span className="absolute left-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground">
+        {outOfStock && (
+          <span className="absolute left-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground z-10">
             Sem estoque
           </span>
         )}
@@ -342,11 +388,11 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
           {qty === 0 ? (
             <Button
               type="button"
-              disabled={disabled}
+              disabled={outOfStock}
               onClick={addToCart}
-              className="h-10 text-xs w-full rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+              className="h-10 text-xs w-full rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              Adicionar
+              {outOfStock ? "Esgotado" : "Adicionar"}
             </Button>
           ) : (
             <div className="flex items-center justify-between gap-1 rounded-full bg-secondary p-1">
@@ -356,7 +402,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
               <span className="font-black">{qty}</span>
               <button
                 disabled={reachedMax}
-                onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: p.max_per_cart })}
+                onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
                 className="h-8 w-8 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40"
                 aria-label="Aumentar"
               >
@@ -374,8 +420,9 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
-  const disabled = !p.in_stock;
-  const reachedMax = qty >= p.max_per_cart;
+  const outOfStock = !p.in_stock || p.stock <= 0;
+  const currentMax = Math.min(p.max_per_cart, p.stock);
+  const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
 
   useEffect(() => {
@@ -405,7 +452,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
                 <ShoppingBag className="h-16 w-16 opacity-30" />
               </div>
             )}
-            {!p.in_stock && (
+            {outOfStock && (
               <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground">
                 Sem estoque
               </span>
@@ -421,11 +468,11 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
               {qty === 0 ? (
                 <Button
                   type="button"
-                  disabled={disabled}
-                  onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: p.max_per_cart })}
-                  className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground hover:bg-primary/90"
+                  disabled={outOfStock}
+                  onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
+                  className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  Adicionar ao carrinho
+                  {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
                 </Button>
               ) : (
                 <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
@@ -435,7 +482,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
                   <span className="text-lg font-black">{qty} no carrinho</span>
                   <button
                     disabled={reachedMax}
-                    onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: p.max_per_cart })}
+                    onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40"
                     aria-label="Aumentar"
                   >
@@ -443,9 +490,9 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
                   </button>
                 </div>
               )}
-              {reachedMax && (
+              {reachedMax && !outOfStock && (
                 <p className="mt-2 text-center text-xs text-muted-foreground">
-                  Máximo de {p.max_per_cart} por pedido
+                  Lembrete: Limite de {currentMax} unidades atingido.
                 </p>
               )}
             </div>
@@ -456,13 +503,27 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
   );
 }
 
-function CartDrawer({ onClose, total, onFinalize }: { onClose: () => void; total: number; onFinalize: () => void }) {
+function CartDrawer({ 
+  onClose, 
+  total, 
+  onFinalize, 
+  checkoutLoading, 
+  prods 
+}: { 
+  onClose: () => void; 
+  total: number; 
+  onFinalize: () => void; 
+  checkoutLoading: boolean; 
+  prods: Product[] 
+}) {
   const items = useCart();
+  
   function limpar() {
     if (!items.length) return;
     if (!confirm("Tem certeza que deseja limpar o carrinho?")) return;
     cart.clear();
   }
+  
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -490,30 +551,35 @@ function CartDrawer({ onClose, total, onFinalize }: { onClose: () => void; total
             </p>
           ) : (
             <ul className="space-y-3">
-              {items.map((i) => (
-                <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                  <div className="flex-1">
-                    <div className="font-bold leading-tight">{i.name}</div>
-                    <div className="text-sm text-muted-foreground">{brl(i.price)} cada</div>
-                  </div>
-                  <div className="flex items-center gap-1 rounded-full bg-secondary px-1">
-                    <button onClick={() => cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
-                      <Minus className="h-3 w-3" />
+              {items.map((i) => {
+                const p = prods.find((prod) => prod.id === i.id);
+                const currentMax = p ? Math.min(p.max_per_cart, p.stock) : i.max;
+
+                return (
+                  <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                    <div className="flex-1">
+                      <div className="font-bold leading-tight">{i.name}</div>
+                      <div className="text-sm text-muted-foreground">{brl(i.price)} cada</div>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-full bg-secondary px-1">
+                      <button onClick={() => cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="w-6 text-center font-bold">{i.qty}</span>
+                      <button
+                        onClick={() => cart.setQty(i.id, Math.min(i.qty + 1, currentMax))}
+                        disabled={i.qty >= currentMax}
+                        className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background disabled:opacity-40"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <button onClick={() => cart.remove(i.id)} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
                     </button>
-                    <span className="w-6 text-center font-bold">{i.qty}</span>
-                    <button
-                      onClick={() => cart.setQty(i.id, Math.min(i.qty + 1, i.max))}
-                      disabled={i.qty >= i.max}
-                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background disabled:opacity-40"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <button onClick={() => cart.remove(i.id)} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -523,11 +589,11 @@ function CartDrawer({ onClose, total, onFinalize }: { onClose: () => void; total
             <span className="font-display text-2xl font-black text-primary">{brl(total)}</span>
           </div>
           <Button
-            disabled={!items.length}
+            disabled={!items.length || checkoutLoading}
             onClick={onFinalize}
-            className="w-full rounded-full bg-whatsapp py-6 text-base font-black text-whatsapp-foreground hover:opacity-90"
+            className="w-full rounded-full bg-whatsapp py-6 text-base font-black text-whatsapp-foreground hover:opacity-90 disabled:opacity-70"
           >
-            Finalizar pelo WhatsApp
+            {checkoutLoading ? "Processando..." : "Finalizar pelo WhatsApp"}
           </Button>
         </footer>
       </aside>

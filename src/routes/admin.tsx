@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Banca da Pamela" }] }),
@@ -37,9 +37,11 @@ type Product = {
   sale_price: number | null;
   cost: number;
   in_stock: boolean;
+  stock: number;
   max_per_cart: number;
   sort_order: number;
 };
+type OrderRow = { id: string; created_at: string; status: string; total: number; items: any };
 
 function usernameFromEmail(email: string) {
   return email.split("@")[0] ?? email;
@@ -153,7 +155,21 @@ function NotAdmin({ email }: { email: string }) {
 }
 
 function Dashboard({ email }: { email: string }) {
-  const [tab, setTab] = useState<"products" | "categories" | "admins" | "settings">("products");
+  const [tab, setTab] = useState<"orders" | "products" | "categories" | "finances" | "admins" | "settings">("orders");
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    supabase.from('orders').select('id', { count: 'exact' }).eq('status', 'pending')
+      .then(({ count }) => setPendingCount(count || 0));
+    
+    const sub = supabase.channel('orders_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        supabase.from('orders').select('id', { count: 'exact' }).eq('status', 'pending')
+          .then(({ count }) => setPendingCount(count || 0));
+      }).subscribe();
+    return () => { supabase.removeChannel(sub); };
+  }, []);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -167,7 +183,7 @@ function Dashboard({ email }: { email: string }) {
       </div>
 
       <div className="mb-6 flex gap-2 border-b border-border overflow-x-auto">
-        {(["products", "categories", "admins", "settings"] as const).map((t) => (
+        {(["orders", "products", "categories", "finances", "admins", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -176,16 +192,271 @@ function Dashboard({ email }: { email: string }) {
               (tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")
             }
           >
-            {t === "products" ? "Produtos" : t === "categories" ? "Categorias" : t === "admins" ? "Administradores" : "Configurações"}
+            {t === "orders" ? (
+              <span className="flex items-center gap-1.5">
+                Pedidos
+                {pendingCount > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-black text-destructive-foreground shadow-sm">{pendingCount}</span>}
+              </span>
+            ) : t === "products" ? "Produtos" : t === "categories" ? "Categorias" : t === "finances" ? "Finanças" : t === "admins" ? "Administradores" : "Configurações"}
           </button>
         ))}
       </div>
 
+      {tab === "orders" && <OrdersPanel />}
       {tab === "products" && <ProductsPanel />}
       {tab === "categories" && <CategoriesPanel />}
+      {tab === "finances" && <FinancesPanel />}
       {tab === "admins" && <AdminsPanel />}
       {tab === "settings" && <SettingsPanel />}
     </div>
+  );
+}
+
+/* ---------- Orders ---------- */
+function OrdersPanel() {
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [showManual, setShowManual] = useState(false);
+
+  const fetchOrders = useCallback(async () => {
+    const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+    setOrders(data || []);
+  }, []);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  async function updateStatus(id: string, newStatus: string) {
+    if (newStatus === 'canceled' && !confirm("Tem certeza que deseja cancelar? O estoque será devolvido.")) return;
+    const { error } = await supabase.rpc("update_order_status", { order_id: id, new_status: newStatus });
+    if (error) toast.error("Erro ao atualizar pedido: " + error.message);
+    else { toast.success("Status atualizado"); fetchOrders(); }
+  }
+
+  const filtered = statusFilter === "all" ? orders : orders.filter(o => o.status === statusFilter);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex gap-2 p-1 bg-secondary rounded-lg">
+          {(["pending", "completed", "canceled", "all"] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${statusFilter === s ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {s === "pending" ? "Pendentes" : s === "completed" ? "Concluídos" : s === "canceled" ? "Cancelados" : "Todos"}
+            </button>
+          ))}
+        </div>
+        <Button onClick={() => setShowManual(true)} className="rounded-full">
+          <Plus className="mr-1 h-4 w-4" /> Novo Pedido Manual
+        </Button>
+      </div>
+
+      <div className="grid gap-3">
+        {filtered.length === 0 && <div className="p-12 text-center text-muted-foreground border border-dashed border-border rounded-xl">Nenhum pedido encontrado.</div>}
+        {filtered.map(o => (
+          <div key={o.id} className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg">Pedido #{o.id.split("-")[0]}</span>
+                {o.status === 'pending' && <span className="bg-yellow-500/15 text-yellow-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Pendente</span>}
+                {o.status === 'completed' && <span className="bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Concluído</span>}
+                {o.status === 'canceled' && <span className="bg-destructive/15 text-destructive px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Cancelado</span>}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">{new Date(o.created_at).toLocaleString('pt-BR')}</p>
+              <div className="text-sm mt-2 font-medium">
+                {Array.isArray(o.items) && o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}
+              </div>
+              <div className="text-primary font-black mt-2">{brl(Number(o.total))}</div>
+            </div>
+            {o.status === 'pending' && (
+              <div className="flex gap-2 sm:flex-col">
+                <Button variant="outline" className="border-green-500/30 text-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => updateStatus(o.id, 'completed')}>
+                  <CheckCircle className="mr-1 h-4 w-4" /> Concluir
+                </Button>
+                <Button variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => updateStatus(o.id, 'canceled')}>
+                  <XCircle className="mr-1 h-4 w-4" /> Cancelar
+                </Button>
+              </div>
+            )}
+            {o.status === 'completed' && (
+                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => updateStatus(o.id, 'canceled')}>Cancelar Venda</Button>
+            )}
+          </div>
+        ))}
+      </div>
+      {showManual && <ManualOrderModal onClose={() => setShowManual(false)} onSaved={fetchOrders} />}
+    </div>
+  );
+}
+
+function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: () => void }) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
+  const [saving, setSaving] = useState(false);
+  
+  useEffect(() => {
+      supabase.from("products").select("*").order("name").then(({data}) => setProducts(data as Product[] || []));
+  }, []);
+
+  const addToCart = (p: Product) => {
+      setCart(c => {
+          const ex = c.find(x => x.product.id === p.id);
+          if (ex) {
+            if (ex.quantity >= p.stock) return c;
+            return c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity + 1 } : x);
+          }
+          return [...c, { product: p, quantity: 1 }];
+      });
+  };
+
+  const removeFromCart = (p: Product) => {
+      setCart(c => c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity - 1 } : x).filter(x => x.quantity > 0));
+  };
+
+  const total = cart.reduce((acc, item) => acc + (Number(item.product.sale_price) || Number(item.product.price)) * item.quantity, 0);
+
+  const save = async () => {
+      if (cart.length === 0) return;
+      setSaving(true);
+      const itemsJson = cart.map(c => ({
+          id: c.product.id,
+          name: c.product.name,
+          price: Number(c.product.sale_price) || Number(c.product.price),
+          quantity: c.quantity,
+          category_id: c.product.category_id
+      }));
+      const { error } = await supabase.rpc("checkout_order", { order_total: total, order_items: itemsJson });
+      setSaving(false);
+      if (error) { toast.error("Erro ao criar pedido: " + error.message); return; }
+      toast.success("Pedido manual criado com sucesso!");
+      onSaved();
+      onClose();
+  };
+
+  return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
+         <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh]">
+             <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                <h2 className="text-xl font-display font-black">Novo Pedido Manual</h2>
+                <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Fechar</button>
+             </div>
+             
+             <div className="flex-1 overflow-y-auto flex flex-col sm:flex-row">
+                 <div className="w-full sm:w-3/5 p-6 space-y-4 border-b sm:border-b-0 sm:border-r border-border">
+                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide">Produtos Disponíveis</h3>
+                     <div className="grid gap-2">
+                     {products.map(p => (
+                         <div key={p.id} className={"flex justify-between border border-border p-3 rounded-xl items-center " + (p.stock <= 0 ? "opacity-50 bg-secondary" : "bg-card")}>
+                             <div>
+                                <div className="font-semibold text-sm">{p.name}</div>
+                                <div className="text-xs text-muted-foreground">Estoque: {p.stock}</div>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
+                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3">
+                                    <Plus className="h-3 w-3" />
+                                </Button>
+                             </div>
+                         </div>
+                     ))}
+                     </div>
+                 </div>
+                 <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col">
+                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Carrinho</h3>
+                     {cart.length === 0 && <p className="text-sm text-muted-foreground">O carrinho está vazio.</p>}
+                     <div className="flex-1 overflow-y-auto space-y-3">
+                     {cart.map(c => (
+                         <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3">
+                             <div className="font-semibold">{c.product.name}</div>
+                             <div className="flex justify-between items-center mt-2">
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition">-</button>
+                                    <span className="w-4 text-center font-bold">{c.quantity}</span>
+                                    <button onClick={() => addToCart(c.product)} disabled={c.quantity >= c.product.stock} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50">+</button>
+                                </div>
+                                <span className="font-bold text-primary">{brl((Number(c.product.sale_price) || Number(c.product.price)) * c.quantity)}</span>
+                             </div>
+                         </div>
+                     ))}
+                     </div>
+                     <div className="font-black text-xl pt-4 mt-4 border-t border-border flex justify-between">
+                         <span>Total</span>
+                         <span>{brl(total)}</span>
+                     </div>
+                 </div>
+             </div>
+             <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+                 <Button variant="outline" onClick={onClose} className="rounded-full">Cancelar</Button>
+                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
+             </div>
+         </div>
+      </div>
+  );
+}
+
+/* ---------- Finances ---------- */
+function FinancesPanel() {
+  const [startDate, setStartDate] = useState(() => {
+      const d = new Date();
+      d.setDate(1);
+      return d.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+      setLoading(true);
+      supabase.from("orders")
+          .select("*")
+          .eq("status", "completed")
+          .gte("created_at", `${startDate}T00:00:00Z`)
+          .lte("created_at", `${endDate}T23:59:59Z`)
+          .then(({ data }) => {
+              setOrders(data || []);
+              setLoading(false);
+          });
+  }, [startDate, endDate]);
+
+  const totalEarned = orders.reduce((acc, o) => acc + Number(o.total), 0);
+  const totalItems = orders.reduce((acc, o) => acc + (Array.isArray(o.items) ? o.items.reduce((sum: number, i: any) => sum + Number(i.quantity), 0) : 0), 0);
+
+  return (
+      <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-end bg-card p-4 rounded-xl border border-border">
+              <div className="flex-1">
+                  <Label>Data de Início</Label>
+                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              </div>
+              <div className="flex-1">
+                  <Label>Data de Fim</Label>
+                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
+          </div>
+
+          {loading ? (
+              <p className="text-muted-foreground text-center py-10">Carregando métricas...</p>
+          ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="border border-border bg-card rounded-xl p-8 flex flex-col justify-center items-center text-center">
+                      <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                          <TrendingUp className="h-7 w-7 text-primary" />
+                      </div>
+                      <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide">Total Ganho no Período</h3>
+                      <p className="text-4xl font-black mt-2 text-foreground">{brl(totalEarned)}</p>
+                  </div>
+                  <div className="border border-border bg-card rounded-xl p-8 flex flex-col justify-center items-center text-center">
+                      <div className="h-14 w-14 rounded-full bg-accent/10 flex items-center justify-center mb-4">
+                          <ShoppingBag className="h-7 w-7 text-accent-foreground" />
+                      </div>
+                      <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide">Produtos Vendidos</h3>
+                      <p className="text-4xl font-black mt-2 text-foreground">{totalItems}</p>
+                  </div>
+              </div>
+          )}
+      </div>
   );
 }
 
@@ -310,7 +581,7 @@ function ProductsPanel() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
-            const out = !p.in_stock;
+            const out = !p.in_stock || p.stock <= 0;
             const promo = p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price);
             return (
               <div
@@ -325,6 +596,7 @@ function ProductsPanel() {
                 </div>
                 <div className={"flex flex-1 flex-col " + (out ? "opacity-60" : "")}>
                   <div className="font-bold">{p.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
                   {out && (
                     <div className="mt-0.5">
                       <span className="inline-block rounded-full bg-destructive px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-destructive-foreground">
@@ -332,7 +604,7 @@ function ProductsPanel() {
                       </span>
                     </div>
                   )}
-                  <div className="text-sm">
+                  <div className="text-sm mt-1">
                     {promo ? (
                       <>
                         <span className="text-muted-foreground line-through mr-1">{brl(Number(p.price))}</span>
@@ -383,6 +655,7 @@ function ProductForm({
   const [salePrice, setSalePrice] = useState(product?.sale_price != null ? String(product.sale_price) : "");
   const [cost, setCost] = useState(product ? String(product.cost) : "");
   const [maxPerCart, setMaxPerCart] = useState(product ? String(product.max_per_cart) : "10");
+  const [stock, setStock] = useState(product ? String(product.stock) : "0");
   const [inStock, setInStock] = useState(product?.in_stock ?? true);
   const [categoryId, setCategoryId] = useState<string>(product?.category_id ?? "");
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
@@ -442,6 +715,7 @@ function ProductForm({
       price: Number(price) || 0,
       sale_price: saleNum && saleNum > 0 ? saleNum : null,
       cost: Number(cost) || 0,
+      stock: Number(stock) || 0,
       max_per_cart: Math.max(1, parseInt(maxPerCart || "10", 10)),
       in_stock: inStock,
       category_id: categoryId || null,
@@ -508,8 +782,8 @@ function ProductForm({
             </select>
           </div>
           <div>
-            <Label>Limite por carrinho</Label>
-            <Input type="number" min={1} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
+            <Label>Quantidade em Estoque</Label>
+            <Input type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} required />
           </div>
           <div>
             <Label>Preço de venda (R$)</Label>
@@ -523,10 +797,14 @@ function ProductForm({
             <Label>Custo interno (R$)</Label>
             <Input type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} />
           </div>
+          <div>
+            <Label>Limite por carrinho</Label>
+            <Input type="number" min={1} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
+          </div>
           <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 sm:col-span-2">
             <div>
-              <div className="font-semibold">Em estoque</div>
-              <div className="text-xs text-muted-foreground">Produtos fora de estoque não podem ser adicionados ao carrinho.</div>
+              <div className="font-semibold">Exibir na Loja (Ativo)</div>
+              <div className="text-xs text-muted-foreground">Desative para ocultar o produto completamente sem excluí-lo.</div>
             </div>
             <Switch checked={inStock} onCheckedChange={setInStock} />
           </div>

@@ -53,6 +53,30 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          status: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items: Json
+          status?: string
+          total: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          status?: string
+          total?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category_id: string | null
@@ -67,6 +91,7 @@ export type Database = {
           price: number
           sale_price: number | null
           sort_order: number
+          stock: number
           updated_at: string
         }
         Insert: {
@@ -82,6 +107,7 @@ export type Database = {
           price?: number
           sale_price?: number | null
           sort_order?: number
+          stock?: number
           updated_at?: string
         }
         Update: {
@@ -97,6 +123,7 @@ export type Database = {
           price?: number
           sale_price?: number | null
           sort_order?: number
+          stock?: number
           updated_at?: string
         }
         Relationships: [
@@ -135,12 +162,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      checkout_order: {
+        Args: {
+          order_total: number
+          order_items: Json
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      update_order_status: {
+        Args: {
+          order_id: string
+          new_status: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
