@@ -11,8 +11,8 @@ import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCh
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Banca da Pamela — Catálogo" },
-      { name: "description", content: "Catálogo da Banca da Pamela. Monte seu pedido e finalize pelo WhatsApp." },
+      { title: "Catálogo de Produtos" },
+      { name: "description", content: "Catálogo de Produtos. Monte seu pedido e finalize pelo WhatsApp." },
     ],
   }),
   component: Index,
@@ -43,6 +43,7 @@ function isPromo(p: Pick<Product, "price" | "sale_price">) {
 }
 
 function Index() {
+  const [catalogName, setCatalogName] = useState("Catálogo de Produtos");
   const [cats, setCats] = useState<Category[]>([]);
   const [prods, setProds] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +59,7 @@ function Index() {
 
   useEffect(() => {
     (async () => {
-      const [c, p] = await Promise.all([
+      const [c, p, s] = await Promise.all([
         supabase.from("categories").select("*").order("sort_order"),
         supabase
           .from("products")
@@ -66,12 +67,14 @@ function Index() {
             "id, name, description, price, sale_price, in_stock, stock, max_per_cart, sort_order, category_id, image_url, created_at, updated_at",
           )
           .order("sort_order"),
+        supabase.from("app_settings").select("value").eq("key", "catalog_name").maybeSingle(),
       ]);
       if (c.error || p.error) {
         setLoadError(c.error?.message ?? p.error?.message ?? "Erro ao carregar catálogo");
       }
       setCats(c.data ?? []);
       setProds((p.data ?? []) as Product[]);
+      if (s.data?.value) setCatalogName(s.data.value);
       setLoading(false);
     })();
   }, []);
@@ -151,7 +154,7 @@ function Index() {
     const orderHash = String(orderId).split("-")[0];
 
     const lines = [
-      `*Pedido #${orderHash} — Banca da Pamela*`,
+      `*Pedido #${orderHash} — Catálogo*`,
       "",
       ...validItems.map((i, idx) => {
         const sub = i.price * i.qty;
@@ -181,12 +184,12 @@ function Index() {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black">
-              P
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase">
+              {catalogName.charAt(0)}
             </div>
             <div className="leading-tight">
               <div className="font-display text-xl font-black text-foreground sm:text-2xl">
-                Banca da Pamela
+                {catalogName}
               </div>
               <div className="text-xs text-muted-foreground">Catálogo de produtos</div>
             </div>
@@ -221,7 +224,13 @@ function Index() {
         <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Bem-vindo(a)</p>
           <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl">
-            Catálogo de Produtos da<br />Banca da Pamela.
+            {catalogName === "Catálogo de Produtos" ? (
+              "Catálogo de Produtos."
+            ) : (
+              <>
+                Catálogo de Produtos do(a)<br />{catalogName}.
+              </>
+            )}
           </h1>
           <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
             Consulte o estoque, monte seu pedido e finalize direto pelo WhatsApp.
@@ -290,7 +299,7 @@ function Index() {
             <p className="mt-1 text-sm text-muted-foreground">
               {searchTerm
                 ? "Tente buscar por outro nome ou limpe a pesquisa."
-                : "A Pamela está organizando o estoque. Volte logo!"}
+                : "O estoque está sendo organizado. Volte logo!"}
             </p>
           </div>
         ) : (
@@ -317,7 +326,7 @@ function Index() {
 
       <footer className="mt-10 border-t border-border/60 bg-secondary/40">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Banca da Pamela — Feito com 💛
+          © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
       </footer>
 
@@ -380,7 +389,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
-  const outOfStock = p.stock <= 0;
+  const outOfStock = !p.in_stock || p.stock <= 0;
   const currentMax = Math.min(p.max_per_cart, p.stock);
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
@@ -452,7 +461,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
-  const outOfStock = p.stock <= 0;
+  const outOfStock = !p.in_stock || p.stock <= 0;
   const currentMax = Math.min(p.max_per_cart, p.stock);
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);

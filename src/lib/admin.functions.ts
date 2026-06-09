@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const FIXED_ADMIN_USERNAME = "admin";
 const FIXED_ADMIN_EMAIL = "admin@banquinha.local";
-const FIXED_ADMIN_PASSWORD = "adminpamelafortes";
+const FIXED_ADMIN_PASSWORD = "admincatalogo";
 
 function toAdminEmail(user: string) {
   return user.includes("@") ? user : `${user}@banquinha.local`;
@@ -254,4 +254,22 @@ export const updateWhatsAppNumber = createServerFn({ method: "POST" })
       .upsert({ key: "whatsapp_number", value: clean }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { number: clean };
+  });
+
+/* ---------- Configuração do Nome do Catálogo ---------- */
+const catalogNameSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+});
+
+export const updateCatalogName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => catalogNameSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerIsAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .upsert({ key: "catalog_name", value: data.name }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { name: data.name };
   });

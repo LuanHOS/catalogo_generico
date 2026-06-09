@@ -11,6 +11,7 @@ import {
   listAdmins,
   updateAdminUser,
   updateWhatsAppNumber,
+  updateCatalogName,
 } from "@/lib/admin.functions";
 import { brl, DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import { toast, Toaster } from "sonner";
 import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Administração — Banca da Pamela" }] }),
+  head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
   component: AdminPage,
 });
 
@@ -251,7 +252,7 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
               onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${statusFilter === s ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
-              {s === "pending" ? "Pendentes" : s === "completed" ? "Concluídos" : s === "canceled" ? "Cancelados" : "Todos"}
+              {s === "pending" ? "Pendentes" : s === "completed" ? "Concluídos" : s === "canceled" ? "Todos" : "Todos"}
             </button>
           ))}
         </div>
@@ -1094,7 +1095,7 @@ function AdminFormModal({
             id="au"
             value={user}
             onChange={(e) => setUser(e.target.value)}
-            placeholder="ex: pamela"
+            placeholder="ex: nome"
             disabled={isEdit && editing?.fixed}
           />
           {isEdit && editing?.fixed && (
@@ -1140,33 +1141,51 @@ function AdminFormModal({
 /* ---------- Settings ---------- */
 function SettingsPanel() {
   const [number, setNumber] = useState("");
+  const [catalogName, setCatalogName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const save = useServerFn(updateWhatsAppNumber);
+  const [savingNumber, setSavingNumber] = useState(false);
+  const [savingName, setSavingName] = useState(false);
+  
+  const saveNumberFn = useServerFn(updateWhatsAppNumber);
+  const saveNameFn = useServerFn(updateCatalogName);
 
   useEffect(() => {
-    supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "whatsapp_number")
-      .maybeSingle()
-      .then(({ data }) => {
-        setNumber(data?.value ?? DEFAULT_WHATSAPP_NUMBER);
-        setLoading(false);
-      });
+    Promise.all([
+      supabase.from("app_settings").select("value").eq("key", "whatsapp_number").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "catalog_name").maybeSingle()
+    ]).then(([waRes, catRes]) => {
+      setNumber(waRes.data?.value ?? DEFAULT_WHATSAPP_NUMBER);
+      setCatalogName(catRes.data?.value ?? "Catálogo de Produtos");
+      setLoading(false);
+    });
   }, []);
 
-  async function submit(e: React.FormEvent) {
+  async function submitNumber(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
+    setSavingNumber(true);
     try {
-      const res = await save({ data: { number } });
+      const res = await saveNumberFn({ data: { number } });
       setNumber(res.number);
       toast.success("Número do WhatsApp atualizado");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
     } finally {
-      setSaving(false);
+      setSavingNumber(false);
+    }
+  }
+
+  async function submitName(e: React.FormEvent) {
+    e.preventDefault();
+    if (!catalogName.trim()) return toast.error("O nome não pode ser vazio.");
+    setSavingName(true);
+    try {
+      const res = await saveNameFn({ data: { name: catalogName } });
+      setCatalogName(res.name);
+      toast.success("Nome do catálogo atualizado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    } finally {
+      setSavingName(false);
     }
   }
 
@@ -1176,20 +1195,40 @@ function SettingsPanel() {
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-card p-5">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
+          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
+        </p>
+        <form onSubmit={submitName} className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <Input
+            value={catalogName}
+            onChange={(e) => setCatalogName(e.target.value)}
+            placeholder="ex: Catálogo de Produtos"
+            className="flex-1"
+          />
+          <Button type="submit" disabled={savingName} className="rounded-full">
+            {savingName ? "Salvando…" : "Salvar"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h3 className="font-display text-lg font-black flex items-center gap-2">
           <Phone className="h-5 w-5 text-primary" /> Número do WhatsApp
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Este é o número que receberá os pedidos do site e o botão flutuante.
         </p>
-        <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <form onSubmit={submitNumber} className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Input
             value={number}
             onChange={(e) => setNumber(e.target.value)}
             placeholder="ex: 5545984311918"
             className="flex-1"
           />
-          <Button type="submit" disabled={saving} className="rounded-full">
-            {saving ? "Salvando…" : "Salvar"}
+          <Button type="submit" disabled={savingNumber} className="rounded-full">
+            {savingNumber ? "Salvando…" : "Salvar"}
           </Button>
         </form>
         <p className="mt-2 text-xs text-muted-foreground">
