@@ -273,3 +273,21 @@ export const updateCatalogName = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { name: data.name };
   });
+
+/* ---------- Configuração de Cor do Sistema ---------- */
+const themeSchema = z.object({
+  theme: z.string().trim().min(1).max(50),
+});
+
+export const updateSystemTheme = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => themeSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerIsAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .upsert({ key: "system_theme", value: data.theme }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { theme: data.theme };
+  });

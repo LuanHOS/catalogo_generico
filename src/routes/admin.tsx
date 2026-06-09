@@ -12,6 +12,7 @@ import {
   updateAdminUser,
   updateWhatsAppNumber,
   updateCatalogName,
+  updateSystemTheme,
 } from "@/lib/admin.functions";
 import { brl, DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
@@ -43,6 +44,42 @@ type Product = {
   sort_order: number;
 };
 type OrderRow = { id: string; created_at: string; status: string; total: number; items: any };
+
+export const SYSTEM_THEMES = [
+  // Fortes
+  { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
+  { id: "strong-blue", name: "Azul Forte", group: "strong", primary: "#1D4ED8", primaryFg: "#FFFFFF", secondary: "#EFF6FF", accent: "#DBEAFE" },
+  { id: "strong-red", name: "Vermelho Forte", group: "strong", primary: "#B91C1C", primaryFg: "#FFFFFF", secondary: "#FEF2F2", accent: "#FEE2E2" },
+  { id: "strong-green", name: "Verde Forte", group: "strong", primary: "#15803D", primaryFg: "#FFFFFF", secondary: "#F0FDF4", accent: "#DCFCE7" },
+  { id: "strong-orange", name: "Laranja Forte", group: "strong", primary: "#C2410C", primaryFg: "#FFFFFF", secondary: "#FFF7ED", accent: "#FFEDD5" },
+  { id: "strong-purple", name: "Roxo Forte", group: "strong", primary: "#6D28D9", primaryFg: "#FFFFFF", secondary: "#FAF5FF", accent: "#F3E8FF" },
+  { id: "strong-pink", name: "Rosa Forte", group: "strong", primary: "#BE185D", primaryFg: "#FFFFFF", secondary: "#FDF2F8", accent: "#FCE7F3" },
+  { id: "strong-black", name: "Preto", group: "strong", primary: "#000000", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
+  { id: "strong-teal", name: "Azul Petróleo", group: "strong", primary: "#0F766E", primaryFg: "#FFFFFF", secondary: "#F0FDFA", accent: "#CCFBF1" },
+  { id: "strong-brown", name: "Marrom Forte", group: "strong", primary: "#78350F", primaryFg: "#FFFFFF", secondary: "#FEF3C7", accent: "#FFEDD5" },
+
+  // Pastéis
+  { id: "pastel-blue", name: "Azul Pastel", group: "pastel", primary: "#BFDBFE", primaryFg: "#1E3A8A", secondary: "#EFF6FF", accent: "#DBEAFE" },
+  { id: "pastel-pink", name: "Rosa Pastel", group: "pastel", primary: "#FBCFE8", primaryFg: "#831843", secondary: "#FDF2F8", accent: "#FCE7F3" },
+  { id: "pastel-green", name: "Verde Pastel", group: "pastel", primary: "#BBF7D0", primaryFg: "#14532D", secondary: "#F0FDF4", accent: "#DCFCE7" },
+  { id: "pastel-yellow", name: "Amarelo Pastel", group: "pastel", primary: "#FEF08A", primaryFg: "#713F12", secondary: "#FEFCE8", accent: "#FEF9C3" },
+  { id: "pastel-orange", name: "Laranja Pastel", group: "pastel", primary: "#FED7AA", primaryFg: "#7C2D12", secondary: "#FFF7ED", accent: "#FFEDD5" },
+  { id: "pastel-purple", name: "Roxo Pastel", group: "pastel", primary: "#E9D5FF", primaryFg: "#4C1D95", secondary: "#FAF5FF", accent: "#F3E8FF" },
+  { id: "pastel-teal", name: "Ciano Pastel", group: "pastel", primary: "#99F6E4", primaryFg: "#134E4A", secondary: "#F0FDFA", accent: "#CCFBF1" },
+  { id: "pastel-peach", name: "Pêssego Pastel", group: "pastel", primary: "#FFDCD1", primaryFg: "#7A2B14", secondary: "#FFFBF9", accent: "#FFEFEA" },
+  { id: "pastel-gray", name: "Cinza Pastel", group: "pastel", primary: "#E5E7EB", primaryFg: "#1F2937", secondary: "#F9FAFB", accent: "#F3F4F6" },
+  { id: "pastel-beige", name: "Bege Pastel", group: "pastel", primary: "#E5E5CA", primaryFg: "#3B3B24", secondary: "#FCFCF9", accent: "#F4F4EB" }
+];
+
+export function applyTheme(themeId: string) {
+  const t = SYSTEM_THEMES.find(x => x.id === themeId) || SYSTEM_THEMES.find(x => x.id === "strong-gray")!;
+  const root = document.documentElement;
+  root.style.setProperty('--primary', t.primary);
+  root.style.setProperty('--primary-foreground', t.primaryFg);
+  root.style.setProperty('--secondary', t.secondary);
+  root.style.setProperty('--accent', t.accent);
+  root.style.setProperty('--ring', t.primary);
+}
 
 function usernameFromEmail(email: string) {
   return email.split("@")[0] ?? email;
@@ -77,9 +114,9 @@ function AdminPage() {
       .then(({ data }) => setIsAdmin(!!data));
   }, [session]);
 
-  if (checking) return <Shell><p className="p-8 text-muted-foreground">Carregando…</p></Shell>;
+  if (checking) return <Shell><p className="p-8 text-muted-foreground font-semibold">Carregando…</p></Shell>;
   if (!session) return <Shell><LoginForm /></Shell>;
-  if (isAdmin === null) return <Shell><p className="p-8 text-muted-foreground">Verificando permissões…</p></Shell>;
+  if (isAdmin === null) return <Shell><p className="p-8 text-muted-foreground font-semibold">Verificando permissões…</p></Shell>;
   if (!isAdmin) return <Shell><NotAdmin email={session.email} /></Shell>;
 
   return <Shell><Dashboard email={session.email} /></Shell>;
@@ -121,7 +158,7 @@ function LoginForm() {
     <div className="mx-auto flex max-w-md flex-col gap-6 p-6 sm:p-10">
       <div>
         <h1 className="font-display text-3xl font-black">Área do Administrador</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Entre para gerenciar o catálogo.</p>
+        <p className="mt-1 text-sm text-muted-foreground font-medium">Entre para gerenciar o catálogo.</p>
       </div>
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div>
@@ -132,7 +169,7 @@ function LoginForm() {
           <Label htmlFor="p">Senha</Label>
           <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
-        <Button type="submit" disabled={loading} className="w-full rounded-full py-6 text-base font-bold">
+        <Button type="submit" disabled={loading} className="w-full rounded-full py-6 text-base font-bold shadow-sm">
           {loading ? "Entrando…" : "Entrar"}
         </Button>
         <p className="text-center text-xs text-muted-foreground font-semibold">
@@ -147,10 +184,10 @@ function NotAdmin({ email }: { email: string }) {
   return (
     <div className="mx-auto max-w-md p-10 text-center">
       <p className="text-lg font-bold">Olá, {usernameFromEmail(email)}</p>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-sm text-muted-foreground font-medium">
         Sua conta não tem permissão de administrador.
       </p>
-      <Button onClick={() => supabase.auth.signOut()} className="mt-6 rounded-full">Sair</Button>
+      <Button onClick={() => supabase.auth.signOut()} className="mt-6 rounded-full shadow-sm">Sair</Button>
     </div>
   );
 }
@@ -167,6 +204,11 @@ function Dashboard({ email }: { email: string }) {
   useEffect(() => {
     fetchPendingCount();
     
+    // Aplicar o tema globalmente no carregamento inicial do Admin
+    supabase.from("app_settings").select("value").eq("key", "system_theme").maybeSingle().then(({data}) => {
+       applyTheme(data?.value || "strong-gray");
+    });
+    
     const sub = supabase.channel('orders_channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         fetchPendingCount();
@@ -179,9 +221,9 @@ function Dashboard({ email }: { email: string }) {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-black">Gerenciar Catálogo</h1>
-          <p className="text-sm text-muted-foreground">Logado como <span className="font-bold text-foreground">{usernameFromEmail(email)}</span></p>
+          <p className="text-sm text-muted-foreground font-medium">Logado como <span className="font-bold text-foreground">{usernameFromEmail(email)}</span></p>
         </div>
-        <Button variant="outline" onClick={() => supabase.auth.signOut()} className="rounded-full">
+        <Button variant="outline" onClick={() => supabase.auth.signOut()} className="rounded-full shadow-sm">
           <LogOut className="mr-2 h-4 w-4" /> Sair
         </Button>
       </div>
@@ -245,34 +287,34 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex gap-2 p-1 bg-secondary rounded-lg">
+        <div className="flex gap-2 p-1 bg-secondary rounded-lg border border-border">
           {(["pending", "completed", "canceled", "all"] as const).map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${statusFilter === s ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
-              {s === "pending" ? "Pendentes" : s === "completed" ? "Concluídos" : s === "canceled" ? "Todos" : "Todos"}
+              {s === "pending" ? "Pendentes" : s === "completed" ? "Concluídos" : s === "canceled" ? "Cancelados" : "Todos"}
             </button>
           ))}
         </div>
-        <Button onClick={() => setShowManual(true)} className="rounded-full">
+        <Button onClick={() => setShowManual(true)} className="rounded-full shadow-sm">
           <Plus className="mr-1 h-4 w-4" /> Novo Pedido Manual
         </Button>
       </div>
 
       <div className="grid gap-3">
-        {filtered.length === 0 && <div className="p-12 text-center text-muted-foreground border border-dashed border-border rounded-xl">Nenhum pedido encontrado.</div>}
+        {filtered.length === 0 && <div className="p-12 text-center text-muted-foreground font-semibold border border-dashed border-border rounded-xl">Nenhum pedido encontrado.</div>}
         {filtered.map(o => (
-          <div key={o.id} className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div key={o.id} className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-lg">Pedido #{o.id.split("-")[0]}</span>
-                {o.status === 'pending' && <span className="bg-yellow-500/15 text-yellow-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Pendente</span>}
-                {o.status === 'completed' && <span className="bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Concluído</span>}
-                {o.status === 'canceled' && <span className="bg-destructive/15 text-destructive px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Cancelado</span>}
+                {o.status === 'pending' && <span className="bg-yellow-500/15 text-yellow-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Pendente</span>}
+                {o.status === 'completed' && <span className="bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Concluído</span>}
+                {o.status === 'canceled' && <span className="bg-destructive/15 text-destructive px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Cancelado</span>}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">{new Date(o.created_at).toLocaleString('pt-BR')}</p>
+              <p className="text-sm text-muted-foreground mt-1 font-medium">{new Date(o.created_at).toLocaleString('pt-BR')}</p>
               <div className="text-sm mt-2 font-medium">
                 {Array.isArray(o.items) && o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}
               </div>
@@ -280,16 +322,16 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
             </div>
             {o.status === 'pending' && (
               <div className="flex gap-2 sm:flex-col">
-                <Button variant="outline" className="border-green-500/30 text-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => updateStatus(o.id, 'completed')}>
+                <Button variant="outline" className="border-green-500/30 text-green-600 shadow-sm hover:bg-green-50 hover:text-green-700" onClick={() => updateStatus(o.id, 'completed')}>
                   <CheckCircle className="mr-1 h-4 w-4" /> Concluir
                 </Button>
-                <Button variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => updateStatus(o.id, 'canceled')}>
+                <Button variant="outline" className="border-destructive/30 text-destructive shadow-sm hover:bg-destructive/10" onClick={() => updateStatus(o.id, 'canceled')}>
                   <XCircle className="mr-1 h-4 w-4" /> Cancelar
                 </Button>
               </div>
             )}
             {o.status === 'completed' && (
-                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => updateStatus(o.id, 'canceled')}>Cancelar Venda</Button>
+                <Button variant="ghost" size="sm" className="text-muted-foreground font-semibold" onClick={() => updateStatus(o.id, 'canceled')}>Cancelar Venda</Button>
             )}
           </div>
         ))}
@@ -351,7 +393,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
          <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh]">
              <div className="flex items-center justify-between border-b border-border px-6 py-4">
                 <h2 className="text-xl font-display font-black">Novo Pedido Manual</h2>
-                <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Fechar</button>
+                <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Fechar</button>
              </div>
              
              <div className="flex-1 overflow-y-auto flex flex-col sm:flex-row">
@@ -363,34 +405,34 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      </div>
                      <div className="grid gap-2 overflow-y-auto flex-1 pr-1">
                      {filteredProducts.map(p => (
-                         <div key={p.id} className={"flex justify-between border border-border p-3 rounded-xl items-center " + (p.stock <= 0 ? "opacity-50 bg-secondary" : "bg-card")}>
+                         <div key={p.id} className={"flex justify-between border border-border p-3 rounded-xl items-center shadow-sm " + (p.stock <= 0 ? "opacity-50 bg-secondary" : "bg-card")}>
                              <div>
                                 <div className="font-semibold text-sm">{p.name}</div>
-                                <div className="text-xs text-muted-foreground">Estoque: {p.stock}</div>
+                                <div className="text-xs font-semibold text-muted-foreground">Estoque: {p.stock}</div>
                              </div>
                              <div className="flex items-center gap-3">
                                 <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
-                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3">
+                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm">
                                     <Plus className="h-3 w-3" />
                                 </Button>
                              </div>
                          </div>
                      ))}
-                     {filteredProducts.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum produto encontrado.</p>}
+                     {filteredProducts.length === 0 && <p className="text-sm font-semibold text-muted-foreground text-center py-4">Nenhum produto encontrado.</p>}
                      </div>
                  </div>
                  <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col">
                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Carrinho</h3>
-                     {cart.length === 0 && <p className="text-sm text-muted-foreground">O carrinho está vazio.</p>}
+                     {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground">O carrinho está vazio.</p>}
                      <div className="flex-1 overflow-y-auto space-y-3">
                      {cart.map(c => (
                          <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3">
                              <div className="font-semibold">{c.product.name}</div>
                              <div className="flex justify-between items-center mt-2">
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition">-</button>
+                                    <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition shadow-sm">-</button>
                                     <span className="w-4 text-center font-bold">{c.quantity}</span>
-                                    <button onClick={() => addToCart(c.product)} disabled={c.quantity >= c.product.stock} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50">+</button>
+                                    <button onClick={() => addToCart(c.product)} disabled={c.quantity >= c.product.stock} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50 shadow-sm">+</button>
                                 </div>
                                 <span className="font-bold text-primary">{brl((Number(c.product.sale_price) || Number(c.product.price)) * c.quantity)}</span>
                              </div>
@@ -404,8 +446,8 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                  </div>
              </div>
              <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
-                 <Button variant="outline" onClick={onClose} className="rounded-full">Cancelar</Button>
-                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
+                 <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
+                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
              </div>
          </div>
       </div>
@@ -473,7 +515,7 @@ function FinancesPanel() {
 
   return (
       <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-end bg-card p-4 rounded-xl border border-border">
+          <div className="flex flex-col sm:flex-row gap-4 items-end bg-card p-4 rounded-xl border border-border shadow-sm">
               <div className="flex-1">
                   <Label>Data de Início</Label>
                   <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
@@ -485,26 +527,26 @@ function FinancesPanel() {
           </div>
 
           {loading ? (
-              <p className="text-muted-foreground text-center py-10">Carregando métricas...</p>
+              <p className="text-muted-foreground text-center font-semibold py-10">Carregando métricas...</p>
           ) : (
               <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
                           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
                               <TrendingUp className="h-6 w-6 text-primary" />
                           </div>
                           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Lucro Bruto (Receita)</h3>
                           <p className="text-2xl font-black mt-1 text-foreground">{brl(totalEarned)}</p>
                       </div>
-                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
                           <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3">
                               <DollarSign className="h-6 w-6 text-green-600" />
                           </div>
                           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Lucro Líquido</h3>
                           <p className="text-2xl font-black mt-1 text-green-600">{brl(netProfit)}</p>
                       </div>
-                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
-                          <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center mb-3">
+                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
+                          <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mb-3">
                               <ShoppingBag className="h-6 w-6 text-accent-foreground" />
                           </div>
                           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Produtos Vendidos</h3>
@@ -513,14 +555,14 @@ function FinancesPanel() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
                           <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
                               <Layers className="h-6 w-6 text-blue-600" />
                           </div>
                           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Produtos Cadastrados</h3>
                           <p className="text-2xl font-black mt-1 text-foreground">{totalRegisteredProducts}</p>
                       </div>
-                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
                           <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-3">
                               <Package className="h-6 w-6 text-orange-600" />
                           </div>
@@ -529,12 +571,12 @@ function FinancesPanel() {
                       </div>
                   </div>
 
-                  <div className="mt-8 border border-border bg-card rounded-xl overflow-hidden">
+                  <div className="mt-8 border border-border bg-card rounded-xl overflow-hidden shadow-sm">
                       <div className="bg-secondary/50 px-6 py-4 border-b border-border">
                           <h3 className="font-display font-black text-lg">Top 10 Produtos Mais Vendidos</h3>
                       </div>
                       {top10.length === 0 ? (
-                          <p className="p-6 text-center text-muted-foreground">Nenhuma venda no período.</p>
+                          <p className="p-6 text-center text-muted-foreground font-semibold">Nenhuma venda no período.</p>
                       ) : (
                           <div className="divide-y divide-border">
                               {top10.map((item, idx) => (
@@ -547,7 +589,7 @@ function FinancesPanel() {
                                       </div>
                                       <div className="text-right">
                                           <div className="font-black text-primary">{item.qty} un.</div>
-                                          <div className="text-xs text-muted-foreground">{brl(item.revenue)}</div>
+                                          <div className="text-xs font-semibold text-muted-foreground">{brl(item.revenue)}</div>
                                       </div>
                                   </div>
                               ))}
@@ -598,12 +640,12 @@ function CategoriesPanel() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={add} className="flex gap-2 rounded-xl border border-border bg-card p-4">
+      <form onSubmit={add} className="flex gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" />
-        <Button type="submit" className="rounded-full"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
+        <Button type="submit" className="rounded-full shadow-sm"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
-      <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-        {cats.length === 0 && <li className="p-6 text-center text-muted-foreground">Nenhuma categoria ainda.</li>}
+      <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
+        {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium">Nenhuma categoria ainda.</li>}
         {cats.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-3 p-4">
             <span className="font-semibold">{c.name}</span>
@@ -662,20 +704,20 @@ function ProductsPanel() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar produto…"
-            className="pl-9"
+            className="pl-9 shadow-sm"
           />
         </div>
-        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full">
+        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm">
           <Plus className="mr-1 h-4 w-4" /> Novo produto
         </Button>
       </div>
 
       {prods.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold">
           Nenhum produto ainda. Adicione o primeiro!
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold">
           Nenhum produto encontrado para "{search}".
         </div>
       ) : (
@@ -689,7 +731,7 @@ function ProductsPanel() {
               <div
                 key={p.id}
                 className={
-                  "relative flex gap-3 rounded-xl border bg-card p-3 transition " +
+                  "relative flex gap-3 rounded-xl border bg-card p-3 shadow-sm transition " +
                   (hasIssue ? "border-destructive/60 ring-2 ring-destructive/30 bg-destructive/5" : "border-border")
                 }
               >
@@ -698,7 +740,7 @@ function ProductsPanel() {
                 </div>
                 <div className={"flex flex-1 flex-col " + (hasIssue ? "opacity-60" : "")}>
                   <div className="font-bold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
+                  <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
                   {(isInactive || outOfStock) && (
                     <div className="mt-0.5">
                       <span className="inline-block rounded-full bg-destructive px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-destructive-foreground">
@@ -709,17 +751,17 @@ function ProductsPanel() {
                   <div className="text-sm mt-1">
                     {promo ? (
                       <>
-                        <span className="text-muted-foreground line-through mr-1">{brl(Number(p.price))}</span>
+                        <span className="text-muted-foreground font-semibold line-through mr-1">{brl(Number(p.price))}</span>
                         <span className="text-primary font-black">{brl(Number(p.sale_price))}</span>
-                        <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black uppercase text-accent-foreground">Promo</span>
+                        <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-accent-foreground">Promo</span>
                       </>
                     ) : (
                       <span className="text-primary font-black">{brl(Number(p.price))}</span>
                     )}
                   </div>
                   <div className="mt-auto flex items-center justify-end gap-1 text-xs">
-                      <button onClick={() => { setEditing(p); setShowForm(true); }} className="rounded-full p-1.5 hover:bg-secondary"><Pencil className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => del(p)} className="rounded-full p-1.5 hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
+                      <button onClick={() => { setEditing(p); setShowForm(true); }} className="rounded-full p-1.5 hover:bg-secondary transition"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => del(p)} className="rounded-full p-1.5 hover:bg-destructive/10 transition"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
                   </div>
                 </div>
               </div>
@@ -835,7 +877,7 @@ function ProductForm({
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h3 className="font-display text-xl font-black">{product ? "Editar" : "Novo"} produto</h3>
-          <button type="button" onClick={onClose} className="text-sm text-muted-foreground">Fechar</button>
+          <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground">Fechar</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -843,10 +885,10 @@ function ProductForm({
           <div className="sm:col-span-2">
             <Label>Foto</Label>
             <div className="mt-1 flex items-center gap-3">
-              <div className="h-24 w-24 overflow-hidden rounded-lg border border-border bg-secondary">
+              <div className="h-24 w-24 overflow-hidden rounded-lg border border-border bg-secondary shadow-sm">
                 {imageUrl && <img src={imageUrl} className="h-full w-full object-cover" alt="" />}
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
                 <Upload className="h-4 w-4" />
                 {uploading ? "Enviando…" : "Enviar imagem"}
                 <input
@@ -870,7 +912,7 @@ function ProductForm({
           <div>
             <Label>Categoria</Label>
             <select
-              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-medium"
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
             >
@@ -887,7 +929,7 @@ function ProductForm({
             <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
           </div>
           <div>
-            <Label>Preço promocional (R$) <span className="text-xs text-muted-foreground">opcional</span></Label>
+            <Label>Preço promocional (R$) <span className="text-xs font-semibold text-muted-foreground">opcional</span></Label>
             <Input type="number" step="0.01" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="deixe vazio se sem promoção" />
           </div>
           <div>
@@ -898,10 +940,10 @@ function ProductForm({
             <Label>Limite por carrinho</Label>
             <Input type="number" min={1} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 sm:col-span-2">
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2">
             <div>
               <div className="font-semibold">Exibir na Loja (Ativo)</div>
-              <div className="text-xs text-muted-foreground">Desative para ocultar o produto completamente sem excluí-lo.</div>
+              <div className="text-xs font-semibold text-muted-foreground">Desative para ocultar o produto completamente sem excluí-lo.</div>
             </div>
             <Switch checked={inStock} onCheckedChange={setInStock} />
           </div>
@@ -909,8 +951,8 @@ function ProductForm({
         </div>
 
         <div className="flex justify-end gap-2 border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <Button type="button" variant="outline" onClick={onClose} className="rounded-full">Cancelar</Button>
-          <Button type="submit" disabled={saving} className="rounded-full">
+          <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
+          <Button type="submit" disabled={saving} className="rounded-full shadow-sm">
             {saving ? "Salvando…" : "Salvar"}
           </Button>
         </div>
@@ -960,26 +1002,26 @@ function AdminsPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm font-medium text-muted-foreground">
           <ShieldAlert className="mr-1 inline h-4 w-4" />
           O usuário <code className="rounded bg-secondary px-1.5 py-0.5">admin</code> é fixo e não pode ser excluído nem renomeado.
         </p>
-        <Button onClick={() => setShowCreate(true)} className="rounded-full">
+        <Button onClick={() => setShowCreate(true)} className="rounded-full shadow-sm">
           <UserPlus className="mr-1 h-4 w-4" /> Novo administrador
         </Button>
       </div>
 
-      <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-        {loading && <li className="p-6 text-center text-muted-foreground">Carregando…</li>}
-        {!loading && admins.length === 0 && <li className="p-6 text-center text-muted-foreground">Nenhum administrador.</li>}
+      <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
+        {loading && <li className="p-6 text-center text-muted-foreground font-semibold">Carregando…</li>}
+        {!loading && admins.length === 0 && <li className="p-6 text-center text-muted-foreground font-semibold">Nenhum administrador.</li>}
         {admins.map((a) => (
           <li key={a.id} className="flex items-center justify-between gap-3 p-4">
             <div>
               <div className="font-semibold flex items-center gap-2">
                 {a.username}
-                {a.fixed && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase text-primary">Fixo</span>}
+                {a.fixed && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">Fixo</span>}
               </div>
-              <div className="text-xs text-muted-foreground">{a.email}</div>
+              <div className="text-xs font-semibold text-muted-foreground">{a.email}</div>
             </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" onClick={() => setEditing(a)} title="Editar"><Pencil className="h-4 w-4" /></Button>
@@ -1087,7 +1129,7 @@ function AdminFormModal({
       <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-xl font-black">{title}</h3>
-          <button type="button" onClick={onClose} className="text-sm text-muted-foreground">Fechar</button>
+          <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground">Fechar</button>
         </div>
         <div>
           <Label htmlFor="au">Usuário</Label>
@@ -1099,7 +1141,7 @@ function AdminFormModal({
             disabled={isEdit && editing?.fixed}
           />
           {isEdit && editing?.fixed && (
-            <p className="mt-1 text-xs text-muted-foreground">Esse usuário é fixo — não pode renomear.</p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">Esse usuário é fixo — não pode renomear.</p>
           )}
         </div>
         <div>
@@ -1116,20 +1158,20 @@ function AdminFormModal({
             <button
               type="button"
               onClick={() => setShowPass((v) => !v)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xs font-bold text-muted-foreground hover:bg-secondary"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xs font-bold text-muted-foreground hover:bg-secondary transition"
             >
               {showPass ? "Ocultar" : "Mostrar"}
             </button>
           </div>
           {isEdit && (
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">
               Senha atual exibida acima. Edite para alterar.
             </p>
           )}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose} className="rounded-full">Cancelar</Button>
-          <Button type="submit" disabled={loading} className="rounded-full">
+          <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
+          <Button type="submit" disabled={loading} className="rounded-full shadow-sm">
             {loading ? "Salvando…" : "Salvar"}
           </Button>
         </div>
@@ -1142,20 +1184,25 @@ function AdminFormModal({
 function SettingsPanel() {
   const [number, setNumber] = useState("");
   const [catalogName, setCatalogName] = useState("");
+  const [theme, setTheme] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingNumber, setSavingNumber] = useState(false);
   const [savingName, setSavingName] = useState(false);
+  const [savingTheme, setSavingTheme] = useState(false);
   
   const saveNumberFn = useServerFn(updateWhatsAppNumber);
   const saveNameFn = useServerFn(updateCatalogName);
+  const saveThemeFn = useServerFn(updateSystemTheme);
 
   useEffect(() => {
     Promise.all([
       supabase.from("app_settings").select("value").eq("key", "whatsapp_number").maybeSingle(),
-      supabase.from("app_settings").select("value").eq("key", "catalog_name").maybeSingle()
-    ]).then(([waRes, catRes]) => {
+      supabase.from("app_settings").select("value").eq("key", "catalog_name").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "system_theme").maybeSingle()
+    ]).then(([waRes, catRes, themeRes]) => {
       setNumber(waRes.data?.value ?? DEFAULT_WHATSAPP_NUMBER);
       setCatalogName(catRes.data?.value ?? "Catálogo de Produtos");
+      setTheme(themeRes.data?.value ?? "strong-gray");
       setLoading(false);
     });
   }, []);
@@ -1189,15 +1236,75 @@ function SettingsPanel() {
     }
   }
 
-  if (loading) return <p className="text-muted-foreground">Carregando…</p>;
+  async function submitTheme(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingTheme(true);
+    try {
+      const res = await saveThemeFn({ data: { theme } });
+      setTheme(res.theme);
+      applyTheme(res.theme);
+      toast.success("Cores do sistema atualizadas");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    } finally {
+      setSavingTheme(false);
+    }
+  }
+
+  if (loading) return <p className="text-muted-foreground font-semibold">Carregando…</p>;
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="font-display text-lg font-black flex items-center gap-2">
+          <Palette className="h-5 w-5 text-primary" /> Cores do Sistema
+        </h3>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          Personalize a aparência do seu catálogo. As alterações são aplicadas instantaneamente após salvar.
+        </p>
+
+        <form onSubmit={submitTheme} className="mt-4 space-y-6">
+          <div>
+            <Label className="mb-3 block text-xs font-black text-muted-foreground uppercase tracking-wider">Tons Pastéis</Label>
+            <div className="flex flex-wrap gap-3">
+              {SYSTEM_THEMES.filter((t) => t.group === "pastel").map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { setTheme(t.id); applyTheme(t.id); }}
+                  className={`h-10 w-10 rounded-full border-4 transition-all hover:scale-110 ${theme === t.id ? "border-foreground scale-110 shadow-md" : "border-transparent shadow-sm"}`}
+                  style={{ backgroundColor: t.primary }}
+                  title={t.name}
+                />
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label className="mb-3 block text-xs font-black text-muted-foreground uppercase tracking-wider">Tons Fortes</Label>
+            <div className="flex flex-wrap gap-3">
+              {SYSTEM_THEMES.filter((t) => t.group === "strong").map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { setTheme(t.id); applyTheme(t.id); }}
+                  className={`h-10 w-10 rounded-full border-4 transition-all hover:scale-110 ${theme === t.id ? "border-foreground scale-110 shadow-md" : "border-transparent shadow-sm"}`}
+                  style={{ backgroundColor: t.primary }}
+                  title={t.name}
+                />
+              ))}
+            </div>
+          </div>
+          <Button type="submit" disabled={savingTheme} className="rounded-full shadow-sm">
+            {savingTheme ? "Salvando…" : "Salvar Cores"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
           <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo
         </h3>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
         </p>
         <form onSubmit={submitName} className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -1207,17 +1314,17 @@ function SettingsPanel() {
             placeholder="ex: Catálogo de Produtos"
             className="flex-1"
           />
-          <Button type="submit" disabled={savingName} className="rounded-full">
+          <Button type="submit" disabled={savingName} className="rounded-full shadow-sm">
             {savingName ? "Salvando…" : "Salvar"}
           </Button>
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
           <Phone className="h-5 w-5 text-primary" /> Número do WhatsApp
         </h3>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o número que receberá os pedidos do site e o botão flutuante.
         </p>
         <form onSubmit={submitNumber} className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -1227,11 +1334,11 @@ function SettingsPanel() {
             placeholder="ex: 5545984311918"
             className="flex-1"
           />
-          <Button type="submit" disabled={savingNumber} className="rounded-full">
+          <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm">
             {savingNumber ? "Salvando…" : "Salvar"}
           </Button>
         </form>
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-2 text-xs font-semibold text-muted-foreground">
           Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545984311918</code>
         </p>
       </div>

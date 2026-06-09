@@ -32,6 +32,42 @@ type Product = {
 };
 type Category = { id: string; name: string; sort_order: number };
 
+export const SYSTEM_THEMES = [
+  // Fortes
+  { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
+  { id: "strong-blue", name: "Azul Forte", group: "strong", primary: "#1D4ED8", primaryFg: "#FFFFFF", secondary: "#EFF6FF", accent: "#DBEAFE" },
+  { id: "strong-red", name: "Vermelho Forte", group: "strong", primary: "#B91C1C", primaryFg: "#FFFFFF", secondary: "#FEF2F2", accent: "#FEE2E2" },
+  { id: "strong-green", name: "Verde Forte", group: "strong", primary: "#15803D", primaryFg: "#FFFFFF", secondary: "#F0FDF4", accent: "#DCFCE7" },
+  { id: "strong-orange", name: "Laranja Forte", group: "strong", primary: "#C2410C", primaryFg: "#FFFFFF", secondary: "#FFF7ED", accent: "#FFEDD5" },
+  { id: "strong-purple", name: "Roxo Forte", group: "strong", primary: "#6D28D9", primaryFg: "#FFFFFF", secondary: "#FAF5FF", accent: "#F3E8FF" },
+  { id: "strong-pink", name: "Rosa Forte", group: "strong", primary: "#BE185D", primaryFg: "#FFFFFF", secondary: "#FDF2F8", accent: "#FCE7F3" },
+  { id: "strong-black", name: "Preto", group: "strong", primary: "#000000", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
+  { id: "strong-teal", name: "Azul Petróleo", group: "strong", primary: "#0F766E", primaryFg: "#FFFFFF", secondary: "#F0FDFA", accent: "#CCFBF1" },
+  { id: "strong-brown", name: "Marrom Forte", group: "strong", primary: "#78350F", primaryFg: "#FFFFFF", secondary: "#FEF3C7", accent: "#FFEDD5" },
+
+  // Pastéis
+  { id: "pastel-blue", name: "Azul Pastel", group: "pastel", primary: "#BFDBFE", primaryFg: "#1E3A8A", secondary: "#EFF6FF", accent: "#DBEAFE" },
+  { id: "pastel-pink", name: "Rosa Pastel", group: "pastel", primary: "#FBCFE8", primaryFg: "#831843", secondary: "#FDF2F8", accent: "#FCE7F3" },
+  { id: "pastel-green", name: "Verde Pastel", group: "pastel", primary: "#BBF7D0", primaryFg: "#14532D", secondary: "#F0FDF4", accent: "#DCFCE7" },
+  { id: "pastel-yellow", name: "Amarelo Pastel", group: "pastel", primary: "#FEF08A", primaryFg: "#713F12", secondary: "#FEFCE8", accent: "#FEF9C3" },
+  { id: "pastel-orange", name: "Laranja Pastel", group: "pastel", primary: "#FED7AA", primaryFg: "#7C2D12", secondary: "#FFF7ED", accent: "#FFEDD5" },
+  { id: "pastel-purple", name: "Roxo Pastel", group: "pastel", primary: "#E9D5FF", primaryFg: "#4C1D95", secondary: "#FAF5FF", accent: "#F3E8FF" },
+  { id: "pastel-teal", name: "Ciano Pastel", group: "pastel", primary: "#99F6E4", primaryFg: "#134E4A", secondary: "#F0FDFA", accent: "#CCFBF1" },
+  { id: "pastel-peach", name: "Pêssego Pastel", group: "pastel", primary: "#FFDCD1", primaryFg: "#7A2B14", secondary: "#FFFBF9", accent: "#FFEFEA" },
+  { id: "pastel-gray", name: "Cinza Pastel", group: "pastel", primary: "#E5E7EB", primaryFg: "#1F2937", secondary: "#F9FAFB", accent: "#F3F4F6" },
+  { id: "pastel-beige", name: "Bege Pastel", group: "pastel", primary: "#E5E5CA", primaryFg: "#3B3B24", secondary: "#FCFCF9", accent: "#F4F4EB" }
+];
+
+export function applyTheme(themeId: string) {
+  const t = SYSTEM_THEMES.find(x => x.id === themeId) || SYSTEM_THEMES.find(x => x.id === "strong-gray")!;
+  const root = document.documentElement;
+  root.style.setProperty('--primary', t.primary);
+  root.style.setProperty('--primary-foreground', t.primaryFg);
+  root.style.setProperty('--secondary', t.secondary);
+  root.style.setProperty('--accent', t.accent);
+  root.style.setProperty('--ring', t.primary);
+}
+
 function effectivePrice(p: Pick<Product, "price" | "sale_price">) {
   const sale = p.sale_price != null ? Number(p.sale_price) : null;
   const price = Number(p.price);
@@ -67,14 +103,20 @@ function Index() {
             "id, name, description, price, sale_price, in_stock, stock, max_per_cart, sort_order, category_id, image_url, created_at, updated_at",
           )
           .order("sort_order"),
-        supabase.from("app_settings").select("value").eq("key", "catalog_name").maybeSingle(),
+        supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme"]),
       ]);
       if (c.error || p.error) {
         setLoadError(c.error?.message ?? p.error?.message ?? "Erro ao carregar catálogo");
       }
       setCats(c.data ?? []);
       setProds((p.data ?? []) as Product[]);
-      if (s.data?.value) setCatalogName(s.data.value);
+      
+      const settingsMap = new Map(s.data?.map(x => [x.key, x.value]) || []);
+      if (settingsMap.has("catalog_name")) setCatalogName(settingsMap.get("catalog_name")!);
+      
+      const themeId = settingsMap.get("system_theme") || "strong-gray";
+      applyTheme(themeId);
+      
       setLoading(false);
     })();
   }, []);
@@ -184,14 +226,14 @@ function Index() {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase shadow-sm">
               {catalogName.charAt(0)}
             </div>
             <div className="leading-tight">
               <div className="font-display text-xl font-black text-foreground sm:text-2xl">
                 {catalogName}
               </div>
-              <div className="text-xs text-muted-foreground">Catálogo de produtos</div>
+              <div className="text-xs text-muted-foreground font-semibold">Catálogo de produtos</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -205,7 +247,7 @@ function Index() {
             </Link>
             <button
               onClick={() => setCartOpen(true)}
-              className="relative inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition hover:opacity-90"
+              className="relative inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:opacity-90"
             >
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Carrinho</span>
@@ -263,7 +305,7 @@ function Index() {
             </div>
             <button
               type="submit"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-black text-primary-foreground transition hover:opacity-90"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-black text-primary-foreground shadow-sm transition hover:opacity-90"
             >
               Buscar
             </button>
@@ -285,7 +327,7 @@ function Index() {
       {/* Products */}
       <main className="mx-auto max-w-7xl px-4 py-8">
         {loading ? (
-          <p className="text-muted-foreground">Carregando catálogo…</p>
+          <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
         ) : loadError ? (
           <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
             <p className="text-lg font-semibold text-destructive">Não foi possível carregar o catálogo.</p>
@@ -325,7 +367,7 @@ function Index() {
       </main>
 
       <footer className="mt-10 border-t border-border/60 bg-secondary/40">
-        <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm text-muted-foreground">
+        <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
       </footer>
@@ -350,7 +392,7 @@ function CatChip({ active, onClick, children }: { active: boolean; onClick: () =
     <button
       onClick={onClick}
       className={
-        "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition " +
+        "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition shadow-sm " +
         (active ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/70")
       }
     >
@@ -373,7 +415,7 @@ function PriceBlock({ p, big = false }: { p: Product; big?: boolean }) {
   if (promo) {
     return (
       <div className="flex flex-wrap items-baseline gap-2">
-        <span className={(big ? "text-base" : "text-xs") + " text-muted-foreground line-through"}>
+        <span className={(big ? "text-base" : "text-xs") + " text-muted-foreground line-through font-semibold"}>
           {brl(Number(p.price))}
         </span>
         <span className={(big ? "text-3xl" : "text-xl") + " font-black text-primary"}>
@@ -414,7 +456,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
           </div>
         )}
         {outOfStock && (
-          <span className="absolute left-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground z-10">
+          <span className="absolute left-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground z-10 shadow-sm">
             Sem estoque
           </span>
         )}
@@ -431,20 +473,20 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
               type="button"
               disabled={outOfStock}
               onClick={addToCart}
-              className="h-10 text-xs w-full rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="h-10 text-xs w-full rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 shadow-sm"
             >
               {outOfStock ? "Esgotado" : "Adicionar"}
             </Button>
           ) : (
             <div className="flex items-center justify-between gap-1 rounded-full bg-secondary p-1">
-              <button onClick={() => cart.setQty(p.id, qty - 1)} className="h-8 w-8 flex items-center justify-center rounded-full bg-background text-foreground hover:bg-background/70" aria-label="Diminuir">
+              <button onClick={() => cart.setQty(p.id, qty - 1)} className="h-8 w-8 flex items-center justify-center rounded-full bg-background text-foreground hover:bg-background/70 shadow-sm" aria-label="Diminuir">
                 <Minus className="h-4 w-4" />
               </button>
               <span className="font-black">{qty}</span>
               <button
                 disabled={reachedMax}
                 onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40"
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 shadow-sm"
                 aria-label="Aumentar"
               >
                 <Plus className="h-4 w-4" />
@@ -494,7 +536,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
               </div>
             )}
             {outOfStock && (
-              <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground">
+              <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground shadow-sm">
                 Sem estoque
               </span>
             )}
@@ -502,7 +544,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
           <div className="flex flex-col gap-4 p-6">
             <div>
               <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl">{p.name}</h2>
-              {p.description && <p className="mt-2 text-sm text-muted-foreground">{p.description}</p>}
+              {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground">{p.description}</p>}
             </div>
             <PriceBlock p={p} big />
             <div className="mt-auto">
@@ -511,20 +553,20 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
                   type="button"
                   disabled={outOfStock}
                   onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                  className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
                 >
                   {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
                 </Button>
               ) : (
                 <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
-                  <button onClick={() => cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background hover:bg-background/70" aria-label="Diminuir">
+                  <button onClick={() => cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
                     <Minus className="h-4 w-4" />
                   </button>
                   <span className="text-lg font-black">{qty} no carrinho</span>
                   <button
                     disabled={reachedMax}
                     onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-40"
                     aria-label="Aumentar"
                   >
                     <Plus className="h-4 w-4" />
@@ -532,7 +574,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
                 </div>
               )}
               {reachedMax && !outOfStock && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">
+                <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
                   Lembrete: Limite de {currentMax} unidades atingido.
                 </p>
               )}
@@ -587,7 +629,7 @@ function CartDrawer({
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {items.length === 0 ? (
-            <p className="mt-10 text-center text-muted-foreground">
+            <p className="mt-10 text-center text-muted-foreground font-medium">
               Seu carrinho está vazio. Adicione produtos no catálogo!
             </p>
           ) : (
@@ -597,10 +639,10 @@ function CartDrawer({
                 const currentMax = p ? Math.min(p.max_per_cart, p.stock) : i.max;
 
                 return (
-                  <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                  <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
                     <div className="flex-1">
                       <div className="font-bold leading-tight">{i.name}</div>
-                      <div className="text-sm text-muted-foreground">{brl(i.price)} cada</div>
+                      <div className="text-sm font-semibold text-muted-foreground">{brl(i.price)} cada</div>
                     </div>
                     <div className="flex items-center gap-1 rounded-full bg-secondary px-1">
                       <button onClick={() => cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
@@ -626,13 +668,13 @@ function CartDrawer({
         </div>
         <footer className="border-t border-border p-5">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-bold text-muted-foreground">Total</span>
+            <span className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Total</span>
             <span className="font-display text-2xl font-black text-primary">{brl(total)}</span>
           </div>
           <Button
             disabled={!items.length || checkoutLoading}
             onClick={onFinalize}
-            className="w-full rounded-full bg-whatsapp py-6 text-base font-black text-whatsapp-foreground hover:opacity-90 disabled:opacity-70"
+            className="w-full rounded-full bg-whatsapp py-6 text-base font-black text-whatsapp-foreground shadow-sm hover:opacity-90 disabled:opacity-70"
           >
             {checkoutLoading ? "Processando..." : "Finalizar pelo WhatsApp"}
           </Button>
