@@ -43,7 +43,7 @@ export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async 
   const { data: sentinel } = await supabaseAdmin
     .from("app_settings")
     .select("value")
-    .eq("key", "admin_seeded_v3")
+    .eq("key", "admin_seeded_v4")
     .maybeSingle();
 
   if (sentinel?.value === "true") return { ok: true, skipped: true };
@@ -77,7 +77,7 @@ export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async 
 
   await supabaseAdmin
     .from("app_settings")
-    .upsert({ key: "admin_seeded_v3", value: "true" }, { onConflict: "key" });
+    .upsert({ key: "admin_seeded_v4", value: "true" }, { onConflict: "key" });
 
   await storePassword(userId, FIXED_ADMIN_PASSWORD);
 
