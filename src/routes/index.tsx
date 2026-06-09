@@ -97,7 +97,6 @@ function Index() {
       const [sessionRes, c, p, s] = await Promise.all([
         supabase.auth.getSession(),
         supabase.from("categories").select("*").order("sort_order"),
-        // AQUI ESTÁ A CHAVE DE SEGURANÇA! Trocamos o .from("products") pela nossa função RPC
         // @ts-ignore
         supabase.rpc("get_catalog_secure", { p_code: savedCode }),
         supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode"]),
@@ -125,6 +124,8 @@ function Index() {
       if (p.error) {
          if (p.error.message.includes("ACCESS_DENIED")) {
              setAccessDenied(true);
+             // Limpa a senha inválida do navegador imediatamente
+             localStorage.removeItem("vip_code");
          } else {
              setLoadError(p.error.message ?? "Erro ao carregar catálogo");
          }
@@ -149,6 +150,7 @@ function Index() {
     if (p.error) {
       if (p.error.message.includes("ACCESS_DENIED")) {
         toast.error("Senha inválida ou revogada.", { description: "Peça uma senha válida ao proprietário." });
+        localStorage.removeItem("vip_code"); // Garante que não salve senha errada
       } else {
         toast.error("Erro ao verificar senha.");
       }
@@ -156,6 +158,7 @@ function Index() {
       localStorage.setItem("vip_code", code);
       setProds((p.data ?? []) as Product[]);
       setAccessDenied(false);
+      setVipCodeInput(""); // Limpa o campo para o futuro
       toast.success("Acesso liberado com sucesso!");
     }
   }
@@ -163,7 +166,7 @@ function Index() {
   const filtered = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase("pt-BR");
     return prods.filter((p) => {
-      if (!p.in_stock) return false; // Produto completamente oculto da loja
+      if (!p.in_stock) return false; 
       const matchesCat = activeCat === "all" || p.category_id === activeCat;
       const searchable = `${p.name} ${p.description ?? ""}`.toLocaleLowerCase("pt-BR");
       const matchesSearch = !query || searchable.includes(query);
@@ -178,19 +181,23 @@ function Index() {
     if (!items.length) return;
     setCheckoutLoading(true);
 
-    // 1. Puxa os produtos atualizados do banco usando a rota segura
+    // Puxa os produtos atualizados do banco usando a rota segura
     // @ts-ignore
     const { data: currentProducts, error: checkError } = await supabase.rpc("get_catalog_secure", { p_code: localStorage.getItem("vip_code") || "" });
 
+    // Se der erro aqui, a senha expirou/foi revogada no meio da compra
     if (checkError || !currentProducts) {
-      toast.error("Erro ao verificar a disponibilidade. Sua senha pode ter expirado.");
+      toast.error("Sua sessão expirou ou a senha foi revogada.", { description: "Solicite uma nova senha para continuar comprando." });
       setCheckoutLoading(false);
+      setCartOpen(false); // Fecha o carrinho
+      setAccessDenied(true); // Joga a tela de bloqueio
+      localStorage.removeItem("vip_code"); // Limpa a senha revogada
       return;
     }
 
     const currentProductMap = new Map((currentProducts as Product[]).map(p => [p.id, p]));
     
-    // 2. Filtra o carrinho mantendo apenas itens que AINDA existem no banco de dados
+    // Filtra o carrinho mantendo apenas itens que AINDA existem no banco de dados
     const validItems = items.filter(i => currentProductMap.has(i.id));
 
     if (validItems.length === 0) {
@@ -205,7 +212,7 @@ function Index() {
       toast.info("Alguns itens foram removidos do seu pedido pois não estão mais disponíveis.");
     }
 
-    // 3. Recalcula o total ignorando os itens removidos
+    // Recalcula o total ignorando os itens removidos
     const newTotal = validItems.reduce((s, i) => s + i.price * i.qty, 0);
 
     const itemsJson = validItems.map((i) => {
@@ -259,7 +266,7 @@ function Index() {
     <div className="min-h-screen bg-background relative overflow-hidden">
       <Toaster position="top-center" richColors />
       
-      {/* FAIXA DO ADMIN: Aviso visual de que o site está trancado para os outros */}
+      {/* FAIXA DO ADMIN */}
       {isAdmin && isPrivateModeActive && (
         <div className="bg-yellow-500 text-yellow-950 px-4 py-1.5 text-center text-xs font-black uppercase tracking-wide flex items-center justify-center gap-2 relative z-50">
           <span>👁️ Visualizando como Admin</span>
@@ -292,11 +299,16 @@ function Index() {
             </Link>
             <button
               onClick={() => setCartOpen(true)}
-              className="relative inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:opacity-90"
+              disabled={accessDenied}
+              className={`relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-sm transition ${
+                accessDenied
+                  ? "bg-secondary text-muted-foreground opacity-60 cursor-not-allowed"
+                  : "bg-primary text-primary-foreground hover:opacity-90"
+              }`}
             >
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Carrinho</span>
-              {itemCount > 0 && (
+              {!accessDenied && itemCount > 0 && (
                 <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-black text-accent-foreground">
                   {itemCount}
                 </span>
@@ -306,7 +318,7 @@ function Index() {
         </div>
       </header>
 
-      {/* A MÁGICA ACONTECE AQUI: A TELA DE BLOQUEIO */}
+      {/* TELA DE BLOQUEIO */}
       {accessDenied ? (
         <main className="relative mx-auto max-w-7xl px-4 py-20 flex flex-col items-center justify-center min-h-[70vh] z-10">
            <div className="bg-card w-full max-w-md p-8 rounded-3xl shadow-2xl border border-border text-center relative z-20">
@@ -449,7 +461,8 @@ function Index() {
         </div>
       </footer>
 
-      {cartOpen && (
+      {/* Componentes removidos do DOM quando o acesso é negado */}
+      {!accessDenied && cartOpen && (
         <CartDrawer 
           onClose={() => setCartOpen(false)} 
           total={total} 
@@ -458,8 +471,8 @@ function Index() {
           prods={prods}
         />
       )}
-      {detail && <ProductDetail p={detail} onClose={() => setDetail(null)} />}
-      <WhatsAppFloat />
+      {!accessDenied && detail && <ProductDetail p={detail} onClose={() => setDetail(null)} />}
+      {!accessDenied && <WhatsAppFloat />}
     </div>
   );
 }
