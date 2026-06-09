@@ -135,7 +135,7 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     const user = email.trim();
-    const fullEmail = user.includes("@") ? user : `${user}@banquinha.local`;
+    const fullEmail = user.includes("@") ? user : `${user}@catalogo.local`;
     const { error } = await supabase.auth.signInWithPassword({ email: fullEmail, password });
     setLoading(false);
     if (error) toast.error("Login inválido", { description: error.message });
