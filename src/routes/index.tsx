@@ -355,7 +355,7 @@ function Index() {
 
       <footer className="mt-10 border-t border-border/60 bg-secondary/40">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
-          © {new Date().getFullYear()} Catálogo de Produtos — Feito com 💛
+          © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
       </footer>
 
