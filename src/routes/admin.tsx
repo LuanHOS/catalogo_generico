@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Banca da Pamela" }] }),
@@ -343,7 +343,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
       onClose();
   };
 
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredProducts = products.filter(p => p.in_stock && p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
@@ -431,7 +431,7 @@ function FinancesPanel() {
               .eq("status", "completed")
               .gte("created_at", `${startDate}T00:00:00Z`)
               .lte("created_at", `${endDate}T23:59:59Z`),
-          supabase.from("products").select("id, name, cost")
+          supabase.from("products").select("id, name, cost, stock")
       ]).then(([ordersRes, prodsRes]) => {
           setOrders(ordersRes.data || []);
           setProducts(prodsRes.data as Product[] || []);
@@ -466,6 +466,9 @@ function FinancesPanel() {
   const netProfit = totalEarned - totalCosts;
   const totalItems = Object.values(itemStats).reduce((acc, item) => acc + item.qty, 0);
   const top10 = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 10);
+
+  const totalRegisteredProducts = products.length;
+  const totalStockUnits = products.reduce((acc, p) => acc + (Number(p.stock) || 0), 0);
 
   return (
       <div className="space-y-6">
@@ -505,6 +508,23 @@ function FinancesPanel() {
                           </div>
                           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Produtos Vendidos</h3>
                           <p className="text-2xl font-black mt-1 text-foreground">{totalItems}</p>
+                      </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                          <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
+                              <Layers className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Produtos Cadastrados</h3>
+                          <p className="text-2xl font-black mt-1 text-foreground">{totalRegisteredProducts}</p>
+                      </div>
+                      <div className="border border-border bg-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                          <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-3">
+                              <Package className="h-6 w-6 text-orange-600" />
+                          </div>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Quantidade em Estoque</h3>
+                          <p className="text-2xl font-black mt-1 text-foreground">{totalStockUnits}</p>
                       </div>
                   </div>
 
@@ -660,26 +680,28 @@ function ProductsPanel() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
-            const out = !p.in_stock || p.stock <= 0;
+            const isInactive = !p.in_stock;
+            const outOfStock = p.in_stock && p.stock <= 0;
+            const hasIssue = isInactive || outOfStock;
             const promo = p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price);
             return (
               <div
                 key={p.id}
                 className={
                   "relative flex gap-3 rounded-xl border bg-card p-3 transition " +
-                  (out ? "border-destructive/60 ring-2 ring-destructive/30 bg-destructive/5" : "border-border")
+                  (hasIssue ? "border-destructive/60 ring-2 ring-destructive/30 bg-destructive/5" : "border-border")
                 }
               >
-                <div className={"h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary " + (out ? "opacity-40" : "")}>
+                <div className={"h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary " + (hasIssue ? "opacity-40" : "")}>
                   {p.image_url && <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />}
                 </div>
-                <div className={"flex flex-1 flex-col " + (out ? "opacity-60" : "")}>
+                <div className={"flex flex-1 flex-col " + (hasIssue ? "opacity-60" : "")}>
                   <div className="font-bold">{p.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
-                  {out && (
+                  {(isInactive || outOfStock) && (
                     <div className="mt-0.5">
                       <span className="inline-block rounded-full bg-destructive px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-destructive-foreground">
-                        Sem estoque
+                        {isInactive ? "Inativo" : "Sem estoque"}
                       </span>
                     </div>
                   )}

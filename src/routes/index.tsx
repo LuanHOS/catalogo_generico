@@ -94,11 +94,42 @@ function Index() {
     if (!items.length) return;
     setCheckoutLoading(true);
 
-    const itemsJson = items.map((i) => {
-      const p = prods.find((prod) => prod.id === i.id);
+    // 1. Puxa os produtos atualizados do banco para garantir que não foram excluídos
+    const { data: currentProducts, error: checkError } = await supabase
+      .from("products")
+      .select("id, name, category_id, price, sale_price");
+
+    if (checkError || !currentProducts) {
+      toast.error("Erro ao verificar a disponibilidade dos produtos.");
+      setCheckoutLoading(false);
+      return;
+    }
+
+    const currentProductMap = new Map(currentProducts.map(p => [p.id, p]));
+    
+    // 2. Filtra o carrinho mantendo apenas itens que AINDA existem no banco de dados
+    const validItems = items.filter(i => currentProductMap.has(i.id));
+
+    if (validItems.length === 0) {
+      toast.error("Os produtos do seu carrinho não estão mais disponíveis no catálogo.");
+      setCheckoutLoading(false);
+      cart.clear();
+      setCartOpen(false);
+      return;
+    }
+
+    if (validItems.length < items.length) {
+      toast.info("Alguns itens foram removidos do seu pedido pois não estão mais disponíveis.");
+    }
+
+    // 3. Recalcula o total ignorando os itens removidos
+    const newTotal = validItems.reduce((s, i) => s + i.price * i.qty, 0);
+
+    const itemsJson = validItems.map((i) => {
+      const p = currentProductMap.get(i.id);
       return {
         id: i.id,
-        name: i.name,
+        name: p?.name || i.name,
         price: i.price,
         quantity: i.qty,
         category_id: p?.category_id || null,
@@ -106,7 +137,7 @@ function Index() {
     });
 
     const { data: orderId, error } = await supabase.rpc("checkout_order", {
-      order_total: total,
+      order_total: newTotal,
       order_items: itemsJson,
     });
 
@@ -122,12 +153,12 @@ function Index() {
     const lines = [
       `*Pedido #${orderHash} — Banca da Pamela*`,
       "",
-      ...items.map((i, idx) => {
+      ...validItems.map((i, idx) => {
         const sub = i.price * i.qty;
         return `${idx + 1}. *${i.name}*\n   ${i.qty} × ${brl(i.price)} = *${brl(sub)}*`;
       }),
       "",
-      `*Total: ${brl(total)}*`,
+      `*Total: ${brl(newTotal)}*`,
     ];
     window.open(whatsappLink(lines.join("\n"), whatsNumber), "_blank");
     
