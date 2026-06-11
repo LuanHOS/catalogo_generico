@@ -81,6 +81,7 @@ function usernameFromEmail(email: string) {
 function AdminPage() {
   const [session, setSession] = useState<{ userId: string; email: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isMaster, setIsMaster] = useState<boolean>(false);
   const [checking, setChecking] = useState(true);
   const seed = useServerFn(ensureSeedAdmin);
 
@@ -97,14 +98,17 @@ function AdminPage() {
   }, [seed]);
 
   useEffect(() => {
-    if (!session) { setIsAdmin(null); return; }
+    if (!session) { setIsAdmin(null); setIsMaster(false); return; }
     supabase
       .from("user_roles")
-      .select("role")
+      .select("role, is_master")
       .eq("user_id", session.userId)
       .eq("role", "admin")
       .maybeSingle()
-      .then(({ data }) => setIsAdmin(!!data));
+      .then(({ data }) => {
+        setIsAdmin(!!data);
+        setIsMaster(!!data?.is_master);
+      });
   }, [session]);
 
   if (checking) return <Shell><p className="p-8 text-muted-foreground font-semibold">Carregando…</p></Shell>;
@@ -112,7 +116,7 @@ function AdminPage() {
   if (isAdmin === null) return <Shell><p className="p-8 text-muted-foreground font-semibold">Verificando permissões…</p></Shell>;
   if (!isAdmin) return <Shell><NotAdmin email={session.email} /></Shell>;
 
-  return <Shell><Dashboard email={session.email} /></Shell>;
+  return <Shell><Dashboard email={session.email} isMaster={isMaster} /></Shell>;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -185,8 +189,8 @@ function NotAdmin({ email }: { email: string }) {
   );
 }
 
-function Dashboard({ email }: { email: string }) {
-  const [tab, setTab] = useState<"orders" | "products" | "categories" | "finances" | "admins" | "settings">("orders");
+function Dashboard({ email, isMaster }: { email: string, isMaster: boolean }) {
+  const [tab, setTab] = useState<string>("orders");
   const [pendingCount, setPendingCount] = useState(0);
 
   const fetchPendingCount = useCallback(() => {
@@ -208,12 +212,30 @@ function Dashboard({ email }: { email: string }) {
     return () => { supabase.removeChannel(sub); };
   }, [fetchPendingCount]);
 
+  const allTabs = [
+    { id: "orders", label: "Pedidos", masterOnly: false },
+    { id: "products", label: "Produtos", masterOnly: false },
+    { id: "categories", label: "Categorias", masterOnly: false },
+    { id: "finances", label: "Finanças", masterOnly: true },
+    { id: "admins", label: "Administradores", masterOnly: true },
+    { id: "settings", label: "Configurações", masterOnly: true }
+  ];
+
+  const visibleTabs = allTabs.filter(t => !t.masterOnly || isMaster);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-black">Gerenciar Catálogo</h1>
-          <p className="text-sm text-muted-foreground font-medium">Logado como <span className="font-bold text-foreground">{usernameFromEmail(email)}</span></p>
+          <p className="text-sm text-muted-foreground font-medium flex items-center gap-2">
+            Logado como <span className="font-bold text-foreground">{usernameFromEmail(email)}</span>
+            {isMaster ? (
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">Master</span>
+            ) : (
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Operador</span>
+            )}
+          </p>
         </div>
         <Button variant="outline" onClick={() => supabase.auth.signOut()} className="rounded-full shadow-sm">
           <LogOut className="mr-2 h-4 w-4" /> Sair
@@ -221,31 +243,31 @@ function Dashboard({ email }: { email: string }) {
       </div>
 
       <div className="mb-6 flex gap-2 border-b border-border overflow-x-auto">
-        {(["orders", "products", "categories", "finances", "admins", "settings"] as const).map((t) => (
+        {visibleTabs.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={t.id}
+            onClick={() => setTab(t.id)}
             className={
               "whitespace-nowrap border-b-2 px-4 py-2 text-sm font-bold transition " +
-              (tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")
+              (tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")
             }
           >
-            {t === "orders" ? (
+            {t.id === "orders" ? (
               <span className="flex items-center gap-1.5">
-                Pedidos
+                {t.label}
                 {pendingCount > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-black text-destructive-foreground shadow-sm">{pendingCount}</span>}
               </span>
-            ) : t === "products" ? "Produtos" : t === "categories" ? "Categorias" : t === "finances" ? "Finanças" : t === "admins" ? "Administradores" : "Configurações"}
+            ) : t.label}
           </button>
         ))}
       </div>
 
       {tab === "orders" && <OrdersPanel onStatusChange={fetchPendingCount} />}
-      {tab === "products" && <ProductsPanel />}
-      {tab === "categories" && <CategoriesPanel />}
-      {tab === "finances" && <FinancesPanel />}
-      {tab === "admins" && <AdminsPanel />}
-      {tab === "settings" && <SettingsPanel />}
+      {tab === "products" && <ProductsPanel isMaster={isMaster} />}
+      {tab === "categories" && <CategoriesPanel isMaster={isMaster} />}
+      {tab === "finances" && isMaster && <FinancesPanel />}
+      {tab === "admins" && isMaster && <AdminsPanel />}
+      {tab === "settings" && isMaster && <SettingsPanel />}
     </div>
   );
 }
@@ -1028,7 +1050,7 @@ function FinancesPanel() {
 }
 
 /* ---------- Categories ---------- */
-function CategoriesPanel() {
+function CategoriesPanel({ isMaster }: { isMaster: boolean }) {
   const [cats, setCats] = useState<Category[]>([]);
   const [name, setName] = useState("");
 
@@ -1076,7 +1098,9 @@ function CategoriesPanel() {
             <span className="font-semibold">{c.name}</span>
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" onClick={() => rename(c)}><Pencil className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => del(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              {isMaster && (
+                <Button variant="ghost" size="icon" onClick={() => del(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              )}
             </div>
           </li>
         ))}
@@ -1086,7 +1110,7 @@ function CategoriesPanel() {
 }
 
 /* ---------- Products ---------- */
-function ProductsPanel() {
+function ProductsPanel({ isMaster }: { isMaster: boolean }) {
   const [prods, setProds] = useState<Product[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -1216,7 +1240,9 @@ function ProductsPanel() {
                   </div>
                   <div className="mt-auto flex items-center justify-end gap-1 text-xs">
                       <button onClick={() => { setEditing(p); setShowForm(true); }} className="rounded-full p-1.5 hover:bg-secondary transition"><Pencil className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => del(p)} className="rounded-full p-1.5 hover:bg-destructive/10 transition"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
+                      {isMaster && (
+                        <button onClick={() => del(p)} className="rounded-full p-1.5 hover:bg-destructive/10 transition"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -1430,7 +1456,7 @@ function ProductForm({
 }
 
 /* ---------- Admins ---------- */
-type AdminRow = { id: string; email: string; username: string; fixed: boolean };
+type AdminRow = { id: string; email: string; username: string; fixed: boolean; isMaster: boolean };
 
 function AdminsPanel() {
   const [admins, setAdmins] = useState<AdminRow[]>([]);
@@ -1487,7 +1513,12 @@ function AdminsPanel() {
             <div>
               <div className="font-semibold flex items-center gap-2">
                 {a.username}
-                {a.fixed && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">Fixo</span>}
+                {a.isMaster ? (
+                  <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">Master</span>
+                ) : (
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Operador</span>
+                )}
+                {a.fixed && <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground border border-border shadow-sm">Fixo</span>}
               </div>
               <div className="text-xs font-semibold text-muted-foreground">{a.email}</div>
             </div>
@@ -1542,8 +1573,10 @@ function AdminFormModal({
   const [pass, setPass] = useState("");
   const [originalPass, setOriginalPass] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [isMasterRole, setIsMasterRole] = useState(editing?.isMaster ?? false);
   const [loadingPass, setLoadingPass] = useState(isEdit);
   const [loading, setLoading] = useState(false);
+  
   const create = useServerFn(createAdminUser);
   const update = useServerFn(updateAdminUser);
   const getPwd = useServerFn(getAdminPassword);
@@ -1561,7 +1594,7 @@ function AdminFormModal({
     setLoading(true);
     try {
       if (isEdit && editing) {
-        const payload: { userId: string; user?: string; password?: string } = { userId: editing.id };
+        const payload: { userId: string; user?: string; password?: string; isMaster?: boolean } = { userId: editing.id };
         if (!editing.fixed && user.trim() && user.trim() !== editing.username) payload.user = user.trim();
         if (pass !== originalPass) {
           if (pass.length < 6) {
@@ -1570,7 +1603,11 @@ function AdminFormModal({
           }
           payload.password = pass;
         }
-        if (!payload.user && !payload.password) {
+        if (!editing.fixed && isMasterRole !== editing.isMaster) {
+          payload.isMaster = isMasterRole;
+        }
+
+        if (!payload.user && !payload.password && payload.isMaster === undefined) {
           setLoading(false);
           return toast.info("Nada para atualizar.");
         }
@@ -1581,7 +1618,7 @@ function AdminFormModal({
           setLoading(false);
           return toast.error("Usuário e senha (mín. 6 caracteres) obrigatórios");
         }
-        await create({ data: { user: user.trim(), password: pass } });
+        await create({ data: { user: user.trim(), password: pass, isMaster: isMasterRole } });
         toast.success(`Administrador "${user}" criado`);
       }
       onSaved();
@@ -1637,6 +1674,15 @@ function AdminFormModal({
             </p>
           )}
         </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm">
+          <div className={(isEdit && editing?.fixed) ? "opacity-50" : ""}>
+            <div className="font-semibold">Administrador Master</div>
+            <div className="text-xs font-semibold text-muted-foreground">Desative para limitar acesso.</div>
+          </div>
+          <Switch checked={isMasterRole || (isEdit && editing?.fixed)} onCheckedChange={setIsMasterRole} disabled={isEdit && editing?.fixed} />
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
           <Button type="submit" disabled={loading} className="rounded-full shadow-sm">

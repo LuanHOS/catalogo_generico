@@ -25,6 +25,17 @@ async function assertCallerIsAdmin(context: { supabase: any; userId: string }) {
   if (!data) throw new Error("Sem permissão de administrador.");
 }
 
+// Nova trava de segurança para o dono da loja
+async function assertCallerIsMaster(context: { supabase: any; userId: string }) {
+  const { data } = await context.supabase
+    .from("user_roles")
+    .select("is_master")
+    .eq("user_id", context.userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!data?.is_master) throw new Error("Apenas o Administrador Master pode fazer isso.");
+}
+
 function pwdKey(userId: string) {
   return `admin_pwd:${userId}`;
 }
@@ -71,9 +82,10 @@ export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async 
     userId = created.user.id;
   }
 
+  // O admin fixo principal é sempre master
   await supabaseAdmin
     .from("user_roles")
-    .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+    .upsert({ user_id: userId, role: "admin", is_master: true }, { onConflict: "user_id,role" });
 
   await supabaseAdmin
     .from("app_settings")
@@ -88,25 +100,26 @@ export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async 
 export const listAdmins = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: roles, error: rolesErr } = await supabaseAdmin
       .from("user_roles")
-      .select("user_id")
+      .select("user_id, is_master")
       .eq("role", "admin");
     if (rolesErr) throw new Error(rolesErr.message);
 
-    const ids = new Set((roles ?? []).map((r) => r.user_id));
+    const rolesMap = new Map((roles ?? []).map((r) => [r.user_id, r.is_master]));
     const list = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
     const admins =
       list.data?.users
-        ?.filter((u) => ids.has(u.id))
+        ?.filter((u) => rolesMap.has(u.id))
         .map((u) => ({
           id: u.id,
           email: u.email ?? "",
           username: usernameFromEmail(u.email ?? ""),
           fixed: u.email === FIXED_ADMIN_EMAIL,
+          isMaster: !!rolesMap.get(u.id)
         })) ?? [];
 
     return { admins };
@@ -116,18 +129,19 @@ export const listAdmins = createServerFn({ method: "GET" })
 const createSchema = z.object({
   user: z.string().trim().min(1).max(80).regex(/^[a-zA-Z0-9_.-]+$|@/),
   password: z.string().min(6).max(72),
+  isMaster: z.boolean().optional()
 });
 
 export const createAdminUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const email = toAdminEmail(data.user);
     if (email === FIXED_ADMIN_EMAIL) {
-      throw new Error("Usuário 'admin' já existe e é fixo.");
+      throw new Error("O nome de usuário 'admin' é reservado.");
     }
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -140,7 +154,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
 
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: created.user.id, role: "admin" }, { onConflict: "user_id,role" });
+      .insert({ user_id: created.user.id, role: "admin", is_master: data.isMaster ?? false });
     if (roleErr) throw new Error(roleErr.message);
 
     await storePassword(created.user.id, data.password);
@@ -153,13 +167,14 @@ const updateSchema = z.object({
   userId: z.string().uuid(),
   user: z.string().trim().min(1).max(80).regex(/^[a-zA-Z0-9_.-]+$|@/).optional(),
   password: z.string().min(6).max(72).optional(),
+  isMaster: z.boolean().optional()
 });
 
 export const updateAdminUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => updateSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: target } = await supabaseAdmin.auth.admin.getUserById(data.userId);
@@ -171,15 +186,25 @@ export const updateAdminUser = createServerFn({ method: "POST" })
       if (isFixed) throw new Error("O usuário 'admin' não pode ser renomeado.");
       patch.email = toAdminEmail(data.user);
       if (patch.email === FIXED_ADMIN_EMAIL) {
-        throw new Error("Esse nome de usuário é reservado.");
+        throw new Error("O nome de usuário 'admin' é reservado.");
       }
     }
     if (data.password) patch.password = data.password;
-    if (!patch.email && !patch.password) return { ok: true };
 
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, patch);
-    if (error) throw new Error(error.message);
-    if (patch.password) await storePassword(data.userId, patch.password);
+    if (Object.keys(patch).length > 0) {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, patch);
+      if (error) throw new Error(error.message);
+      if (patch.password) await storePassword(data.userId, patch.password);
+    }
+
+    if (data.isMaster !== undefined && !isFixed) {
+      const { error: roleErr } = await supabaseAdmin
+        .from("user_roles")
+        .update({ is_master: data.isMaster })
+        .eq("user_id", data.userId);
+      if (roleErr) throw new Error(roleErr.message);
+    }
+
     return { ok: true };
   });
 
@@ -190,7 +215,7 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => deleteSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: target } = await supabaseAdmin.auth.admin.getUserById(data.userId);
@@ -202,14 +227,18 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     const { count } = await supabaseAdmin
       .from("user_roles")
       .select("user_id", { count: "exact", head: true })
-      .eq("role", "admin");
+      .eq("role", "admin")
+      .eq("is_master", true);
+    
     if ((count ?? 0) <= 1) {
-      throw new Error("Deve existir pelo menos um administrador.");
+      const { data: isTargetMaster } = await supabaseAdmin.from("user_roles").select("is_master").eq("user_id", data.userId).single();
+      if (isTargetMaster?.is_master) {
+        throw new Error("Deve haver pelo menos um Administrador Master.");
+      }
     }
 
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
+    await supabaseAdmin.auth.admin.deleteUser(data.userId);
     await supabaseAdmin.from("app_settings").delete().eq("key", pwdKey(data.userId));
     return { ok: true };
   });
@@ -221,34 +250,30 @@ export const getAdminPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => getPasswordSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("app_settings")
       .select("value")
       .eq("key", pwdKey(data.userId))
       .maybeSingle();
-    return { password: row?.value ?? "" };
+    if (!row) throw new Error("Senha não encontrada.");
+    return { password: row.value };
   });
 
-/* ---------- Configuração do WhatsApp ---------- */
+/* ---------- Configurações Globais ---------- */
 const whatsappSchema = z.object({
-  number: z
-    .string()
-    .trim()
-    .min(8)
-    .max(20)
-    .regex(/^[+\d\s()-]+$/, "Use apenas dígitos e símbolos comuns de telefone."),
+  number: z.string().trim().min(8).max(20).regex(/^[+\d\s()-]+$/, "Telefone inválido"),
 });
 
 export const updateWhatsAppNumber = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => whatsappSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const clean = data.number.replace(/\D/g, "");
-    if (clean.length < 8) throw new Error("Número inválido.");
+    if (clean.length < 8) throw new Error("Telefone inválido");
     const { error } = await supabaseAdmin
       .from("app_settings")
       .upsert({ key: "whatsapp_number", value: clean }, { onConflict: "key" });
@@ -256,16 +281,13 @@ export const updateWhatsAppNumber = createServerFn({ method: "POST" })
     return { number: clean };
   });
 
-/* ---------- Configuração do Nome do Catálogo ---------- */
-const catalogNameSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-});
+const catalogNameSchema = z.object({ name: z.string().trim().min(1).max(100) });
 
 export const updateCatalogName = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => catalogNameSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("app_settings")
@@ -274,16 +296,13 @@ export const updateCatalogName = createServerFn({ method: "POST" })
     return { name: data.name };
   });
 
-/* ---------- Configuração de Cor do Sistema ---------- */
-const themeSchema = z.object({
-  theme: z.string().trim().min(1).max(50),
-});
+const themeSchema = z.object({ theme: z.string().trim().min(1).max(50) });
 
 export const updateSystemTheme = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => themeSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("app_settings")
@@ -292,16 +311,13 @@ export const updateSystemTheme = createServerFn({ method: "POST" })
     return { theme: data.theme };
   });
 
-/* ---------- Configuração do Modo Privado ---------- */
-const privateModeSchema = z.object({
-  enabled: z.boolean(),
-});
+const privateModeSchema = z.object({ enabled: z.boolean() });
 
 export const updatePrivateMode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => privateModeSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("app_settings")
@@ -310,11 +326,11 @@ export const updatePrivateMode = createServerFn({ method: "POST" })
     return { enabled: data.enabled };
   });
 
-/* ---------- Gerenciar Senhas VIP (Acesso Restrito) ---------- */
+/* ---------- Gerenciar Senhas VIP ---------- */
 export const listAccessCodes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("access_codes").select("*").order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -327,11 +343,11 @@ export const createAccessCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(input => createCodeSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     const { data: existing } = await supabaseAdmin.from("access_codes").select("id").eq("code", data.code).maybeSingle();
-    if (existing) throw new Error("Esta senha já existe no sistema.");
+    if (existing) throw new Error("Senha já existe");
 
     const { error } = await supabaseAdmin.from("access_codes").insert({ code: data.code });
     if (error) throw new Error(error.message);
@@ -344,7 +360,7 @@ export const deleteAccessCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(input => deleteCodeSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertCallerIsAdmin(context);
+    await assertCallerIsMaster(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("access_codes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
