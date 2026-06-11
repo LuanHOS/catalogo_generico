@@ -25,7 +25,6 @@ async function assertCallerIsAdmin(context: { supabase: any; userId: string }) {
   if (!data) throw new Error("Sem permissão de administrador.");
 }
 
-// Nova trava de segurança para o dono da loja
 async function assertCallerIsMaster(context: { supabase: any; userId: string }) {
   const { data } = await context.supabase
     .from("user_roles")
@@ -59,7 +58,6 @@ export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async 
 
   if (sentinel?.value === "true") return { ok: true, skipped: true };
 
-  // Procura usuário admin existente
   const list = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
   const existing = list.data?.users?.find((u) => u.email === FIXED_ADMIN_EMAIL);
 
@@ -82,7 +80,6 @@ export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async 
     userId = created.user.id;
   }
 
-  // O admin fixo principal é sempre master
   await supabaseAdmin
     .from("user_roles")
     .upsert({ user_id: userId, role: "admin", is_master: true }, { onConflict: "user_id,role" });
@@ -324,6 +321,21 @@ export const updatePrivateMode = createServerFn({ method: "POST" })
       .upsert({ key: "private_mode", value: data.enabled ? "true" : "false" }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { enabled: data.enabled };
+  });
+
+const catalogLogoSchema = z.object({ logoUrl: z.string().trim() });
+
+export const updateCatalogLogo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => catalogLogoSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerIsMaster(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .upsert({ key: "catalog_logo", value: data.logoUrl }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { logoUrl: data.logoUrl };
   });
 
 /* ---------- Gerenciar Senhas VIP ---------- */

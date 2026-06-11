@@ -14,6 +14,7 @@ import {
   updateCatalogName,
   updateSystemTheme,
   updatePrivateMode,
+  updateCatalogLogo,
   listAccessCodes,
   createAccessCode,
   deleteAccessCode,
@@ -25,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock, Image as ImageIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
@@ -116,7 +117,7 @@ function AdminPage() {
   if (isAdmin === null) return <Shell><p className="p-8 text-muted-foreground font-semibold">Verificando permissões…</p></Shell>;
   if (!isAdmin) return <Shell><NotAdmin email={session.email} /></Shell>;
 
-  return <Shell><Dashboard email={session.email} isMaster={isMaster} /></Shell>;
+  return <Shell><Dashboard email={session.email} isMaster={isMaster} currentUserId={session.userId} /></Shell>;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -189,7 +190,7 @@ function NotAdmin({ email }: { email: string }) {
   );
 }
 
-function Dashboard({ email, isMaster }: { email: string, isMaster: boolean }) {
+function Dashboard({ email, isMaster, currentUserId }: { email: string, isMaster: boolean, currentUserId: string }) {
   const [tab, setTab] = useState<string>("orders");
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -266,7 +267,7 @@ function Dashboard({ email, isMaster }: { email: string, isMaster: boolean }) {
       {tab === "products" && <ProductsPanel isMaster={isMaster} />}
       {tab === "categories" && <CategoriesPanel isMaster={isMaster} />}
       {tab === "finances" && isMaster && <FinancesPanel />}
-      {tab === "admins" && isMaster && <AdminsPanel />}
+      {tab === "admins" && isMaster && <AdminsPanel currentUserId={currentUserId} />}
       {tab === "settings" && isMaster && <SettingsPanel />}
     </div>
   );
@@ -1079,9 +1080,18 @@ function CategoriesPanel({ isMaster }: { isMaster: boolean }) {
   }
 
   async function del(c: Category) {
-    if (!confirm(`Remover categoria "${c.name}"? Os produtos ficarão sem categoria.`)) return;
+    const { count, error: countErr } = await supabase.from("products").select("id", { count: 'exact', head: true }).eq("category_id", c.id);
+    if (countErr) return toast.error("Erro ao verificar produtos vinculados.");
+    
+    if ((count ?? 0) > 0) {
+      if (!confirm(`Atenção: Existem ${count} produto(s) nesta categoria. Se você excluí-la, esses produtos ficarão sem categoria. Tem certeza que deseja remover a categoria "${c.name}"?`)) return;
+    } else {
+      if (!confirm(`Remover categoria "${c.name}"?`)) return;
+    }
+
     const { error } = await supabase.from("categories").delete().eq("id", c.id);
     if (error) return toast.error(error.message);
+    toast.success("Categoria removida");
     refresh();
   }
 
@@ -1458,7 +1468,7 @@ function ProductForm({
 /* ---------- Admins ---------- */
 type AdminRow = { id: string; email: string; username: string; fixed: boolean; isMaster: boolean };
 
-function AdminsPanel() {
+function AdminsPanel({ currentUserId }: { currentUserId: string }) {
   const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -1487,6 +1497,11 @@ function AdminsPanel() {
     try {
       await del({ data: { userId: a.id } });
       toast.success("Administrador removido");
+      if (a.id === currentUserId) {
+        await supabase.auth.signOut();
+        window.location.reload();
+        return;
+      }
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao remover");
@@ -1698,6 +1713,7 @@ function AdminFormModal({
 function SettingsPanel() {
   const [number, setNumber] = useState("");
   const [catalogName, setCatalogName] = useState("");
+  const [catalogLogo, setCatalogLogo] = useState("");
   const [theme, setTheme] = useState("");
   
   // Novos estados do Modo Privado
@@ -1708,12 +1724,14 @@ function SettingsPanel() {
   const [loading, setLoading] = useState(true);
   const [savingNumber, setSavingNumber] = useState(false);
   const [savingName, setSavingName] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
   const [savingPrivate, setSavingPrivate] = useState(false);
   const [loadingCodes, setLoadingCodes] = useState(false);
   
   const saveNumberFn = useServerFn(updateWhatsAppNumber);
   const saveNameFn = useServerFn(updateCatalogName);
+  const saveLogoFn = useServerFn(updateCatalogLogo);
   const saveThemeFn = useServerFn(updateSystemTheme);
   const savePrivateModeFn = useServerFn(updatePrivateMode);
   const listCodesFn = useServerFn(listAccessCodes);
@@ -1725,12 +1743,14 @@ function SettingsPanel() {
       supabase.from("app_settings").select("value").eq("key", "whatsapp_number").maybeSingle(),
       supabase.from("app_settings").select("value").eq("key", "catalog_name").maybeSingle(),
       supabase.from("app_settings").select("value").eq("key", "system_theme").maybeSingle(),
-      supabase.from("app_settings").select("value").eq("key", "private_mode").maybeSingle()
-    ]).then(([waRes, catRes, themeRes, privRes]) => {
+      supabase.from("app_settings").select("value").eq("key", "private_mode").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "catalog_logo").maybeSingle()
+    ]).then(([waRes, catRes, themeRes, privRes, logoRes]) => {
       setNumber(waRes.data?.value ?? DEFAULT_WHATSAPP_NUMBER);
       setCatalogName(catRes.data?.value ?? "Catálogo de Produtos");
       setTheme(themeRes.data?.value ?? "strong-gray");
       setPrivateMode(privRes.data?.value === "true");
+      setCatalogLogo(logoRes.data?.value ?? "");
       setLoading(false);
     });
   }, []);
@@ -1777,6 +1797,51 @@ function SettingsPanel() {
     } finally {
       setSavingName(false);
     }
+  }
+
+  async function uploadLogo(file: File) {
+    setUploadingLogo(true);
+    try {
+      const options = { maxSizeMB: 0.2, maxWidthOrHeight: 600, useWebWorker: true };
+      const compressedFile = await imageCompression(file, options);
+      const ext = compressedFile.name.split(".").pop() || "png";
+      const path = `logos/${crypto.randomUUID()}.${ext}`;
+      
+      const { error } = await supabase.storage.from("product-images").upload(path, compressedFile, { upsert: false });
+      if (error) { 
+        toast.error("Falha no envio da imagem"); 
+        setUploadingLogo(false); 
+        return; 
+      }
+      
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      if (!data?.publicUrl) { 
+        toast.error("Falha ao gerar URL"); 
+        setUploadingLogo(false); 
+        return; 
+      }
+      
+      await saveLogoFn({ data: { logoUrl: data.publicUrl } });
+      setCatalogLogo(data.publicUrl);
+      toast.success("Logo atualizada com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao processar imagem.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function removeLogo() {
+    if (!confirm("Remover a logo atual?")) return;
+    setUploadingLogo(true);
+    try {
+       await saveLogoFn({ data: { logoUrl: "" } });
+       setCatalogLogo("");
+       toast.success("Logo removida com sucesso.");
+    } catch(e) { 
+       toast.error("Erro ao remover logo"); 
+    }
+    setUploadingLogo(false);
   }
 
   async function submitTheme(e: React.FormEvent) {
@@ -1932,6 +1997,36 @@ function SettingsPanel() {
             {savingName ? "Salvando…" : "Salvar"}
           </Button>
         </form>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="font-display text-lg font-black flex items-center gap-2">
+          <ImageIcon className="h-5 w-5 text-primary" /> Logo da Loja
+        </h3>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          Adicione a logomarca da sua empresa. Ela aparecerá no cabeçalho do catálogo.
+        </p>
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-secondary shadow-sm flex items-center justify-center flex-shrink-0">
+            {catalogLogo ? (
+              <img src={catalogLogo} className="h-full w-full object-cover" alt="Logo" />
+            ) : (
+              <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
+              <Upload className="h-4 w-4" />
+              {uploadingLogo ? "Enviando..." : "Enviar nova foto"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])} disabled={uploadingLogo} />
+            </label>
+            {catalogLogo && (
+               <button type="button" onClick={removeLogo} disabled={uploadingLogo} className="text-xs font-bold text-destructive hover:underline text-left px-2">
+                  Remover logo atual
+               </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

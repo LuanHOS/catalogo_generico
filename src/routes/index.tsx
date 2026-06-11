@@ -71,6 +71,7 @@ function isPromo(p: Pick<Product, "price" | "sale_price">) {
 
 function Index() {
   const [catalogName, setCatalogName] = useState("Catálogo de Produtos");
+  const [catalogLogo, setCatalogLogo] = useState("");
   const [cats, setCats] = useState<Category[]>([]);
   const [prods, setProds] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,11 +103,12 @@ function Index() {
         supabase.from("categories").select("*").order("sort_order"),
         // @ts-ignore
         supabase.rpc("get_catalog_secure", { p_code: savedCode }),
-        supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode"]),
+        supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode", "catalog_logo"]),
       ]);
       
       const settingsMap = new Map(s.data?.map(x => [x.key, x.value]) || []);
       if (settingsMap.has("catalog_name")) setCatalogName(settingsMap.get("catalog_name")!);
+      if (settingsMap.has("catalog_logo")) setCatalogLogo(settingsMap.get("catalog_logo") || "");
       
       const themeId = settingsMap.get("system_theme") || "strong-gray";
       applyTheme(themeId);
@@ -289,9 +291,13 @@ function Index() {
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase shadow-sm">
-              {catalogName.charAt(0)}
-            </div>
+            {catalogLogo ? (
+               <img src={catalogLogo} alt={catalogName} className="h-10 w-10 rounded-full object-cover shadow-sm bg-secondary" />
+            ) : (
+               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase shadow-sm">
+                 {catalogName.charAt(0)}
+               </div>
+            )}
             <div className="leading-tight">
               <div className="font-display text-xl font-black text-foreground sm:text-2xl">
                 {catalogName}
