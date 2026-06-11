@@ -244,8 +244,12 @@ function Index() {
 
     const orderHash = String(orderId).split("-")[0];
 
+    const vipCode = localStorage.getItem("vip_code");
+    const isVip = isPrivateModeActive && vipCode;
+    const vipString = isVip ? ` (VIP: ${vipCode})` : "";
+
     const lines = [
-      `*Pedido #${orderHash} — Catálogo*`,
+      `*Pedido #${orderHash}${vipString} — Catálogo*`,
       "",
       ...validItems.map((i, idx) => {
         const sub = i.price * i.qty;

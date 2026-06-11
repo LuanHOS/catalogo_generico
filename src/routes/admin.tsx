@@ -197,7 +197,6 @@ function Dashboard({ email }: { email: string }) {
   useEffect(() => {
     fetchPendingCount();
     
-    // Aplicar o tema globalmente no carregamento inicial do Admin
     supabase.from("app_settings").select("value").eq("key", "system_theme").maybeSingle().then(({data}) => {
        applyTheme(data?.value || "strong-gray");
     });
@@ -256,6 +255,7 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [showManual, setShowManual] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
 
   const fetchOrders = useCallback(async () => {
     const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
@@ -264,9 +264,9 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  async function updateStatus(id: string, newStatus: string) {
+  async function updateStatus(id: string, newStatus: string, newTotal?: number) {
     if (newStatus === 'canceled' && !confirm("Tem certeza que deseja cancelar? O estoque será devolvido.")) return;
-    const { error } = await supabase.rpc("update_order_status", { order_id: id, new_status: newStatus });
+    const { error } = await supabase.rpc("update_order_status", { order_id: id, new_status: newStatus, new_total: newTotal });
     if (error) toast.error("Erro ao atualizar pedido: " + error.message);
     else { 
       toast.success("Status atualizado"); 
@@ -299,7 +299,11 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
       <div className="grid gap-3">
         {filtered.length === 0 && <div className="p-12 text-center text-muted-foreground font-semibold border border-dashed border-border rounded-xl">Nenhum pedido encontrado.</div>}
         {filtered.map(o => (
-          <div key={o.id} className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div 
+            key={o.id} 
+            className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm cursor-pointer hover:border-primary/30 transition"
+            onClick={() => setSelectedOrder(o)}
+          >
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-lg">Pedido #{o.id.split("-")[0]}</span>
@@ -314,7 +318,7 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
               <div className="text-primary font-black mt-2">{brl(Number(o.total))}</div>
             </div>
             {o.status === 'pending' && (
-              <div className="flex gap-2 sm:flex-col">
+              <div className="flex gap-2 sm:flex-col" onClick={(e) => e.stopPropagation()}>
                 <Button variant="outline" className="border-green-500/30 text-green-600 shadow-sm hover:bg-green-50 hover:text-green-700" onClick={() => updateStatus(o.id, 'completed')}>
                   <CheckCircle className="mr-1 h-4 w-4" /> Concluir
                 </Button>
@@ -324,12 +328,140 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
               </div>
             )}
             {o.status === 'completed' && (
-                <Button variant="ghost" size="sm" className="text-muted-foreground font-semibold" onClick={() => updateStatus(o.id, 'canceled')}>Cancelar Venda</Button>
+                <Button variant="ghost" size="sm" className="text-muted-foreground font-semibold" onClick={(e) => { e.stopPropagation(); updateStatus(o.id, 'canceled'); }}>Cancelar Venda</Button>
             )}
           </div>
         ))}
       </div>
       {showManual && <ManualOrderModal onClose={() => setShowManual(false)} onSaved={() => { fetchOrders(); if (onStatusChange) onStatusChange(); }} />}
+      {selectedOrder && <OrderDetailsModal order={selectedOrder} onClose={() => setSelectedOrder(null)} onUpdateStatus={updateStatus} />}
+    </div>
+  );
+}
+
+function OrderDetailsModal({
+  order,
+  onClose,
+  onUpdateStatus
+}: {
+  order: OrderRow;
+  onClose: () => void;
+  onUpdateStatus: (id: string, status: string, total?: number) => Promise<void>;
+}) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  const originalTotal = items.reduce((acc, i) => acc + (Number(i.price || 0) * Number(i.quantity || 0)), 0);
+  const isPending = order.status === 'pending';
+  
+  const [customTotal, setCustomTotal] = useState(String(order.total));
+  const [saving, setSaving] = useState(false);
+
+  const parsedTotal = Number(customTotal) || 0;
+  const discountVal = originalTotal - parsedTotal;
+  const discountPerc = originalTotal > 0 ? (discountVal / originalTotal) * 100 : 0;
+
+  async function handleConcluir() {
+    setSaving(true);
+    await onUpdateStatus(order.id, 'completed', parsedTotal);
+    setSaving(false);
+    onClose();
+  }
+
+  async function handleCancelar() {
+    setSaving(true);
+    await onUpdateStatus(order.id, 'canceled');
+    setSaving(false);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
+      <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="text-xl font-display font-black">Detalhes do Pedido</h2>
+          <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Fechar</button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div>
+            <h3 className="font-bold text-lg leading-tight">Pedido #{order.id.split("-")[0]}</h3>
+            <p className="text-sm text-muted-foreground font-medium">{new Date(order.created_at).toLocaleString('pt-BR')}</p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Itens do Pedido</h4>
+            <div className="space-y-3">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center text-sm border-b border-border pb-2">
+                  <div className="flex gap-2">
+                    <span className="font-bold">{item.quantity}x</span>
+                    <span className="font-medium">{item.name}</span>
+                  </div>
+                  <span className="font-bold text-muted-foreground">{brl((Number(item.price || 0)) * Number(item.quantity || 0))}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-secondary/30 p-4 rounded-xl space-y-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="font-semibold text-muted-foreground">Soma dos Itens</span>
+              <span className="font-bold text-foreground">{brl(originalTotal)}</span>
+            </div>
+
+            {isPending ? (
+              <>
+                <div className="flex flex-col gap-2 pt-2 border-t border-border">
+                  <Label>Valor Final (Desconto)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      min="0"
+                      value={customTotal} 
+                      onChange={(e) => setCustomTotal(e.target.value)} 
+                      className="pl-9 font-black text-lg h-12"
+                    />
+                  </div>
+                </div>
+                {discountVal > 0 && (
+                  <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center">
+                    Desconto aplicado: {brl(discountVal)} ({discountPerc.toFixed(1)}%)
+                  </div>
+                )}
+                {discountVal < 0 && (
+                  <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center">
+                    Acréscimo aplicado: {brl(Math.abs(discountVal))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="pt-2 border-t border-border space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold uppercase text-xs tracking-wide">Total Cobrado</span>
+                  <span className="font-black text-xl text-primary">{brl(order.total)}</span>
+                </div>
+                {(originalTotal - order.total) > 0 && (
+                  <div className="text-xs font-bold text-green-600 text-right">
+                    Desconto de {brl(originalTotal - order.total)} dado na venda.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isPending && (
+          <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border bg-secondary/10">
+            <Button variant="outline" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+              Cancelar Pedido
+            </Button>
+            <Button onClick={handleConcluir} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">
+              {saving ? "Processando..." : "Concluir Pedido"}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -912,6 +1044,10 @@ function ProductForm({
           </div>
 
           <div className="sm:col-span-2">
+            <Label>Código de Barras</Label>
+            <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" />
+          </div>
+          <div className="sm:col-span-2">
             <Label>Nome</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
@@ -954,10 +1090,6 @@ function ProductForm({
             <Label>Limite por carrinho</Label>
             <Input type="number" min={0} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Deixem em 0 caso queira deixar sem limite</p>
-          </div>
-          <div>
-            <Label>Código de Barras</Label>
-            <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2">
             <div>
