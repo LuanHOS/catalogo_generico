@@ -329,7 +329,7 @@ function Index() {
   }
 
   return (
-    <div className="min-h-screen relative flex flex-col overflow-x-hidden">
+    <div className="min-h-screen relative flex flex-col bg-background">
       <Toaster position="top-center" richColors />
       
       {/* FAIXA DO ADMIN */}
@@ -498,12 +498,12 @@ function Index() {
             {loading ? (
               <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
             ) : loadError ? (
-              <div className="rounded-2xl border border-destructive/40 bg-white p-8 text-center shadow-sm">
+              <div className="rounded-2xl border border-destructive/40 bg-background p-8 text-center shadow-sm">
                 <p className="text-lg font-semibold text-destructive">Não foi possível carregar o catálogo.</p>
                 <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center shadow-sm">
+              <div className="rounded-2xl border border-dashed border-border bg-background p-12 text-center shadow-sm">
                 <p className="text-lg font-semibold">
                   {searchTerm ? "Produto não encontrado." : "Nenhum produto por aqui ainda."}
                 </p>
@@ -520,7 +520,7 @@ function Index() {
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-4 px-1">
                       <TrendingUp className="h-5 w-5 text-primary" />
-                      <h2 className="text-xl font-display font-black">Produtos em Alta</h2>
+                      <h2 className="text-xl font-display font-black text-foreground">Produtos em Alta</h2>
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {trendingProducts.map((p) => (
@@ -528,13 +528,13 @@ function Index() {
                       ))}
                     </div>
 
-                    {/* Separador UI/UX */}
+                    {/* Separador UI/UX Elegante para fundo EAEAEA */}
                     <div className="relative mt-12 mb-6 flex items-center py-5">
-                      <div className="flex-grow border-t border-border/80"></div>
-                      <span className="mx-4 flex-shrink-0 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      <div className="flex-grow border-t border-black/15"></div>
+                      <span className="mx-4 flex-shrink-0 text-xs font-bold uppercase tracking-widest text-black/50">
                         Catálogo Completo
                       </span>
-                      <div className="flex-grow border-t border-border/80"></div>
+                      <div className="flex-grow border-t border-black/15"></div>
                     </div>
                   </div>
                 )}
@@ -570,7 +570,8 @@ function Index() {
         </div>
       )}
 
-      <footer className="mt-auto border-t border-border/60 bg-secondary/40 relative z-10 w-full">
+      {/* Footer Branco Forçado no Fundo */}
+      <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
@@ -615,7 +616,7 @@ function CatChip({ active, onClick, children }: { active: boolean; onClick: () =
       onClick={onClick}
       className={
         "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition shadow-sm " +
-        (active ? "bg-primary text-primary-foreground" : "bg-white text-secondary-foreground hover:bg-white/80 border border-border")
+        (active ? "bg-primary text-primary-foreground" : "bg-background text-secondary-foreground hover:bg-background/80 border border-border")
       }
     >
       {children}
@@ -669,7 +670,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   return (
     <article
       onClick={onOpen}
-      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md"
+      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-background shadow-sm transition hover:shadow-md"
     >
       {isPromo(p) && <PromoBadge />}
       <div className="aspect-[4/3] relative overflow-hidden bg-secondary border-b border-border/40">
