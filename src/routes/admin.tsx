@@ -44,6 +44,8 @@ type Product = {
   cost: number;
   in_stock: boolean;
   stock: number;
+  min_stock: number;
+  barcode: string | null;
   max_per_cart: number;
   sort_order: number;
 };
@@ -377,7 +379,14 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
       onClose();
   };
 
-  const filteredProducts = products.filter(p => p.in_stock && p.name.toLowerCase().includes(search.toLowerCase()));
+  const exactSearch = search.trim();
+  const q = exactSearch.toLowerCase();
+  const filteredProducts = products.filter(p => {
+     if (!p.in_stock) return false;
+     if (!exactSearch) return true;
+     if (p.barcode && p.barcode === exactSearch) return true;
+     return p.name.toLowerCase().includes(q);
+  });
 
   return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
@@ -392,11 +401,14 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Produtos Disponíveis</h3>
                      <div className="relative mb-4">
                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                         <Input placeholder="Buscar produto pelo nome..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                         <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
                      </div>
                      <div className="grid gap-2 overflow-y-auto flex-1 pr-1">
-                     {filteredProducts.map(p => (
-                         <div key={p.id} className={"flex justify-between border border-border p-3 rounded-xl items-center shadow-sm " + (p.stock <= 0 ? "opacity-50 bg-secondary" : "bg-card")}>
+                     {filteredProducts.map(p => {
+                         const outOfStock = p.stock <= 0;
+                         const isLowStock = !outOfStock && p.stock <= p.min_stock;
+                         return (
+                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
                              <div>
                                 <div className="font-semibold text-sm">{p.name}</div>
                                 <div className="text-xs font-semibold text-muted-foreground">Estoque: {p.stock}</div>
@@ -408,7 +420,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                 </Button>
                              </div>
                          </div>
-                     ))}
+                     )})}
                      {filteredProducts.length === 0 && <p className="text-sm font-semibold text-muted-foreground text-center py-4">Nenhum produto encontrado.</p>}
                      </div>
                  </div>
@@ -677,10 +689,12 @@ function ProductsPanel() {
     refresh();
   }
 
-  const q = search.trim().toLowerCase();
+  const exactQ = search.trim();
+  const q = exactQ.toLowerCase();
   const filtered = q
     ? prods.filter(
         (p) =>
+          (p.barcode && p.barcode === exactQ) ||
           p.name.toLowerCase().includes(q) ||
           (p.description ?? "").toLowerCase().includes(q),
       )
@@ -694,7 +708,7 @@ function ProductsPanel() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar produto…"
+            placeholder="Buscar por nome ou código de barras..."
             className="pl-9 shadow-sm"
           />
         </div>
@@ -717,13 +731,14 @@ function ProductsPanel() {
             const isInactive = !p.in_stock;
             const outOfStock = p.in_stock && p.stock <= 0;
             const hasIssue = isInactive || outOfStock;
+            const isLowStock = !hasIssue && p.stock <= p.min_stock;
             const promo = p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price);
             return (
               <div
                 key={p.id}
                 className={
                   "relative flex gap-3 rounded-xl border bg-card p-3 shadow-sm transition " +
-                  (hasIssue ? "border-destructive/60 ring-2 ring-destructive/30 bg-destructive/5" : "border-border")
+                  (hasIssue ? "border-destructive/60 ring-2 ring-destructive/30 bg-destructive/5" : isLowStock ? "border-yellow-600 ring-2 ring-yellow-600/50 bg-yellow-500/5" : "border-border")
                 }
               >
                 <div className={"h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary " + (hasIssue ? "opacity-40" : "")}>
@@ -791,6 +806,8 @@ function ProductForm({
   const [cost, setCost] = useState(product ? String(product.cost) : "");
   const [maxPerCart, setMaxPerCart] = useState(product ? String(product.max_per_cart) : "0");
   const [stock, setStock] = useState(product ? String(product.stock) : "0");
+  const [minStock, setMinStock] = useState(product ? String(product.min_stock) : "0");
+  const [barcode, setBarcode] = useState(product?.barcode ?? "");
   const [inStock, setInStock] = useState(product?.in_stock ?? true);
   const [categoryId, setCategoryId] = useState<string>(product?.category_id ?? "");
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
@@ -846,7 +863,9 @@ function ProductForm({
       sale_price: saleNum && saleNum > 0 ? saleNum : null,
       cost: Number(cost) || 0,
       stock: Number(stock) || 0,
+      min_stock: Number(minStock) || 0,
       max_per_cart: Math.max(0, parseInt(maxPerCart || "0", 10)),
+      barcode: barcode.trim() || null,
       in_stock: inStock,
       category_id: categoryId || null,
       image_url: imageUrl || null,
@@ -916,6 +935,10 @@ function ProductForm({
             <Input type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} required />
           </div>
           <div>
+            <Label>Estoque Mínimo (Alerta)</Label>
+            <Input type="number" min={0} value={minStock} onChange={(e) => setMinStock(e.target.value)} required />
+          </div>
+          <div>
             <Label>Preço de venda (R$)</Label>
             <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
           </div>
@@ -931,6 +954,10 @@ function ProductForm({
             <Label>Limite por carrinho</Label>
             <Input type="number" min={0} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Deixem em 0 caso queira deixar sem limite</p>
+          </div>
+          <div>
+            <Label>Código de Barras</Label>
+            <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2">
             <div>

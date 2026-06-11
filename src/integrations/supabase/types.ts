@@ -110,6 +110,8 @@ export type Database = {
           sale_price: number | null
           sort_order: number
           stock: number
+          min_stock: number
+          barcode: string | null
           updated_at: string
         }
         Insert: {
@@ -126,6 +128,8 @@ export type Database = {
           sale_price?: number | null
           sort_order?: number
           stock?: number
+          min_stock?: number
+          barcode?: string | null
           updated_at?: string
         }
         Update: {
@@ -142,6 +146,8 @@ export type Database = {
           sale_price?: number | null
           sort_order?: number
           stock?: number
+          min_stock?: number
+          barcode?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -201,6 +207,8 @@ export type Database = {
           sale_price: number | null
           in_stock: boolean
           stock: number
+          min_stock: number
+          barcode: string | null
           max_per_cart: number
           sort_order: number
           created_at: string

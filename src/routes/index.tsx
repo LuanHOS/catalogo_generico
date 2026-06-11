@@ -29,6 +29,8 @@ type Product = {
   sale_price: number | null;
   in_stock: boolean;
   stock: number;
+  min_stock: number;
+  barcode: string | null;
   max_per_cart: number;
 };
 type Category = { id: string; name: string; sort_order: number };
@@ -164,12 +166,14 @@ function Index() {
   }
 
   const filtered = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase("pt-BR");
+    const exactQuery = searchTerm.trim();
+    const query = exactQuery.toLocaleLowerCase("pt-BR");
     return prods.filter((p) => {
       if (!p.in_stock) return false; 
       const matchesCat = activeCat === "all" || p.category_id === activeCat;
+      const isExactBarcode = exactQuery !== "" && p.barcode === exactQuery;
       const searchable = `${p.name} ${p.description ?? ""}`.toLocaleLowerCase("pt-BR");
-      const matchesSearch = !query || searchable.includes(query);
+      const matchesSearch = !query || isExactBarcode || searchable.includes(query);
       return matchesCat && matchesSearch;
     });
   }, [prods, activeCat, searchTerm]);
@@ -386,7 +390,7 @@ function Index() {
                       setSearchInput(e.target.value);
                       if (!e.target.value.trim()) setSearchTerm("");
                     }}
-                    placeholder="Buscar produto"
+                    placeholder="Buscar por nome ou código de barras..."
                     className="h-11 w-full rounded-full border border-input bg-card pl-10 pr-4 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-ring"
                   />
                 </div>
@@ -521,7 +525,10 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
+  
   const outOfStock = !p.in_stock || p.stock <= 0;
+  const isLowStock = !outOfStock && p.stock <= p.min_stock;
+  
   // Se max_per_cart for 0, o limite é o próprio estoque
   const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
   const reachedMax = qty >= currentMax;
@@ -535,7 +542,9 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   return (
     <article
       onClick={onOpen}
-      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md"
+      className={`group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition hover:shadow-md ${
+        isLowStock ? "border-yellow-600 ring-2 ring-yellow-600" : "border-border"
+      }`}
     >
       {isPromo(p) && <PromoBadge />}
       <div className="aspect-[4/3] relative overflow-hidden bg-secondary">
