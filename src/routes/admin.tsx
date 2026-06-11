@@ -731,7 +731,7 @@ function FinancesPanel() {
 
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [globalStats, setGlobalStats] = useState({ revenue: 0, orders: 0 });
+  const [globalStats, setGlobalStats] = useState({ revenue: 0, orders: 0, cost: 0 });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -743,13 +743,24 @@ function FinancesPanel() {
               .gte("created_at", `${startDate}T00:00:00Z`)
               .lte("created_at", `${endDate}T23:59:59Z`),
           supabase.from("products").select("*"),
-          supabase.from("orders").select("total").eq("status", "completed")
+          supabase.from("orders").select("total, items").eq("status", "completed")
       ]).then(([ordersRes, prodsRes, globalRes]) => {
           setOrders(ordersRes.data || []);
           setProducts(prodsRes.data as Product[] || []);
           if (globalRes.data) {
-              const rev = globalRes.data.reduce((acc, o) => acc + Number(o.total), 0);
-              setGlobalStats({ revenue: rev, orders: globalRes.data.length });
+              let rev = 0;
+              let cost = 0;
+              globalRes.data.forEach(o => {
+                  rev += Number(o.total);
+                  if (Array.isArray(o.items)) {
+                      o.items.forEach((i: any) => {
+                          const p = (prodsRes.data as Product[]).find(prod => prod.id === i.id);
+                          const c = p ? Number(p.cost) : 0;
+                          cost += c * (Number(i.quantity) || 0);
+                      });
+                  }
+              });
+              setGlobalStats({ revenue: rev, orders: globalRes.data.length, cost: cost });
           }
           setLoading(false);
       });
@@ -872,7 +883,7 @@ function FinancesPanel() {
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Lucro Líquido</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(netProfit)}</p>
-                      <p className="text-xs text-muted-foreground font-semibold mt-1">Margem: {totalEarned > 0 ? ((netProfit / totalEarned) * 100).toFixed(1) + '%' : '0%'}</p>
+                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {brl(globalStats.revenue - globalStats.cost)}</p>
                     </div>
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5 text-accent-foreground"/> Vendas</h3>
