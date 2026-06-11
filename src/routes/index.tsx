@@ -329,7 +329,7 @@ function Index() {
   }
 
   return (
-    <div className="min-h-screen relative flex flex-col overflow-x-hidden">
+    <div className="min-h-screen relative flex flex-col bg-background w-full max-w-[100vw]">
       <Toaster position="top-center" richColors />
       
       {/* FAIXA DO ADMIN */}
@@ -340,8 +340,8 @@ function Index() {
         </div>
       )}
 
-      {/* Header - Totalmente opaco e com a cor do sistema */}
-      <header className="sticky top-0 z-40 bg-primary shadow-md">
+      {/* Header - Totalmente opaco e com a cor do sistema. Grudado no topo. */}
+      <header className="sticky top-0 z-40 bg-primary shadow-md w-full">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
             {catalogLogo ? (
@@ -446,7 +446,7 @@ function Index() {
             </section>
           </div>
 
-          {/* Search Bar - Cor branca sólida e colada no header */}
+          {/* Search Bar - Cor branca sólida e colada perfeitamente abaixo do header (64px) no scroll */}
           <div className="sticky top-[64px] z-30 border-b border-border/60 bg-card w-full shadow-sm transition-all">
             <div className="mx-auto max-w-7xl px-4 py-3">
               <form
@@ -479,7 +479,7 @@ function Index() {
             </div>
           </div>
 
-          {/* Categories - Cor branca sólida e desaparece no scroll */}
+          {/* Categories - Cor branca sólida e desaparece naturalmente no scroll */}
           <div className="bg-card border-b border-border/60 w-full relative z-20">
             <div className="mx-auto max-w-7xl px-4 py-2">
               <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 px-1">
