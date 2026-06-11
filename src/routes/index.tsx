@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cart, useCart } from "@/lib/cart";
 import { brl, useWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
@@ -88,6 +88,9 @@ function Index() {
   const items = useCart();
   const whatsNumber = useWhatsAppNumber();
 
+  // Paginação (Infinite Scroll)
+  const [visibleCount, setVisibleCount] = useState(24);
+
   // Estados do Modo Privado
   const [accessDenied, setAccessDenied] = useState(false);
   const [vipCodeInput, setVipCodeInput] = useState("");
@@ -158,6 +161,11 @@ function Index() {
       }
   }, [prods, randomTrending]);
 
+  // Reseta a paginação ao trocar de categoria ou buscar
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [searchTerm, activeCat]);
+
   async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
     setVerifyingCode(true);
@@ -211,6 +219,20 @@ function Index() {
       return matchesCat && matchesSearch;
     });
   }, [prods, activeCat, searchTerm]);
+
+  const visibleProducts = filtered.slice(0, visibleCount);
+
+  // Intersection Observer para o Infinite Scroll
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastProductElementRef = useCallback((node: HTMLDivElement) => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount(prev => prev + 24);
+      }
+    }, { threshold: 0.1 });
+    if (node) observer.current.observe(node);
+  }, []);
 
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
@@ -307,7 +329,7 @@ function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative flex flex-col">
+    <div className="min-h-screen relative flex flex-col overflow-x-hidden">
       <Toaster position="top-center" richColors />
       
       {/* FAIXA DO ADMIN */}
@@ -318,37 +340,37 @@ function Index() {
         </div>
       )}
 
-      {/* Header - Alterado para ser sempre fixo/sticky no topo */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
+      {/* Header - Totalmente opaco e com a cor do sistema */}
+      <header className="sticky top-0 z-40 bg-primary shadow-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
             {catalogLogo ? (
                <img 
                  src={catalogLogo} 
                  alt={catalogName} 
-                 className="h-10 w-10 rounded-full object-cover shadow-sm bg-secondary cursor-pointer transition hover:scale-105" 
+                 className="h-10 w-10 rounded-full object-cover shadow-sm bg-background cursor-pointer transition hover:scale-105 border-2 border-primary-foreground/20" 
                  onClick={() => setShowLogoModal(true)}
                />
             ) : (
-               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase shadow-sm">
+               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background text-primary text-lg font-black uppercase shadow-sm">
                  {catalogName.charAt(0)}
                </div>
             )}
             <div className="leading-tight">
               <div 
-                className="font-display text-xl font-black text-foreground sm:text-2xl cursor-pointer transition hover:opacity-80"
+                className="font-display text-xl font-black text-primary-foreground sm:text-2xl cursor-pointer transition hover:opacity-80"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
                 {catalogName}
               </div>
-              <div className="text-xs text-muted-foreground font-semibold">Catálogo de produtos</div>
+              <div className="text-xs text-primary-foreground/80 font-semibold">Catálogo de produtos</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Link
               to="/admin"
               aria-label="Área do Administrador"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground transition hover:bg-secondary/80 sm:px-4"
+              className="inline-flex items-center gap-2 rounded-full border border-transparent bg-primary-foreground/10 px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary-foreground/20 sm:px-4"
             >
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Área do Administrador</span>
@@ -356,10 +378,10 @@ function Index() {
             <button
               onClick={() => setCartOpen(true)}
               disabled={accessDenied}
-              className={`relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-sm transition ${
+              className={`relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-md transition ${
                 accessDenied
-                  ? "bg-secondary text-muted-foreground opacity-60 cursor-not-allowed"
-                  : "bg-primary text-primary-foreground hover:opacity-90"
+                  ? "bg-primary-foreground/20 text-primary-foreground/50 cursor-not-allowed"
+                  : "bg-background text-primary hover:bg-background/90"
               }`}
             >
               <ShoppingBag className="h-4 w-4" />
@@ -399,32 +421,33 @@ function Index() {
               </form>
            </div>
            
-           {/* Fundo Embaçado */}
            <div className="fixed inset-0 z-0 top-[64px] bg-background/50 backdrop-blur-xl pointer-events-none" />
         </main>
       ) : (
-        <div className="flex-1 w-full flex flex-col relative">
+        <div className="flex-1 w-full flex flex-col relative bg-[#EAEAEA]">
           {/* Hero */}
-          <section className="border-b border-border/60 bg-gradient-to-br from-secondary via-background to-secondary/40">
-            <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14 w-full">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Bem-vindo(a)</p>
-              <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl">
-                {catalogName === "Catálogo de Produtos" ? (
-                  "Catálogo de Produtos."
-                ) : (
-                  <>
-                    Catálogo de Produtos do(a)<br />{catalogName}.
-                  </>
-                )}
-              </h1>
-              <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-                Consulte o estoque, monte seu pedido e finalize direto pelo WhatsApp.
-              </p>
-            </div>
-          </section>
+          <div className="bg-background">
+            <section className="border-b border-border/60 bg-gradient-to-br from-secondary via-background to-secondary/40">
+              <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14 w-full">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Bem-vindo(a)</p>
+                <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl">
+                  {catalogName === "Catálogo de Produtos" ? (
+                    "Catálogo de Produtos."
+                  ) : (
+                    <>
+                      Catálogo de Produtos do(a)<br />{catalogName}.
+                    </>
+                  )}
+                </h1>
+                <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
+                  Consulte o estoque, monte seu pedido e finalize direto pelo WhatsApp.
+                </p>
+              </div>
+            </section>
+          </div>
 
           {/* Filters - Acompanha o header no scroll */}
-          <div className="sticky top-[65px] z-30 border-b border-border/60 bg-background/95 backdrop-blur w-full">
+          <div className="sticky top-[64px] z-30 border-b border-border/60 bg-background/95 backdrop-blur w-full shadow-sm">
             <div className="mx-auto max-w-7xl px-4 py-3">
               <form
                 onSubmit={(e) => {
@@ -454,7 +477,7 @@ function Index() {
                 </button>
               </form>
 
-              <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-3 pt-1 px-1">
                 <CatChip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
                   Todos
                 </CatChip>
@@ -475,12 +498,12 @@ function Index() {
             {loading ? (
               <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
             ) : loadError ? (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-8 text-center">
+              <div className="rounded-2xl border border-destructive/40 bg-white p-8 text-center shadow-sm">
                 <p className="text-lg font-semibold text-destructive">Não foi possível carregar o catálogo.</p>
                 <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+              <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center shadow-sm">
                 <p className="text-lg font-semibold">
                   {searchTerm ? "Produto não encontrado." : "Nenhum produto por aqui ainda."}
                 </p>
@@ -517,15 +540,22 @@ function Index() {
                 )}
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {filtered.map((p) => (
+                  {visibleProducts.map((p) => (
                     <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
                   ))}
                 </div>
+
+                {/* Loader do Infinite Scroll */}
+                {visibleCount < filtered.length && (
+                  <div ref={lastProductElementRef} className="h-16 w-full flex items-center justify-center mt-6">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  </div>
+                )}
               </>
             )}
 
             {items.length > 0 && (
-              <div className="mt-12 flex justify-center">
+              <div className="mt-12 flex justify-center sticky bottom-6 z-30">
                 <button
                   onClick={finalizar}
                   disabled={checkoutLoading}
@@ -585,7 +615,7 @@ function CatChip({ active, onClick, children }: { active: boolean; onClick: () =
       onClick={onClick}
       className={
         "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition shadow-sm " +
-        (active ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/70")
+        (active ? "bg-primary text-primary-foreground" : "bg-white text-secondary-foreground hover:bg-white/80 border border-border")
       }
     >
       {children}
@@ -642,7 +672,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
       className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md"
     >
       {isPromo(p) && <PromoBadge />}
-      <div className="aspect-[4/3] relative overflow-hidden bg-secondary">
+      <div className="aspect-[4/3] relative overflow-hidden bg-secondary border-b border-border/40">
         {p.image_url ? (
           <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
         ) : (
@@ -721,7 +751,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
           <X className="h-5 w-5" />
         </button>
         <div className="grid gap-0 sm:grid-cols-2">
-          <div className="relative aspect-square w-full bg-secondary">
+          <div className="relative aspect-square w-full bg-secondary border-b border-border/40 sm:border-b-0 sm:border-r">
             {isPromo(p) && <PromoBadge />}
             {p.image_url ? (
               <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
@@ -742,7 +772,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
               {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground">{p.description}</p>}
             </div>
             <PriceBlock p={p} big />
-            <div className="mt-auto">
+            <div className="mt-auto pt-4">
               {qty === 0 ? (
                 <Button
                   type="button"
@@ -822,7 +852,7 @@ function CartDrawer({
             </button>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4 bg-secondary/10">
           {items.length === 0 ? (
             <p className="mt-10 text-center text-muted-foreground font-medium">
               Seu carrinho está vazio. Adicione produtos no catálogo!
@@ -839,7 +869,7 @@ function CartDrawer({
                       <div className="font-bold leading-tight">{i.name}</div>
                       <div className="text-sm font-semibold text-muted-foreground">{brl(i.price)} cada</div>
                     </div>
-                    <div className="flex items-center gap-1 rounded-full bg-secondary px-1">
+                    <div className="flex items-center gap-1 rounded-full bg-secondary px-1 border border-border/50">
                       <button onClick={() => cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
                         <Minus className="h-3 w-3" />
                       </button>
@@ -861,7 +891,7 @@ function CartDrawer({
             </ul>
           )}
         </div>
-        <footer className="border-t border-border p-5">
+        <footer className="border-t border-border p-5 bg-card">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Total</span>
             <span className="font-display text-2xl font-black text-primary">{brl(total)}</span>
