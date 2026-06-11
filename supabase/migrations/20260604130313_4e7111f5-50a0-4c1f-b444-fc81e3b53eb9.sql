@@ -1,3 +1,7 @@
+-- Cria o bucket de storage caso não exista (Faltava isso para a instalação Day 1)
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO NOTHING;
 
 CREATE POLICY "Public read product images" ON storage.objects FOR SELECT
   USING (bucket_id = 'product-images');

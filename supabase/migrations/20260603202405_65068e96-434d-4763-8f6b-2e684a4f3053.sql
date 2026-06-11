@@ -1,1 +1,6 @@
-INSERT INTO public.user_roles (user_id, role) VALUES ('4dc524bd-2bc0-49cf-aac4-7ca1406d72fc', 'admin') ON CONFLICT DO NOTHING;
+-- Este arquivo continha um INSERT com um UUID chumbado (hardcoded) que causava falha 
+-- de Foreign Key (violação de chave estrangeira) em bancos de dados recém-criados.
+-- 
+-- A criação do administrador inicial do sistema agora é tratada de forma segura e 
+-- automatizada pelo backend da aplicação através da função `ensureSeedAdmin`,
+-- garantindo consistência na tabela auth.users.
