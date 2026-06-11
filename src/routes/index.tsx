@@ -446,8 +446,8 @@ function Index() {
             </section>
           </div>
 
-          {/* Filters - Acompanha o header no scroll */}
-          <div className="sticky top-[64px] z-30 border-b border-border/60 bg-background/95 backdrop-blur w-full shadow-sm">
+          {/* Search Bar - Sticky para sempre ficar no topo, otimizando o espaço */}
+          <div className="sticky top-[64px] z-30 border-b border-border/60 bg-background/95 backdrop-blur w-full shadow-sm transition-all">
             <div className="mx-auto max-w-7xl px-4 py-3">
               <form
                 onSubmit={(e) => {
@@ -465,7 +465,7 @@ function Index() {
                       setSearchInput(e.target.value);
                       if (!e.target.value.trim()) setSearchTerm("");
                     }}
-                    placeholder="Buscar por nome ou código de barras..."
+                    placeholder="Buscar produto..."
                     className="h-11 w-full rounded-full border border-input bg-card pl-10 pr-4 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-ring"
                   />
                 </div>
@@ -476,8 +476,13 @@ function Index() {
                   Buscar
                 </button>
               </form>
+            </div>
+          </div>
 
-              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-3 pt-1 px-1">
+          {/* Categories - Rola normalmente (não é sticky) e desaparece para salvar espaço vertical */}
+          <div className="bg-background border-b border-border/60 w-full relative z-20">
+            <div className="mx-auto max-w-7xl px-4 py-2">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 px-1">
                 <CatChip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
                   Todos
                 </CatChip>
@@ -498,12 +503,12 @@ function Index() {
             {loading ? (
               <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
             ) : loadError ? (
-              <div className="rounded-2xl border border-destructive/40 bg-background p-8 text-center shadow-sm">
+              <div className="rounded-2xl border border-destructive/40 bg-white p-8 text-center shadow-sm">
                 <p className="text-lg font-semibold text-destructive">Não foi possível carregar o catálogo.</p>
                 <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-background p-12 text-center shadow-sm">
+              <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center shadow-sm">
                 <p className="text-lg font-semibold">
                   {searchTerm ? "Produto não encontrado." : "Nenhum produto por aqui ainda."}
                 </p>
