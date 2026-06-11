@@ -81,6 +81,7 @@ function Index() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [detail, setDetail] = useState<Product | null>(null);
+  const [showLogoModal, setShowLogoModal] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const items = useCart();
   const whatsNumber = useWhatsAppNumber();
@@ -292,14 +293,22 @@ function Index() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
             {catalogLogo ? (
-               <img src={catalogLogo} alt={catalogName} className="h-10 w-10 rounded-full object-cover shadow-sm bg-secondary" />
+               <img 
+                 src={catalogLogo} 
+                 alt={catalogName} 
+                 className="h-10 w-10 rounded-full object-cover shadow-sm bg-secondary cursor-pointer transition hover:scale-105" 
+                 onClick={() => setShowLogoModal(true)}
+               />
             ) : (
                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-black uppercase shadow-sm">
                  {catalogName.charAt(0)}
                </div>
             )}
             <div className="leading-tight">
-              <div className="font-display text-xl font-black text-foreground sm:text-2xl">
+              <div 
+                className="font-display text-xl font-black text-foreground sm:text-2xl cursor-pointer transition hover:opacity-80"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
                 {catalogName}
               </div>
               <div className="text-xs text-muted-foreground font-semibold">Catálogo de produtos</div>
@@ -489,6 +498,23 @@ function Index() {
         />
       )}
       {!accessDenied && detail && <ProductDetail p={detail} onClose={() => setDetail(null)} />}
+      
+      {/* Modal de Logo Expandida */}
+      {!accessDenied && showLogoModal && catalogLogo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setShowLogoModal(false)}>
+          <div className="relative max-w-md w-full flex justify-center" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setShowLogoModal(false)}
+              className="absolute -top-12 right-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition backdrop-blur-md"
+              aria-label="Fechar"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img src={catalogLogo} alt={catalogName} className="max-h-[85vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl" />
+          </div>
+        </div>
+      )}
+
       {!accessDenied && <WhatsAppFloat />}
     </div>
   );
