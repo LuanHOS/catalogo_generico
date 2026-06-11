@@ -307,7 +307,7 @@ function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
+    <div className="min-h-screen bg-background relative flex flex-col">
       <Toaster position="top-center" richColors />
       
       {/* FAIXA DO ADMIN */}
@@ -318,7 +318,7 @@ function Index() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header - Alterado para ser sempre fixo/sticky no topo */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
@@ -376,7 +376,7 @@ function Index() {
 
       {/* TELA DE BLOQUEIO */}
       {accessDenied ? (
-        <main className="relative mx-auto max-w-7xl px-4 py-20 flex flex-col items-center justify-center min-h-[70vh] z-10">
+        <main className="relative mx-auto max-w-7xl px-4 py-20 flex flex-col items-center justify-center min-h-[70vh] z-10 flex-1 w-full">
            <div className="bg-card w-full max-w-md p-8 rounded-3xl shadow-2xl border border-border text-center relative z-20">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-6">
                  <Lock className="h-8 w-8 text-primary" />
@@ -403,10 +403,10 @@ function Index() {
            <div className="fixed inset-0 z-0 top-[64px] bg-background/50 backdrop-blur-xl pointer-events-none" />
         </main>
       ) : (
-        <>
+        <div className="flex-1 w-full flex flex-col relative">
           {/* Hero */}
           <section className="border-b border-border/60 bg-gradient-to-br from-secondary via-background to-secondary/40">
-            <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14">
+            <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14 w-full">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Bem-vindo(a)</p>
               <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl">
                 {catalogName === "Catálogo de Produtos" ? (
@@ -423,8 +423,8 @@ function Index() {
             </div>
           </section>
 
-          {/* Filters */}
-          <div className="sticky top-[64px] z-20 border-b border-border/60 bg-background/95 backdrop-blur">
+          {/* Filters - Acompanha o header no scroll */}
+          <div className="sticky top-[65px] z-30 border-b border-border/60 bg-background/95 backdrop-blur w-full">
             <div className="mx-auto max-w-7xl px-4 py-3">
               <form
                 onSubmit={(e) => {
@@ -459,7 +459,7 @@ function Index() {
                   Todos
                 </CatChip>
                 <CatChip active={activeCat === "promocoes"} onClick={() => setActiveCat("promocoes")}>
-                  PROMOÇÕES
+                  Promoções
                 </CatChip>
                 {cats.map((c) => (
                   <CatChip key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)}>
@@ -471,7 +471,7 @@ function Index() {
           </div>
 
           {/* Products */}
-          <main className="mx-auto max-w-7xl px-4 py-8">
+          <main className="mx-auto max-w-7xl px-4 py-8 w-full flex-1">
             {loading ? (
               <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
             ) : loadError ? (
@@ -494,7 +494,7 @@ function Index() {
               <>
                 {/* Produtos em Alta (Mostra apenas na visão geral "Todos" e sem filtro de pesquisa) */}
                 {!loading && !loadError && activeCat === "all" && !searchTerm && trendingProducts.length > 0 && (
-                  <div className="mb-12">
+                  <div className="mb-6">
                     <div className="flex items-center gap-2 mb-4 px-1">
                       <TrendingUp className="h-5 w-5 text-primary" />
                       <h2 className="text-xl font-display font-black">Produtos em Alta</h2>
@@ -503,6 +503,15 @@ function Index() {
                       {trendingProducts.map((p) => (
                         <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
                       ))}
+                    </div>
+
+                    {/* Separador UI/UX */}
+                    <div className="relative mt-12 mb-6 flex items-center py-5">
+                      <div className="flex-grow border-t border-border/80"></div>
+                      <span className="mx-4 flex-shrink-0 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        Catálogo Completo
+                      </span>
+                      <div className="flex-grow border-t border-border/80"></div>
                     </div>
                   </div>
                 )}
@@ -528,10 +537,10 @@ function Index() {
               </div>
             )}
           </main>
-        </>
+        </div>
       )}
 
-      <footer className="mt-10 border-t border-border/60 bg-secondary/40 relative z-10">
+      <footer className="mt-auto border-t border-border/60 bg-secondary/40 relative z-10 w-full">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
