@@ -47,6 +47,7 @@ type Product = {
   stock: number;
   min_stock: number;
   barcode: string | null;
+  sales_count: number;
   max_per_cart: number;
   sort_order: number;
 };

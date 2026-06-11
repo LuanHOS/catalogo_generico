@@ -113,6 +113,7 @@ export type Database = {
           stock: number
           min_stock: number
           barcode: string | null
+          sales_count: number
           updated_at: string
         }
         Insert: {
@@ -131,6 +132,7 @@ export type Database = {
           stock?: number
           min_stock?: number
           barcode?: string | null
+          sales_count?: number
           updated_at?: string
         }
         Update: {
@@ -149,6 +151,7 @@ export type Database = {
           stock?: number
           min_stock?: number
           barcode?: string | null
+          sales_count?: number
           updated_at?: string
         }
         Relationships: [
@@ -218,6 +221,7 @@ export type Database = {
           sort_order: number
           created_at: string
           updated_at: string
+          sales_count: number
         }[]
       }
       has_role: {

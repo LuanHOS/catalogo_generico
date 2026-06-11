@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "sonner";
 import { z } from "zod";
-import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock } from "lucide-react";
+import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,6 +32,7 @@ type Product = {
   stock: number;
   min_stock: number;
   barcode: string | null;
+  sales_count: number;
   max_per_cart: number;
 };
 type Category = { id: string; name: string; sort_order: number };
@@ -83,6 +84,7 @@ function Index() {
   const [detail, setDetail] = useState<Product | null>(null);
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [randomTrending, setRandomTrending] = useState<Product[]>([]);
   const items = useCart();
   const whatsNumber = useWhatsAppNumber();
 
@@ -145,6 +147,17 @@ function Index() {
     })();
   }, []);
 
+  // Lógica para preencher produtos em alta aleatórios caso o banco não tenha vendas registradas
+  useEffect(() => {
+      if (prods.length > 0 && randomTrending.length === 0) {
+          const activeProds = prods.filter(p => p.in_stock);
+          const hasSales = activeProds.some(p => p.sales_count > 0);
+          if (!hasSales) {
+              setRandomTrending([...activeProds].sort(() => 0.5 - Math.random()).slice(0, 5));
+          }
+      }
+  }, [prods, randomTrending]);
+
   async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
     setVerifyingCode(true);
@@ -169,15 +182,32 @@ function Index() {
     }
   }
 
+  const trendingProducts = useMemo(() => {
+    const activeProds = prods.filter(p => p.in_stock);
+    if (activeProds.length === 0) return [];
+    
+    const hasSales = activeProds.some(p => p.sales_count > 0);
+    if (hasSales) {
+        return [...activeProds].sort((a, b) => b.sales_count - a.sales_count).slice(0, 5);
+    }
+    return randomTrending;
+  }, [prods, randomTrending]);
+
   const filtered = useMemo(() => {
     const exactQuery = searchTerm.trim();
     const query = exactQuery.toLocaleLowerCase("pt-BR");
     return prods.filter((p) => {
       if (!p.in_stock) return false; 
-      const matchesCat = activeCat === "all" || p.category_id === activeCat;
+      
+      let matchesCat = false;
+      if (activeCat === "all") matchesCat = true;
+      else if (activeCat === "promocoes") matchesCat = isPromo(p);
+      else matchesCat = p.category_id === activeCat;
+
       const isExactBarcode = exactQuery !== "" && p.barcode === exactQuery;
       const searchable = `${p.name} ${p.description ?? ""}`.toLocaleLowerCase("pt-BR");
       const matchesSearch = !query || isExactBarcode || searchable.includes(query);
+      
       return matchesCat && matchesSearch;
     });
   }, [prods, activeCat, searchTerm]);
@@ -277,7 +307,7 @@ function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
       <Toaster position="top-center" richColors />
       
       {/* FAIXA DO ADMIN */}
@@ -428,6 +458,9 @@ function Index() {
                 <CatChip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
                   Todos
                 </CatChip>
+                <CatChip active={activeCat === "promocoes"} onClick={() => setActiveCat("promocoes")}>
+                  PROMOÇÕES
+                </CatChip>
                 {cats.map((c) => (
                   <CatChip key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)}>
                     {c.name}
@@ -458,11 +491,28 @@ function Index() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {filtered.map((p) => (
-                  <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
-                ))}
-              </div>
+              <>
+                {/* Produtos em Alta (Mostra apenas na visão geral "Todos" e sem filtro de pesquisa) */}
+                {!loading && !loadError && activeCat === "all" && !searchTerm && trendingProducts.length > 0 && (
+                  <div className="mb-12">
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      <h2 className="text-xl font-display font-black">Produtos em Alta</h2>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                      {trendingProducts.map((p) => (
+                        <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {filtered.map((p) => (
+                    <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
+                  ))}
+                </div>
+              </>
             )}
 
             {items.length > 0 && (
