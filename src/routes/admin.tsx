@@ -780,6 +780,7 @@ function FinancesPanel() {
   const globalTicket = globalStats.orders > 0 ? globalStats.revenue / globalStats.orders : 0;
 
   let totalItemsSold = 0;
+  let totalCosts = 0;
   const itemStats: Record<string, { name: string, qty: number, revenue: number }> = {};
   const soldProductIds = new Set<string>();
 
@@ -789,6 +790,10 @@ function FinancesPanel() {
               const qty = Number(i.quantity) || 0;
               const price = Number(i.price) || 0;
               
+              const p = products.find(prod => prod.id === i.id);
+              const cost = p ? Number(p.cost) : 0;
+              totalCosts += (cost * qty);
+
               totalItemsSold += qty;
               if (i.id) soldProductIds.add(i.id);
 
@@ -801,6 +806,7 @@ function FinancesPanel() {
       }
   });
 
+  const netProfit = totalEarned - totalCosts;
   const itensPorVenda = totalOrders > 0 ? totalItemsSold / totalOrders : 0;
 
   let capitalCusto = 0;
@@ -857,11 +863,16 @@ function FinancesPanel() {
               <p className="text-muted-foreground text-center font-semibold py-10">Carregando métricas financeiras...</p>
           ) : (
               <>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-primary"/> Faturamento Bruto</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{brl(totalEarned)}</p>
                       <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {brl(globalStats.revenue)}</p>
+                    </div>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Lucro Líquido</h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(netProfit)}</p>
+                      <p className="text-xs text-muted-foreground font-semibold mt-1">Margem: {totalEarned > 0 ? ((netProfit / totalEarned) * 100).toFixed(1) + '%' : '0%'}</p>
                     </div>
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5 text-accent-foreground"/> Vendas</h3>
