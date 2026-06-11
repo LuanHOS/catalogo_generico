@@ -527,7 +527,6 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const qty = inCart?.qty ?? 0;
   
   const outOfStock = !p.in_stock || p.stock <= 0;
-  const isLowStock = !outOfStock && p.stock <= p.min_stock;
   
   // Se max_per_cart for 0, o limite é o próprio estoque
   const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
@@ -542,9 +541,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   return (
     <article
       onClick={onOpen}
-      className={`group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition hover:shadow-md ${
-        isLowStock ? "border-yellow-600 ring-2 ring-yellow-600" : "border-border"
-      }`}
+      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md"
     >
       {isPromo(p) && <PromoBadge />}
       <div className="aspect-[4/3] relative overflow-hidden bg-secondary">

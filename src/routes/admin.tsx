@@ -406,7 +406,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      <div className="grid gap-2 overflow-y-auto flex-1 pr-1">
                      {filteredProducts.map(p => {
                          const outOfStock = p.stock <= 0;
-                         const isLowStock = !outOfStock && p.stock <= p.min_stock;
+                         const isLowStock = !outOfStock && p.stock <= (p.min_stock || 0);
                          return (
                          <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
                              <div>
@@ -731,7 +731,7 @@ function ProductsPanel() {
             const isInactive = !p.in_stock;
             const outOfStock = p.in_stock && p.stock <= 0;
             const hasIssue = isInactive || outOfStock;
-            const isLowStock = !hasIssue && p.stock <= p.min_stock;
+            const isLowStock = !hasIssue && p.stock <= (p.min_stock || 0);
             const promo = p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price);
             return (
               <div
@@ -806,7 +806,7 @@ function ProductForm({
   const [cost, setCost] = useState(product ? String(product.cost) : "");
   const [maxPerCart, setMaxPerCart] = useState(product ? String(product.max_per_cart) : "0");
   const [stock, setStock] = useState(product ? String(product.stock) : "0");
-  const [minStock, setMinStock] = useState(product ? String(product.min_stock) : "0");
+  const [minStock, setMinStock] = useState(product ? String(product.min_stock ?? 0) : "0");
   const [barcode, setBarcode] = useState(product?.barcode ?? "");
   const [inStock, setInStock] = useState(product?.in_stock ?? true);
   const [categoryId, setCategoryId] = useState<string>(product?.category_id ?? "");
