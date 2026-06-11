@@ -257,7 +257,6 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
   const [showManual, setShowManual] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
 
-  // Novos estados para a barra de busca e filtro de datas
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -933,6 +932,7 @@ function ProductsPanel() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterOption, setFilterOption] = useState("all");
 
   const refresh = useCallback(async () => {
     const [p, c] = await Promise.all([
@@ -952,28 +952,54 @@ function ProductsPanel() {
     refresh();
   }
 
+  const activeCatIds = useMemo(() => new Set(prods.map(p => p.category_id).filter(Boolean)), [prods]);
+  const activeCats = useMemo(() => cats.filter(c => activeCatIds.has(c.id)), [cats, activeCatIds]);
+
   const exactQ = search.trim();
   const q = exactQ.toLowerCase();
-  const filtered = q
-    ? prods.filter(
-        (p) =>
-          (p.barcode && p.barcode === exactQ) ||
-          p.name.toLowerCase().includes(q) ||
-          (p.description ?? "").toLowerCase().includes(q),
-      )
-    : prods;
+  
+  const filtered = prods.filter((p) => {
+    const matchesSearch = !q ||
+      (p.barcode && p.barcode === exactQ) ||
+      p.name.toLowerCase().includes(q) ||
+      (p.description ?? "").toLowerCase().includes(q);
+
+    if (!matchesSearch) return false;
+
+    if (filterOption === "out_of_stock") return p.stock <= 0;
+    if (filterOption === "low_stock") return p.stock > 0 && p.stock <= (p.min_stock || 0);
+    if (filterOption !== "all") return p.category_id === filterOption;
+
+    return true;
+  });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou código de barras..."
-            className="pl-9 shadow-sm"
-          />
+        <div className="relative flex-1 sm:max-w-xl flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome ou código de barras..."
+              className="pl-9 shadow-sm"
+            />
+          </div>
+          <select
+            value={filterOption}
+            onChange={(e) => setFilterOption(e.target.value)}
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
+          >
+            <option value="all">Todos os produtos</option>
+            <option value="out_of_stock">Sem estoque</option>
+            <option value="low_stock">Estoque mínimo atingido</option>
+            {activeCats.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm">
           <Plus className="mr-1 h-4 w-4" /> Novo produto
@@ -986,7 +1012,7 @@ function ProductsPanel() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold">
-          Nenhum produto encontrado para "{search}".
+          Nenhum produto encontrado.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
