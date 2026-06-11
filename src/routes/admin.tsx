@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2 } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
@@ -721,14 +721,17 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
 
 /* ---------- Finances ---------- */
 function FinancesPanel() {
+  const [periodPreset, setPeriodPreset] = useState("30d");
   const [startDate, setStartDate] = useState(() => {
       const d = new Date();
-      d.setDate(1);
+      d.setDate(d.getDate() - 30);
       return d.toISOString().split("T")[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [globalStats, setGlobalStats] = useState({ revenue: 0, orders: 0 });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -739,28 +742,55 @@ function FinancesPanel() {
               .eq("status", "completed")
               .gte("created_at", `${startDate}T00:00:00Z`)
               .lte("created_at", `${endDate}T23:59:59Z`),
-          supabase.from("products").select("id, name, cost, stock")
-      ]).then(([ordersRes, prodsRes]) => {
+          supabase.from("products").select("*"),
+          supabase.from("orders").select("total").eq("status", "completed")
+      ]).then(([ordersRes, prodsRes, globalRes]) => {
           setOrders(ordersRes.data || []);
           setProducts(prodsRes.data as Product[] || []);
+          if (globalRes.data) {
+              const rev = globalRes.data.reduce((acc, o) => acc + Number(o.total), 0);
+              setGlobalStats({ revenue: rev, orders: globalRes.data.length });
+          }
           setLoading(false);
       });
   }, [startDate, endDate]);
 
+  function applyPreset(preset: string) {
+    setPeriodPreset(preset);
+    const end = new Date();
+    const start = new Date();
+    if (preset === 'today') {
+        // keep start = today
+    } else if (preset === '7d') {
+        start.setDate(end.getDate() - 7);
+    } else if (preset === '30d') {
+        start.setDate(end.getDate() - 30);
+    } else if (preset === 'month') {
+        start.setDate(1);
+    } else if (preset === 'year') {
+        start.setMonth(0, 1);
+    }
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+  }
+
   const totalEarned = orders.reduce((acc, o) => acc + Number(o.total), 0);
-  
-  let totalCosts = 0;
+  const totalOrders = orders.length;
+  const ticketMedio = totalOrders > 0 ? totalEarned / totalOrders : 0;
+  const globalTicket = globalStats.orders > 0 ? globalStats.revenue / globalStats.orders : 0;
+
+  let totalItemsSold = 0;
   const itemStats: Record<string, { name: string, qty: number, revenue: number }> = {};
+  const soldProductIds = new Set<string>();
 
   orders.forEach(o => {
       if (Array.isArray(o.items)) {
           o.items.forEach((i: any) => {
               const qty = Number(i.quantity) || 0;
               const price = Number(i.price) || 0;
-              const p = products.find(prod => prod.id === i.id);
-              const cost = p ? Number(p.cost) : 0;
               
-              totalCosts += (cost * qty);
+              totalItemsSold += qty;
+              if (i.id) soldProductIds.add(i.id);
 
               if (!itemStats[i.id]) {
                   itemStats[i.id] = { name: i.name, qty: 0, revenue: 0 };
@@ -771,95 +801,203 @@ function FinancesPanel() {
       }
   });
 
-  const netProfit = totalEarned - totalCosts;
-  const totalItems = Object.values(itemStats).reduce((acc, item) => acc + item.qty, 0);
-  const top10 = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 10);
+  const itensPorVenda = totalOrders > 0 ? totalItemsSold / totalOrders : 0;
 
-  const totalRegisteredProducts = products.length;
-  const totalStockUnits = products.reduce((acc, p) => acc + (Number(p.stock) || 0), 0);
+  let capitalCusto = 0;
+  let capitalVenda = 0;
+  let totalFisico = 0;
+  const criticalStock: Product[] = [];
+  const deadStock: Product[] = [];
+
+  products.forEach(p => {
+     const pStock = Number(p.stock) || 0;
+     if (p.in_stock && pStock > 0) {
+        capitalCusto += pStock * (Number(p.cost) || 0);
+        const effPrice = Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price) ? Number(p.sale_price) : Number(p.price);
+        capitalVenda += pStock * effPrice;
+        totalFisico += pStock;
+
+        if (pStock <= (p.min_stock || 0)) {
+           criticalStock.push(p);
+        }
+        if (!soldProductIds.has(p.id)) {
+           deadStock.push(p);
+        }
+     }
+  });
+
+  const chartMap = new Map<string, number>();
+  [...orders].reverse().forEach(o => {
+     const d = new Date(o.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+     chartMap.set(d, (chartMap.get(d) || 0) + Number(o.total));
+  });
+  const chartData = Array.from(chartMap.entries()).map(([date, total]) => ({ date, total }));
+  const maxChartVal = chartData.length > 0 ? Math.max(...chartData.map(d => d.total)) : 1;
+
+  const top10 = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 10);
 
   return (
       <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-end bg-card p-4 rounded-xl border border-border shadow-sm">
-              <div className="flex-1">
-                  <Label>Data de Início</Label>
-                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-              </div>
-              <div className="flex-1">
-                  <Label>Data de Fim</Label>
-                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-              </div>
+          <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
+            <div className="flex gap-2 p-1 bg-secondary rounded-lg border border-border w-full xl:w-auto overflow-x-auto">
+                <button onClick={() => applyPreset('today')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'today' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Hoje</button>
+                <button onClick={() => applyPreset('7d')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === '7d' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>7 Dias</button>
+                <button onClick={() => applyPreset('30d')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === '30d' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>30 Dias</button>
+                <button onClick={() => applyPreset('month')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'month' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Mês</button>
+                <button onClick={() => applyPreset('year')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'year' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Ano</button>
+            </div>
+            <div className="flex items-center gap-2 w-full xl:w-auto">
+                <Input type="date" value={startDate} onChange={e => {setStartDate(e.target.value); setPeriodPreset('custom');}} className="h-9 text-sm w-full" />
+                <span className="text-muted-foreground text-sm font-semibold">até</span>
+                <Input type="date" value={endDate} onChange={e => {setEndDate(e.target.value); setPeriodPreset('custom');}} className="h-9 text-sm w-full" />
+            </div>
           </div>
 
           {loading ? (
-              <p className="text-muted-foreground text-center font-semibold py-10">Carregando métricas...</p>
+              <p className="text-muted-foreground text-center font-semibold py-10">Carregando métricas financeiras...</p>
           ) : (
               <>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                              <TrendingUp className="h-6 w-6 text-primary" />
-                          </div>
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Lucro Bruto (Receita)</h3>
-                          <p className="text-2xl font-black mt-1 text-foreground">{brl(totalEarned)}</p>
-                      </div>
-                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
-                          <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3">
-                              <DollarSign className="h-6 w-6 text-green-600" />
-                          </div>
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Lucro Líquido</h3>
-                          <p className="text-2xl font-black mt-1 text-green-600">{brl(netProfit)}</p>
-                      </div>
-                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
-                          <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mb-3">
-                              <ShoppingBag className="h-6 w-6 text-accent-foreground" />
-                          </div>
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Produtos Vendidos</h3>
-                          <p className="text-2xl font-black mt-1 text-foreground">{totalItems}</p>
-                      </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-primary"/> Faturamento Bruto</h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{brl(totalEarned)}</p>
+                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {brl(globalStats.revenue)}</p>
+                    </div>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5 text-accent-foreground"/> Vendas</h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{totalOrders}</p>
+                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {globalStats.orders}</p>
+                    </div>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Ticket Médio</h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(ticketMedio)}</p>
+                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {brl(globalTicket)}</p>
+                    </div>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-blue-600"/> Itens por Venda</h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-blue-600">{itensPorVenda.toFixed(1)}</p>
+                      <p className="text-xs text-muted-foreground font-semibold mt-1">Média do período</p>
+                    </div>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
-                          <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
-                              <Layers className="h-6 w-6 text-blue-600" />
+                  <h2 className="text-lg font-display font-black mt-8 mb-4 border-b border-border pb-2">Posição de Estoque (Tempo Real)</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between">
+                       <div>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Capital Imobilizado</h3>
+                          <div className="flex items-baseline gap-2">
+                             <span className="text-2xl font-black text-foreground">{brl(capitalCusto)}</span>
+                             <span className="text-xs font-semibold text-muted-foreground">a preço de custo</span>
                           </div>
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Produtos Cadastrados</h3>
-                          <p className="text-2xl font-black mt-1 text-foreground">{totalRegisteredProducts}</p>
-                      </div>
-                      <div className="border border-border bg-card rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
-                          <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-3">
-                              <Package className="h-6 w-6 text-orange-600" />
-                          </div>
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Quantidade em Estoque</h3>
-                          <p className="text-2xl font-black mt-1 text-foreground">{totalStockUnits}</p>
-                      </div>
+                          <p className="text-xs font-bold text-green-600 mt-1">Potencial de Venda: {brl(capitalVenda)}</p>
+                       </div>
+                       <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center"><Package className="h-6 w-6 text-muted-foreground"/></div>
+                    </div>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between">
+                       <div>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Volume Físico</h3>
+                          <p className="text-2xl font-black text-foreground">{totalFisico} <span className="text-sm font-semibold text-muted-foreground">unidades</span></p>
+                       </div>
+                       <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center"><Layers className="h-6 w-6 text-muted-foreground"/></div>
+                    </div>
                   </div>
 
-                  <div className="mt-8 border border-border bg-card rounded-xl overflow-hidden shadow-sm">
-                      <div className="bg-secondary/50 px-6 py-4 border-b border-border">
-                          <h3 className="font-display font-black text-lg">Top 10 Produtos Mais Vendidos</h3>
-                      </div>
-                      {top10.length === 0 ? (
-                          <p className="p-6 text-center text-muted-foreground font-semibold">Nenhuma venda no período.</p>
-                      ) : (
-                          <div className="divide-y divide-border">
-                              {top10.map((item, idx) => (
-                                  <div key={idx} className="flex items-center justify-between p-4 px-6 hover:bg-secondary/20 transition">
-                                      <div className="flex items-center gap-4">
-                                          <span className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary text-sm font-black text-muted-foreground">
-                                              {idx + 1}º
-                                          </span>
-                                          <span className="font-semibold">{item.name}</span>
-                                      </div>
-                                      <div className="text-right">
-                                          <div className="font-black text-primary">{item.qty} un.</div>
-                                          <div className="text-xs font-semibold text-muted-foreground">{brl(item.revenue)}</div>
-                                      </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex flex-col">
+                       <h3 className="text-sm font-bold uppercase tracking-wide mb-4">Faturamento Diário (Período)</h3>
+                       {chartData.length === 0 ? (
+                          <p className="text-xs text-muted-foreground m-auto">Sem dados para o gráfico.</p>
+                       ) : (
+                          <div className="flex h-48 items-end gap-1 sm:gap-2 mt-auto">
+                            {chartData.map(d => (
+                               <div key={d.date} className="group relative flex flex-1 flex-col items-center justify-end h-full">
+                                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-foreground text-background text-xs font-bold py-1 px-2 rounded whitespace-nowrap z-10 shadow-xl">
+                                     {d.date}: {brl(d.total)}
                                   </div>
-                              ))}
+                                  <div className="w-full bg-primary/30 rounded-t-sm group-hover:bg-primary transition-all" style={{ height: `${(d.total / maxChartVal) * 100}%`, minHeight: '4px' }}></div>
+                                  <span className="text-[9px] text-muted-foreground mt-2 truncate w-full text-center hidden sm:block">{d.date.substring(0, 5)}</span>
+                               </div>
+                            ))}
                           </div>
-                      )}
+                       )}
+                    </div>
+
+                    <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col">
+                       <div className="bg-secondary/50 px-5 py-3 border-b border-border">
+                           <h3 className="text-sm font-bold uppercase tracking-wide">Top 10 Produtos (Curva ABC)</h3>
+                       </div>
+                       <div className="flex-1 overflow-y-auto" style={{ maxHeight: '240px' }}>
+                          {top10.length === 0 ? (
+                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Nenhuma venda no período.</p>
+                          ) : (
+                              <div className="divide-y divide-border">
+                                  {top10.map((item, idx) => (
+                                      <div key={idx} className="flex items-center justify-between p-3 px-5 hover:bg-secondary/20 transition">
+                                          <div className="flex items-center gap-3">
+                                              <span className="flex items-center justify-center h-6 w-6 rounded-full bg-secondary text-xs font-black text-muted-foreground">
+                                                  {idx + 1}
+                                              </span>
+                                              <span className="font-semibold text-sm line-clamp-1">{item.name}</span>
+                                          </div>
+                                          <div className="text-right">
+                                              <div className="font-black text-primary text-sm">{item.qty} un.</div>
+                                              <div className="text-[10px] font-semibold text-muted-foreground">{brl(item.revenue)}</div>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col">
+                       <div className="bg-red-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-red-600">
+                           <AlertTriangle className="h-4 w-4" />
+                           <h3 className="text-sm font-bold uppercase tracking-wide">Alerta de Estoque Crítico</h3>
+                       </div>
+                       <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                           {criticalStock.length === 0 ? (
+                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Nenhum produto em nível crítico de estoque.</p>
+                           ) : (
+                              <div className="divide-y divide-border">
+                                 {criticalStock.map(p => (
+                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition">
+                                       <span className="font-semibold text-foreground line-clamp-1">{p.name}</span>
+                                       <span className="font-black text-red-600 whitespace-nowrap">{p.stock} un.</span>
+                                    </div>
+                                 ))}
+                              </div>
+                           )}
+                       </div>
+                     </div>
+
+                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col">
+                       <div className="bg-orange-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-orange-600">
+                           <Clock className="h-4 w-4" />
+                           <h3 className="text-sm font-bold uppercase tracking-wide">Baixo Giro (Encalhados no Período)</h3>
+                       </div>
+                       <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                           {deadStock.length === 0 ? (
+                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Todos os produtos em estoque tiveram saída no período.</p>
+                           ) : (
+                              <div className="divide-y divide-border">
+                                 {deadStock.slice(0, 50).map(p => (
+                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition">
+                                       <span className="font-semibold text-foreground line-clamp-1">{p.name}</span>
+                                       <span className="font-black text-orange-600 whitespace-nowrap">Estoque: {p.stock}</span>
+                                    </div>
+                                 ))}
+                                 {deadStock.length > 50 && (
+                                    <div className="p-2 text-center text-xs font-bold text-muted-foreground bg-secondary/30">
+                                       + {deadStock.length - 50} outros itens
+                                    </div>
+                                 )}
+                              </div>
+                           )}
+                       </div>
+                     </div>
                   </div>
               </>
           )}
