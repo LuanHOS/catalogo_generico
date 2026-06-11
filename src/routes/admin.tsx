@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
 import {
@@ -257,10 +257,20 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
   const [showManual, setShowManual] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
 
+  // Novos estados para a barra de busca e filtro de datas
+  const [searchQuery, setSearchQuery] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   const fetchOrders = useCallback(async () => {
-    const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+    let q = supabase.from("orders").select("*").order("created_at", { ascending: false });
+    
+    if (startDate) q = q.gte("created_at", `${startDate}T00:00:00Z`);
+    if (endDate) q = q.lte("created_at", `${endDate}T23:59:59Z`);
+
+    const { data } = await q;
     setOrders(data || []);
-  }, []);
+  }, [startDate, endDate]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -275,7 +285,21 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
     }
   }
 
-  const filtered = statusFilter === "all" ? orders : orders.filter(o => o.status === statusFilter);
+  const filtered = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return orders.filter(o => {
+      if (statusFilter !== "all" && o.status !== statusFilter) return false;
+      if (!query) return true;
+
+      const idMatch = o.id.toLowerCase().includes(query);
+      const vipMatch = o.vip_code && o.vip_code.toLowerCase().includes(query);
+      const itemsMatch = Array.isArray(o.items) && o.items.some((i: any) => 
+        i.name && i.name.toLowerCase().includes(query)
+      );
+
+      return idMatch || vipMatch || itemsMatch;
+    });
+  }, [orders, statusFilter, searchQuery]);
 
   return (
     <div className="space-y-4">
@@ -296,6 +320,33 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
         </Button>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-3 bg-card p-3 rounded-xl border border-border shadow-sm">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar por ID, produto ou senha VIP..." 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)} 
+            className="pl-9 h-10" 
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Input 
+            type="date" 
+            value={startDate} 
+            onChange={e => setStartDate(e.target.value)} 
+            className="h-10 w-full sm:w-auto text-sm" 
+          />
+          <span className="text-muted-foreground text-sm font-semibold">até</span>
+          <Input 
+            type="date" 
+            value={endDate} 
+            onChange={e => setEndDate(e.target.value)} 
+            className="h-10 w-full sm:w-auto text-sm" 
+          />
+        </div>
+      </div>
+
       <div className="grid gap-3">
         {filtered.length === 0 && <div className="p-12 text-center text-muted-foreground font-semibold border border-dashed border-border rounded-xl">Nenhum pedido encontrado.</div>}
         {filtered.map(o => (
@@ -312,6 +363,9 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
                 {o.status === 'canceled' && <span className="bg-destructive/15 text-destructive px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Cancelado</span>}
               </div>
               <p className="text-sm text-muted-foreground mt-1 font-medium">{new Date(o.created_at).toLocaleString('pt-BR')}</p>
+              {o.vip_code && (
+                <div className="mt-1 text-xs font-bold text-green-600">Acesso VIP: {o.vip_code}</div>
+              )}
               <div className="text-sm mt-2 font-medium">
                 {Array.isArray(o.items) && o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}
               </div>
@@ -373,67 +427,73 @@ function OrderDetailsModal({
     onClose();
   }
 
-  function generatePDF(orderToPrint: OrderRow) {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  async function generatePDF(orderToPrint: OrderRow) {
+    const toastId = toast.loading("Gerando PDF para download...");
+    try {
+      if (!(window as any).html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
 
-    const printItems = Array.isArray(orderToPrint.items) ? orderToPrint.items : [];
-    const statusText = orderToPrint.status === 'completed' ? 'Concluído' : orderToPrint.status === 'canceled' ? 'Cancelado' : 'Pendente';
+      const printItems = Array.isArray(orderToPrint.items) ? orderToPrint.items : [];
+      const statusText = orderToPrint.status === 'completed' ? 'Concluído' : orderToPrint.status === 'canceled' ? 'Cancelado' : 'Pendente';
+      const orderShortId = orderToPrint.id.split('-')[0];
 
-    const html = `
-      <html>
-        <head>
-          <title>Pedido #${orderToPrint.id.split('-')[0]}</title>
-          <style>
-            body { font-family: sans-serif; padding: 30px; color: #333; }
-            h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-            th { background-color: #f9f9f9; }
-            .total { font-size: 1.5em; font-weight: bold; margin-top: 30px; text-align: right; }
-            .meta { color: #555; margin-bottom: 30px; line-height: 1.6; font-size: 14px; }
-            .vip { color: #16a34a; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <h1>Resumo do Pedido</h1>
-          <div class="meta">
-            <div><strong>ID do Pedido:</strong> #${orderToPrint.id.split('-')[0]}</div>
+      const container = document.createElement("div");
+      container.innerHTML = `
+        <div style="font-family: sans-serif; padding: 40px; color: #333;">
+          <h1 style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">Resumo do Pedido</h1>
+          <div style="color: #555; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
+            <div><strong>ID do Pedido:</strong> #${orderShortId}</div>
             <div><strong>Data:</strong> ${new Date(orderToPrint.created_at).toLocaleString('pt-BR')}</div>
             <div><strong>Status:</strong> ${statusText}</div>
-            ${orderToPrint.vip_code ? `<div class="vip">Senha VIP utilizada: ${orderToPrint.vip_code}</div>` : ''}
+            ${orderToPrint.vip_code ? `<div style="color: #16a34a; font-weight: bold;">Senha VIP utilizada: ${orderToPrint.vip_code}</div>` : ''}
           </div>
-          <table>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <thead>
               <tr>
-                <th style="width: 10%">Qtd</th>
-                <th style="width: 50%">Produto</th>
-                <th style="width: 20%">Preço Unit.</th>
-                <th style="width: 20%">Subtotal</th>
+                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 10%">Qtd</th>
+                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 50%">Produto</th>
+                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 20%">Preço Unit.</th>
+                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 20%">Subtotal</th>
               </tr>
             </thead>
             <tbody>
               ${printItems.map((i: any) => `
                 <tr>
-                  <td>${i.quantity}</td>
-                  <td>${i.name}</td>
-                  <td>${brl(Number(i.price || 0))}</td>
-                  <td>${brl(Number(i.price || 0) * Number(i.quantity || 0))}</td>
+                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${i.quantity}</td>
+                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${i.name}</td>
+                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${brl(Number(i.price || 0))}</td>
+                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${brl(Number(i.price || 0) * Number(i.quantity || 0))}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
-          <div class="total">
+          <div style="font-size: 1.5em; font-weight: bold; margin-top: 30px; text-align: right;">
             Total Final: ${brl(Number(orderToPrint.total))}
           </div>
-          <script>
-            window.onload = () => { window.print(); window.close(); }
-          </script>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(html);
-    printWindow.document.close();
+        </div>
+      `;
+
+      const opt = {
+        margin:       0.5,
+        filename:     `Pedido-${orderShortId}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+
+      await (window as any).html2pdf().set(opt).from(container).save();
+      toast.success("Download iniciado!", { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao gerar o PDF.", { id: toastId });
+    }
   }
 
   return (
@@ -442,7 +502,7 @@ function OrderDetailsModal({
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-xl font-display font-black">Detalhes do Pedido</h2>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => generatePDF(order)} title="Gerar PDF" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" onClick={() => generatePDF(order)} title="Baixar PDF" className="text-muted-foreground hover:text-foreground">
               <Share2 className="h-5 w-5" />
             </Button>
             <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Fechar</button>
