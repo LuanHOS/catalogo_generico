@@ -757,6 +757,7 @@ function FinancesPanel() {
   const [products, setProducts] = useState<Product[]>([]);
   const [globalStats, setGlobalStats] = useState({ revenue: 0, orders: 0, cost: 0 });
   const [loading, setLoading] = useState(false);
+  const [activeChartBar, setActiveChartBar] = useState<string | null>(null);
 
   useEffect(() => {
       setLoading(true);
@@ -955,15 +956,21 @@ function FinancesPanel() {
                           <p className="text-xs text-muted-foreground m-auto">Sem dados para o gráfico.</p>
                        ) : (
                           <div className="flex h-48 items-end gap-1 sm:gap-2 mt-auto">
-                            {chartData.map(d => (
-                               <div key={d.date} className="group relative flex flex-1 flex-col items-center justify-end h-full">
-                                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-foreground text-background text-xs font-bold py-1 px-2 rounded whitespace-nowrap z-10 shadow-xl">
+                            {chartData.map(d => {
+                               const isActive = activeChartBar === d.date;
+                               return (
+                               <div 
+                                 key={d.date} 
+                                 className="group relative flex flex-1 flex-col items-center justify-end h-full cursor-pointer"
+                                 onClick={() => setActiveChartBar(isActive ? null : d.date)}
+                               >
+                                  <div className={`absolute bottom-full mb-2 ${isActive ? 'block' : 'hidden group-hover:block'} bg-foreground text-background text-xs font-bold py-1 px-2 rounded whitespace-nowrap z-10 shadow-xl`}>
                                      {d.date}: {brl(d.total)}
                                   </div>
-                                  <div className="w-full bg-primary/30 rounded-t-sm group-hover:bg-primary transition-all" style={{ height: `${(d.total / maxChartVal) * 100}%`, minHeight: '4px' }}></div>
+                                  <div className={`w-full rounded-t-sm transition-all ${isActive ? 'bg-primary' : 'bg-primary/30 group-hover:bg-primary'}`} style={{ height: `${(d.total / maxChartVal) * 100}%`, minHeight: '4px' }}></div>
                                   <span className="text-[9px] text-muted-foreground mt-2 truncate w-full text-center hidden sm:block">{d.date.substring(0, 5)}</span>
                                </div>
-                            ))}
+                            )})}
                           </div>
                        )}
                     </div>

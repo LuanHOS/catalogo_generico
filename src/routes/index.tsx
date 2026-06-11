@@ -329,7 +329,7 @@ function Index() {
   }
 
   return (
-    <div className="min-h-screen relative flex flex-col bg-background">
+    <div className="min-h-screen relative flex flex-col overflow-x-hidden">
       <Toaster position="top-center" richColors />
       
       {/* FAIXA DO ADMIN */}
@@ -446,8 +446,8 @@ function Index() {
             </section>
           </div>
 
-          {/* Search Bar - Sticky para sempre ficar no topo, otimizando o espaço */}
-          <div className="sticky top-[64px] z-30 border-b border-border/60 bg-background/95 backdrop-blur w-full shadow-sm transition-all">
+          {/* Search Bar - Cor branca sólida e colada no header */}
+          <div className="sticky top-[64px] z-30 border-b border-border/60 bg-card w-full shadow-sm transition-all">
             <div className="mx-auto max-w-7xl px-4 py-3">
               <form
                 onSubmit={(e) => {
@@ -466,7 +466,7 @@ function Index() {
                       if (!e.target.value.trim()) setSearchTerm("");
                     }}
                     placeholder="Buscar produto..."
-                    className="h-11 w-full rounded-full border border-input bg-card pl-10 pr-4 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-ring"
+                    className="h-11 w-full rounded-full border border-input bg-background pl-10 pr-4 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-ring"
                   />
                 </div>
                 <button
@@ -479,8 +479,8 @@ function Index() {
             </div>
           </div>
 
-          {/* Categories - Rola normalmente (não é sticky) e desaparece para salvar espaço vertical */}
-          <div className="bg-background border-b border-border/60 w-full relative z-20">
+          {/* Categories - Cor branca sólida e desaparece no scroll */}
+          <div className="bg-card border-b border-border/60 w-full relative z-20">
             <div className="mx-auto max-w-7xl px-4 py-2">
               <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 px-1">
                 <CatChip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
@@ -550,11 +550,21 @@ function Index() {
                   ))}
                 </div>
 
-                {/* Loader do Infinite Scroll */}
-                {visibleCount < filtered.length && (
+                {/* Loader do Infinite Scroll e Mensagem Final */}
+                {visibleCount < filtered.length ? (
                   <div ref={lastProductElementRef} className="h-16 w-full flex items-center justify-center mt-6">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                   </div>
+                ) : (
+                  filtered.length > 0 && (
+                    <div className="relative mt-12 mb-6 flex items-center py-5">
+                      <div className="flex-grow border-t border-black/15"></div>
+                      <span className="mx-4 flex-shrink-0 text-xs font-bold uppercase tracking-widest text-black/50">
+                        Fim da lista de produtos
+                      </span>
+                      <div className="flex-grow border-t border-black/15"></div>
+                    </div>
+                  )
                 )}
               </>
             )}
