@@ -7,6 +7,7 @@ import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "sonner";
+import { z } from "zod";
 import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -185,9 +186,11 @@ function Index() {
     if (!items.length) return;
     setCheckoutLoading(true);
 
+    const vipCode = localStorage.getItem("vip_code");
+
     // Puxa os produtos atualizados do banco usando a rota segura
     // @ts-ignore
-    const { data: currentProducts, error: checkError } = await supabase.rpc("get_catalog_secure", { p_code: localStorage.getItem("vip_code") || "" });
+    const { data: currentProducts, error: checkError } = await supabase.rpc("get_catalog_secure", { p_code: vipCode || "" });
 
     // Se der erro aqui, a senha expirou/foi revogada no meio da compra
     if (checkError || !currentProducts) {
@@ -233,6 +236,7 @@ function Index() {
     const { data: orderId, error } = await supabase.rpc("checkout_order", {
       order_total: newTotal,
       order_items: itemsJson,
+      p_vip_code: vipCode || null
     });
 
     setCheckoutLoading(false);
@@ -244,7 +248,6 @@ function Index() {
 
     const orderHash = String(orderId).split("-")[0];
 
-    const vipCode = localStorage.getItem("vip_code");
     const isVip = isPrivateModeActive && vipCode;
     const vipString = isVip ? ` (VIP: ${vipCode})` : "";
 

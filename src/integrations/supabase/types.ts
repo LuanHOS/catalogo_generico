@@ -76,6 +76,7 @@ export type Database = {
           items: Json
           status: string
           total: number
+          vip_code: string | null
         }
         Insert: {
           created_at?: string
@@ -83,6 +84,7 @@ export type Database = {
           items: Json
           status?: string
           total: number
+          vip_code?: string | null
         }
         Update: {
           created_at?: string
@@ -90,6 +92,7 @@ export type Database = {
           items?: Json
           status?: string
           total?: number
+          vip_code?: string | null
         }
         Relationships: []
       }
@@ -188,6 +191,7 @@ export type Database = {
         Args: {
           order_total: number
           order_items: Json
+          p_vip_code?: string | null
         }
         Returns: string
       }

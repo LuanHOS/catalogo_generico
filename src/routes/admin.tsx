@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
@@ -49,7 +49,7 @@ type Product = {
   max_per_cart: number;
   sort_order: number;
 };
-type OrderRow = { id: string; created_at: string; status: string; total: number; items: any };
+type OrderRow = { id: string; created_at: string; status: string; total: number; items: any; vip_code: string | null };
 
 export const SYSTEM_THEMES = [
   { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
@@ -373,18 +373,89 @@ function OrderDetailsModal({
     onClose();
   }
 
+  function generatePDF(orderToPrint: OrderRow) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printItems = Array.isArray(orderToPrint.items) ? orderToPrint.items : [];
+    const statusText = orderToPrint.status === 'completed' ? 'Concluído' : orderToPrint.status === 'canceled' ? 'Cancelado' : 'Pendente';
+
+    const html = `
+      <html>
+        <head>
+          <title>Pedido #${orderToPrint.id.split('-')[0]}</title>
+          <style>
+            body { font-family: sans-serif; padding: 30px; color: #333; }
+            h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+            th { background-color: #f9f9f9; }
+            .total { font-size: 1.5em; font-weight: bold; margin-top: 30px; text-align: right; }
+            .meta { color: #555; margin-bottom: 30px; line-height: 1.6; font-size: 14px; }
+            .vip { color: #16a34a; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Resumo do Pedido</h1>
+          <div class="meta">
+            <div><strong>ID do Pedido:</strong> #${orderToPrint.id.split('-')[0]}</div>
+            <div><strong>Data:</strong> ${new Date(orderToPrint.created_at).toLocaleString('pt-BR')}</div>
+            <div><strong>Status:</strong> ${statusText}</div>
+            ${orderToPrint.vip_code ? `<div class="vip">Senha VIP utilizada: ${orderToPrint.vip_code}</div>` : ''}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 10%">Qtd</th>
+                <th style="width: 50%">Produto</th>
+                <th style="width: 20%">Preço Unit.</th>
+                <th style="width: 20%">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${printItems.map((i: any) => `
+                <tr>
+                  <td>${i.quantity}</td>
+                  <td>${i.name}</td>
+                  <td>${brl(Number(i.price || 0))}</td>
+                  <td>${brl(Number(i.price || 0) * Number(i.quantity || 0))}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="total">
+            Total Final: ${brl(Number(orderToPrint.total))}
+          </div>
+          <script>
+            window.onload = () => { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
       <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-xl font-display font-black">Detalhes do Pedido</h2>
-          <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Fechar</button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => generatePDF(order)} title="Gerar PDF" className="text-muted-foreground hover:text-foreground">
+              <Share2 className="h-5 w-5" />
+            </Button>
+            <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Fechar</button>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div>
             <h3 className="font-bold text-lg leading-tight">Pedido #{order.id.split("-")[0]}</h3>
             <p className="text-sm text-muted-foreground font-medium">{new Date(order.created_at).toLocaleString('pt-BR')}</p>
+            {order.vip_code && (
+              <p className="text-sm font-bold text-green-600 mt-1">Acesso VIP: {order.vip_code}</p>
+            )}
           </div>
 
           <div>
