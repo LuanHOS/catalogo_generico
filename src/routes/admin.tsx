@@ -1716,6 +1716,11 @@ function SettingsPanel() {
   const [catalogLogo, setCatalogLogo] = useState("");
   const [theme, setTheme] = useState("");
   
+  // UI states for logo preview/remove
+  const [previewLogo, setPreviewLogo] = useState("");
+  const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
+  const [isRemovingLogo, setIsRemovingLogo] = useState(false);
+  
   // Novos estados do Modo Privado
   const [privateMode, setPrivateMode] = useState(false);
   const [accessCodes, setAccessCodes] = useState<{id: string, code: string, created_at: string}[]>([]);
@@ -1724,7 +1729,7 @@ function SettingsPanel() {
   const [loading, setLoading] = useState(true);
   const [savingNumber, setSavingNumber] = useState(false);
   const [savingName, setSavingName] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [savingLogo, setSavingLogo] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
   const [savingPrivate, setSavingPrivate] = useState(false);
   const [loadingCodes, setLoadingCodes] = useState(false);
@@ -1750,7 +1755,11 @@ function SettingsPanel() {
       setCatalogName(catRes.data?.value ?? "Catálogo de Produtos");
       setTheme(themeRes.data?.value ?? "strong-gray");
       setPrivateMode(privRes.data?.value === "true");
-      setCatalogLogo(logoRes.data?.value ?? "");
+      
+      const logoVal = logoRes.data?.value ?? "";
+      setCatalogLogo(logoVal);
+      setPreviewLogo(logoVal);
+      
       setLoading(false);
     });
   }, []);
@@ -1799,49 +1808,66 @@ function SettingsPanel() {
     }
   }
 
-  async function uploadLogo(file: File) {
-    setUploadingLogo(true);
-    try {
-      const options = { maxSizeMB: 0.2, maxWidthOrHeight: 600, useWebWorker: true };
-      const compressedFile = await imageCompression(file, options);
-      const ext = compressedFile.name.split(".").pop() || "png";
-      const path = `logos/${crypto.randomUUID()}.${ext}`;
-      
-      const { error } = await supabase.storage.from("product-images").upload(path, compressedFile, { upsert: false });
-      if (error) { 
-        toast.error("Falha no envio da imagem"); 
-        setUploadingLogo(false); 
-        return; 
-      }
-      
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      if (!data?.publicUrl) { 
-        toast.error("Falha ao gerar URL"); 
-        setUploadingLogo(false); 
-        return; 
-      }
-      
-      await saveLogoFn({ data: { logoUrl: data.publicUrl } });
-      setCatalogLogo(data.publicUrl);
-      toast.success("Logo atualizada com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao processar imagem.");
-    } finally {
-      setUploadingLogo(false);
-    }
+  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedLogoFile(file);
+    setPreviewLogo(URL.createObjectURL(file));
+    setIsRemovingLogo(false);
   }
 
-  async function removeLogo() {
-    if (!confirm("Remover a logo atual?")) return;
-    setUploadingLogo(true);
+  function handleLogoRemoveClick() {
+    setPreviewLogo("");
+    setSelectedLogoFile(null);
+    setIsRemovingLogo(true);
+  }
+
+  async function submitLogo(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingLogo(true);
     try {
-       await saveLogoFn({ data: { logoUrl: "" } });
-       setCatalogLogo("");
-       toast.success("Logo removida com sucesso.");
-    } catch(e) { 
-       toast.error("Erro ao remover logo"); 
+      let finalUrl = catalogLogo;
+
+      if (isRemovingLogo) {
+        finalUrl = "";
+      } else if (selectedLogoFile) {
+        const options = { maxSizeMB: 0.2, maxWidthOrHeight: 600, useWebWorker: true };
+        const compressedFile = await imageCompression(selectedLogoFile, options);
+        const ext = compressedFile.name.split(".").pop() || "png";
+        const path = `logos/${crypto.randomUUID()}.${ext}`;
+        
+        const { error } = await supabase.storage.from("product-images").upload(path, compressedFile, { upsert: false });
+        if (error) { 
+          toast.error("Falha no envio da imagem"); 
+          setSavingLogo(false); 
+          return; 
+        }
+        
+        const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+        if (!data?.publicUrl) { 
+          toast.error("Falha ao gerar URL"); 
+          setSavingLogo(false); 
+          return; 
+        }
+        
+        finalUrl = data.publicUrl;
+      }
+
+      if (finalUrl !== catalogLogo || isRemovingLogo) {
+        await saveLogoFn({ data: { logoUrl: finalUrl } });
+        setCatalogLogo(finalUrl);
+        setPreviewLogo(finalUrl);
+        setSelectedLogoFile(null);
+        setIsRemovingLogo(false);
+        toast.success("Logo salva com sucesso!");
+      } else {
+        toast.info("Nenhuma alteração para salvar.");
+      }
+    } catch (error) {
+      toast.error("Erro ao salvar a logo.");
+    } finally {
+      setSavingLogo(false);
     }
-    setUploadingLogo(false);
   }
 
   async function submitTheme(e: React.FormEvent) {
@@ -1896,6 +1922,8 @@ function SettingsPanel() {
   }
 
   if (loading) return <p className="text-muted-foreground font-semibold">Carregando…</p>;
+
+  const hasLogoChanges = selectedLogoFile !== null || isRemovingLogo;
 
   return (
     <div className="space-y-4">
@@ -2006,27 +2034,34 @@ function SettingsPanel() {
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Adicione a logomarca da sua empresa. Ela aparecerá no cabeçalho do catálogo.
         </p>
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-secondary shadow-sm flex items-center justify-center flex-shrink-0">
-            {catalogLogo ? (
-              <img src={catalogLogo} className="h-full w-full object-cover" alt="Logo" />
-            ) : (
-              <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
-            )}
+        <form onSubmit={submitLogo} className="mt-4 flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-secondary shadow-sm flex items-center justify-center flex-shrink-0">
+              {previewLogo ? (
+                <img src={previewLogo} className="h-full w-full object-cover" alt="Logo preview" />
+              ) : (
+                <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
+                <Upload className="h-4 w-4" />
+                Escolher imagem
+                <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
+              </label>
+              {previewLogo && (
+                 <Button type="button" variant="outline" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+                    <Trash2 className="h-4 w-4 mr-1" /> Remover Imagem
+                 </Button>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
-              <Upload className="h-4 w-4" />
-              {uploadingLogo ? "Enviando..." : "Enviar nova foto"}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])} disabled={uploadingLogo} />
-            </label>
-            {catalogLogo && (
-               <button type="button" onClick={removeLogo} disabled={uploadingLogo} className="text-xs font-bold text-destructive hover:underline text-left px-2">
-                  Remover logo atual
-               </button>
-            )}
+          <div className="flex justify-start pt-2">
+            <Button type="submit" disabled={savingLogo || !hasLogoChanges} className="rounded-full shadow-sm w-full sm:w-auto">
+              {savingLogo ? "Salvando…" : "Salvar Logo"}
+            </Button>
           </div>
-        </div>
+        </form>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
