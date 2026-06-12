@@ -1569,6 +1569,11 @@ function ProductForm({
   // Estado para Modal de Exclusão do Produto
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Estado para Modal de Entrada de Estoque (Custo Médio)
+  const [showAddStockModal, setShowAddStockModal] = useState(false);
+  const [addStockQty, setAddStockQty] = useState("");
+  const [addStockCost, setAddStockCost] = useState("");
+
   async function uploadImage(file: File) {
     setUploading(true);
     
@@ -1620,6 +1625,32 @@ function ProductForm({
   function undoImageChanges() {
     setImageUrl(originalImageUrl);
     setIsRemovingImage(false);
+  }
+
+  function openAddStock() {
+    setAddStockQty("");
+    setAddStockCost(cost || "0");
+    setShowAddStockModal(true);
+  }
+
+  function confirmAddStock() {
+    const currentQ = parseInt(stock || "0", 10) || 0;
+    const currentC = parseFloat(cost || "0") || 0;
+    const addedQ = parseInt(addStockQty || "0", 10) || 0;
+    const addedC = parseFloat(addStockCost || "0") || 0;
+
+    if (addedQ <= 0) {
+      toast.error("A quantidade recebida deve ser maior que zero.");
+      return;
+    }
+
+    const newTotalQ = currentQ + addedQ;
+    const newAvgC = newTotalQ > 0 ? ((currentQ * currentC) + (addedQ * addedC)) / newTotalQ : currentC;
+
+    setStock(newTotalQ.toString());
+    setCost(newAvgC.toFixed(2));
+    setShowAddStockModal(false);
+    toast.success("Estoque e custo médio atualizados na tela. Clique em 'Salvar' para gravar as alterações.");
   }
 
   async function save(e: React.FormEvent) {
@@ -1737,7 +1768,16 @@ function ProductForm({
             </select>
           </div>
           <div>
-            <Label>Quantidade em Estoque</Label>
+            <div className="flex items-center justify-between mb-1">
+               <Label className="mb-0">Quantidade em Estoque</Label>
+               <button 
+                 type="button" 
+                 onClick={openAddStock}
+                 className="text-[10px] font-black uppercase tracking-wide text-primary hover:bg-primary/20 flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full transition"
+               >
+                 <Plus className="h-3 w-3" /> Entrada
+               </button>
+            </div>
             <Input type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} required />
           </div>
           <div>
@@ -1805,6 +1845,67 @@ function ProductForm({
           loading={saving}
           confirmText="Excluir Produto"
         />
+      )}
+
+      {showAddStockModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black font-display flex items-center gap-2 text-primary">
+                <Package className="h-5 w-5" /> Entrada de Estoque
+              </h3>
+              <button type="button" onClick={() => setShowAddStockModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+            </div>
+            <p className="text-sm text-muted-foreground font-medium -mt-2 leading-relaxed">
+               Adicione novas unidades e o sistema calculará o <strong>Custo Médio Ponderado</strong> automaticamente.
+            </p>
+            
+            <div className="space-y-3">
+               <div>
+                  <Label>Quantidade Recebida</Label>
+                  <Input type="number" min="1" value={addStockQty} onChange={e => setAddStockQty(e.target.value)} placeholder="Ex: 10" className="mt-1" autoFocus />
+               </div>
+               <div>
+                  <Label>Custo Unitário da Compra (R$)</Label>
+                  <Input type="number" step="0.01" min="0" value={addStockCost} onChange={e => setAddStockCost(e.target.value)} className="mt-1" />
+               </div>
+            </div>
+
+            <div className="bg-secondary/30 p-3 rounded-lg border border-border mt-1">
+               <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Estoque atual:</span>
+                  <span className="text-foreground">{parseInt(stock || "0", 10)} un</span>
+               </div>
+               <div className="flex justify-between text-xs font-semibold mb-2 pb-2 border-b border-border/50">
+                  <span className="text-muted-foreground">Custo atual:</span>
+                  <span className="text-foreground">{brl(parseFloat(cost || "0"))}</span>
+               </div>
+               <div className="flex justify-between text-sm font-bold mb-1">
+                  <span className="text-muted-foreground">Novo Estoque:</span>
+                  <span className="text-foreground">{(parseInt(stock || "0", 10) || 0) + (parseInt(addStockQty || "0", 10) || 0)} un</span>
+               </div>
+               <div className="flex justify-between text-sm font-bold">
+                  <span className="text-muted-foreground">Novo Custo Médio:</span>
+                  <span className="text-primary">
+                     {(() => {
+                        const cQ = parseInt(stock || "0", 10) || 0;
+                        const cC = parseFloat(cost || "0") || 0;
+                        const aQ = parseInt(addStockQty || "0", 10) || 0;
+                        const aC = parseFloat(addStockCost || "0") || 0;
+                        const nQ = cQ + aQ;
+                        const nC = nQ > 0 ? ((cQ * cC) + (aQ * aC)) / nQ : cC;
+                        return brl(nC);
+                     })()}
+                  </span>
+               </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" type="button" onClick={() => setShowAddStockModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
+              <Button type="button" onClick={confirmAddStock} disabled={!addStockQty || parseInt(addStockQty) <= 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">Aplicar Valores</Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
