@@ -91,6 +91,52 @@ function usernameFromEmail(email: string) {
   return email.split("@")[0] ?? email;
 }
 
+/* ---------- Modal Reutilizável de Confirmação Genérica ---------- */
+export function ConfirmActionModal({
+  title,
+  description,
+  onClose,
+  onConfirm,
+  loading = false,
+  destructive = true,
+  confirmText = "Confirmar"
+}: {
+  title: string;
+  description: string | React.ReactNode;
+  onClose: () => void;
+  onConfirm: () => any; // <-- Correção do TypeScript aqui
+  loading?: boolean;
+  destructive?: boolean;
+  confirmText?: string;
+}) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+        <div>
+          <h3 className={`text-lg font-black font-display flex items-center gap-2 ${destructive ? 'text-destructive' : 'text-primary'}`}>
+            {destructive && <AlertTriangle className="h-5 w-5" />}
+            {title}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">{description}</p>
+        </div>
+        <div className="flex justify-end gap-2 mt-2">
+          <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm">
+            Cancelar
+          </Button>
+          <Button 
+            variant={destructive ? "destructive" : "default"} 
+            onClick={onConfirm} 
+            disabled={loading} 
+            className="rounded-full shadow-sm"
+          >
+            {loading ? "Processando..." : confirmText}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminPage() {
   const [session, setSession] = useState<{ userId: string; email: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -298,7 +344,7 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
         <div>
           <h3 className="text-lg font-black font-display text-destructive flex items-center gap-2"><AlertTriangle className="h-5 w-5"/> Cancelar Pedido</h3>
           <p className="text-sm text-muted-foreground mt-1 font-medium">Os produtos voltarão automaticamente para o estoque.</p>
@@ -328,14 +374,14 @@ function CompleteOrderModal({ onClose, onConfirm }: { onClose: () => void, onCon
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
         <div>
-          <h3 className="text-lg font-black font-display text-green-600 flex items-center gap-2"><CheckCircle className="h-5 w-5"/> Concluir Pedido</h3>
+          <h3 className="text-lg font-black font-display text-primary flex items-center gap-2"><CheckCircle className="h-5 w-5"/> Concluir Pedido</h3>
           <p className="text-sm text-muted-foreground mt-1 font-medium">Tem certeza que deseja marcar este pedido como concluído? Ele será contabilizado nas suas estatísticas de vendas.</p>
         </div>
         <div className="flex justify-end gap-2 mt-2">
           <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-          <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">Confirmar Conclusão</Button>
+          <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">Confirmar Conclusão</Button>
         </div>
       </div>
     </div>
@@ -731,14 +777,14 @@ function OrderDetailsModal({
             <Button variant="outline" onClick={() => setShowCancelConfirm(true)} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
               Cancelar Pedido
             </Button>
-            <Button onClick={() => setShowCompleteConfirm(true)} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">
-              {saving ? "Processando..." : "Concluir Pedido"}
+            <Button onClick={() => setShowCompleteConfirm(true)} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
+              Concluir Pedido
             </Button>
           </div>
         )}
 
         {isPending && showCancelConfirm && (
-          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-destructive/5">
+          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-destructive/5 animate-in fade-in zoom-in-95 duration-200">
              <Label className="text-destructive font-bold">Confirmação de Cancelamento</Label>
              <p className="text-xs text-muted-foreground font-semibold -mt-2">O estoque será devolvido automaticamente.</p>
              <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
@@ -752,12 +798,12 @@ function OrderDetailsModal({
         )}
 
         {isPending && showCompleteConfirm && (
-          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-green-500/5">
-             <Label className="text-green-700 font-bold">Confirmação de Conclusão</Label>
-             <p className="text-xs text-muted-foreground font-semibold -mt-2">O pedido será marcado como pago e contabilizado nas vendas.</p>
+          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-green-500/5 animate-in fade-in zoom-in-95 duration-200">
+             <Label className="text-primary font-bold flex items-center gap-1.5"><CheckCircle className="h-4 w-4"/> Confirmação de Conclusão</Label>
+             <p className="text-xs text-muted-foreground font-semibold -mt-2 mb-1">O pedido será marcado como pago e contabilizado nas vendas.</p>
              <div className="flex justify-end gap-2 mt-2">
                 <Button variant="outline" onClick={() => setShowCompleteConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-                <Button onClick={handleConcluir} disabled={saving} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">
+                <Button onClick={handleConcluir} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
                    {saving ? "Processando..." : "Confirmar Conclusão"}
                 </Button>
              </div>
@@ -1210,6 +1256,10 @@ function FinancesPanel() {
 function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, currentUserName: string }) {
   const [cats, setCats] = useState<Category[]>([]);
   const [name, setName] = useState("");
+  
+  // Estado para o Modal de Exclusão
+  const [deletingCat, setDeletingCat] = useState<{ cat: Category, warning?: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const refresh = useCallback(async () => {
     const { data } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
@@ -1235,21 +1285,28 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     refresh();
   }
 
-  async function del(c: Category) {
+  async function initiateDelete(c: Category) {
     const { count, error: countErr } = await supabase.from("products").select("id", { count: 'exact', head: true }).eq("category_id", c.id).is("deleted_at", null);
     if (countErr) return toast.error("Erro ao verificar produtos vinculados.");
     
     if ((count ?? 0) > 0) {
-      if (!confirm(`Atenção: Existem ${count} produto(s) nesta categoria. Se você excluí-la, esses produtos ficarão sem categoria. Tem certeza que deseja remover a categoria "${c.name}"?`)) return;
+      setDeletingCat({ cat: c, warning: `Atenção: Existem ${count} produto(s) nesta categoria. Se você excluí-la, esses produtos ficarão sem categoria.` });
     } else {
-      if (!confirm(`Remover categoria "${c.name}"?`)) return;
+      setDeletingCat({ cat: c });
     }
+  }
 
-    // Libera os produtos primeiro
-    await supabase.from("products").update({ category_id: null }).eq("category_id", c.id).is("deleted_at", null);
+  async function confirmDeleteCat() {
+    if (!deletingCat) return;
+    setIsDeleting(true);
+    const c = deletingCat.cat;
     
-    // Deleta a categoria via Soft Delete gravando quem deletou
+    await supabase.from("products").update({ category_id: null }).eq("category_id", c.id).is("deleted_at", null);
     const { error } = await supabase.from("categories").update({ deleted_at: new Date().toISOString(), deleted_by_name: currentUserName }).eq("id", c.id);
+    
+    setIsDeleting(false);
+    setDeletingCat(null);
+    
     if (error) return toast.error(error.message);
     toast.success("Categoria removida");
     refresh();
@@ -1269,12 +1326,23 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" onClick={() => rename(c)}><Pencil className="h-4 w-4" /></Button>
               {isMaster && (
-                <Button variant="ghost" size="icon" onClick={() => del(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => initiateDelete(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               )}
             </div>
           </li>
         ))}
       </ul>
+
+      {deletingCat && (
+        <ConfirmActionModal
+          title="Excluir Categoria"
+          description={deletingCat.warning || `Tem certeza que deseja remover a categoria "${deletingCat.cat.name}"?`}
+          onClose={() => setDeletingCat(null)}
+          onConfirm={confirmDeleteCat}
+          loading={isDeleting}
+          confirmText="Excluir Categoria"
+        />
+      )}
     </div>
   );
 }
@@ -1455,6 +1523,9 @@ function ProductForm({
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Estado para Modal de Exclusão do Produto
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   async function uploadImage(file: File) {
     setUploading(true);
@@ -1526,11 +1597,11 @@ function ProductForm({
     onSaved();
   }
 
-  async function handleDelete() {
-    if (!confirm(`Tem certeza que deseja remover o produto "${product!.name}"?`)) return;
+  async function confirmDeleteProduct() {
     setSaving(true);
     const { error } = await supabase.from("products").update({ deleted_at: new Date().toISOString(), deleted_by_name: currentUserName }).eq("id", product!.id);
     setSaving(false);
+    setShowDeleteConfirm(false);
     if (error) return toast.error(error.message);
     toast.success("Produto removido");
     onSaved();
@@ -1628,7 +1699,7 @@ function ProductForm({
 
         <div className="flex justify-between w-full border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {product && isMaster ? (
-            <Button type="button" variant="ghost" onClick={handleDelete} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2">
+            <Button type="button" variant="ghost" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2">
                <Trash2 className="h-4 w-4 mr-2" /> Excluir Produto
             </Button>
           ) : <div />}
@@ -1640,6 +1711,17 @@ function ProductForm({
           </div>
         </div>
       </form>
+
+      {showDeleteConfirm && (
+        <ConfirmActionModal
+          title="Excluir Produto"
+          description={`Tem certeza que deseja remover o produto "${product!.name}"? Ele será retirado da loja.`}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDeleteProduct}
+          loading={saving}
+          confirmText="Excluir Produto"
+        />
+      )}
     </div>
   );
 }
@@ -1652,6 +1734,10 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<AdminRow | null>(null);
+
+  // Estado para Modal de Exclusão
+  const [adminToDelete, setAdminToDelete] = useState<AdminRow | null>(null);
+  const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
 
   const list = useServerFn(listAdmins);
   const del = useServerFn(deleteAdminUser);
@@ -1670,13 +1756,18 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  async function remove(a: AdminRow) {
+  function remove(a: AdminRow) {
     if (a.fixed) return toast.error("O usuário 'admin' é fixo e não pode ser excluído.");
-    if (!confirm(`Excluir administrador "${a.username}"?`)) return;
+    setAdminToDelete(a);
+  }
+
+  async function confirmDeleteAdmin() {
+    if (!adminToDelete) return;
+    setIsDeletingAdmin(true);
     try {
-      await del({ data: { userId: a.id } });
+      await del({ data: { userId: adminToDelete.id } });
       toast.success("Administrador removido");
-      if (a.id === currentUserId) {
+      if (adminToDelete.id === currentUserId) {
         await supabase.auth.signOut();
         window.location.reload();
         return;
@@ -1684,6 +1775,9 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao remover");
+    } finally {
+      setIsDeletingAdmin(false);
+      setAdminToDelete(null);
     }
   }
 
@@ -1745,6 +1839,17 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
           editing={editing}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); refresh(); }}
+        />
+      )}
+
+      {adminToDelete && (
+        <ConfirmActionModal
+          title="Excluir Administrador"
+          description={`Tem certeza que deseja excluir o administrador "${adminToDelete.username}"? O acesso dele ao painel será revogado imediatamente.`}
+          onClose={() => setAdminToDelete(null)}
+          onConfirm={confirmDeleteAdmin}
+          loading={isDeletingAdmin}
+          confirmText="Excluir Administrador"
         />
       )}
     </div>
@@ -1912,6 +2017,10 @@ function SettingsPanel() {
   const [savingTheme, setSavingTheme] = useState(false);
   const [savingPrivate, setSavingPrivate] = useState(false);
   const [loadingCodes, setLoadingCodes] = useState(false);
+  
+  // Estado para Modal de Exclusão de Senha VIP
+  const [codeToDelete, setCodeToDelete] = useState<string | null>(null);
+  const [isDeletingCode, setIsDeletingCode] = useState(false);
   
   const saveNumberFn = useServerFn(updateWhatsAppNumber);
   const saveNameFn = useServerFn(updateCatalogName);
@@ -2089,14 +2198,22 @@ function SettingsPanel() {
     }
   }
 
-  async function handleDeleteCode(id: string) {
-    if (!confirm("Remover esta senha? Quem estiver usando perderá o acesso na mesma hora.")) return;
+  function handleDeleteCode(id: string) {
+    setCodeToDelete(id);
+  }
+
+  async function confirmDeleteCode() {
+    if (!codeToDelete) return;
+    setIsDeletingCode(true);
     try {
-      await deleteCodeFn({ data: { id } });
+      await deleteCodeFn({ data: { id: codeToDelete } });
       toast.success("Senha revogada.");
       fetchCodes();
     } catch(err) {
       toast.error("Erro ao remover senha.");
+    } finally {
+      setIsDeletingCode(false);
+      setCodeToDelete(null);
     }
   }
 
@@ -2265,6 +2382,17 @@ function SettingsPanel() {
           Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545984311918</code>
         </p>
       </div>
+
+      {codeToDelete && (
+        <ConfirmActionModal
+          title="Revogar Senha VIP"
+          description="Tem certeza que deseja remover esta senha? Quem estiver usando perderá o acesso na mesma hora."
+          onClose={() => setCodeToDelete(null)}
+          onConfirm={confirmDeleteCode}
+          loading={isDeletingCode}
+          confirmText="Revogar Acesso"
+        />
+      )}
     </div>
   );
 }
