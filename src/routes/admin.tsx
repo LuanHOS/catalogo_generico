@@ -1418,6 +1418,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
 
     if (!matchesSearch) return false;
 
+    if (filterOption === "inactive") return !p.in_stock;
     if (filterOption === "out_of_stock") return p.stock <= 0;
     if (filterOption === "low_stock") return p.stock > 0 && p.stock <= (p.min_stock || 0);
     if (filterOption === "none") return p.category_id === null;
@@ -1448,6 +1449,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
             <option value="none">Sem categoria</option>
             <option value="out_of_stock">Sem estoque</option>
             <option value="low_stock">Estoque mínimo atingido</option>
+            <option value="inactive">Inativos</option>
             {activeCats.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -2152,7 +2154,7 @@ function AdminFormModal({
           )}
         </div>
         <div>
-          <Label htmlFor="ap">Senha <span className="text-destructive">*</span></Label>
+          <Label htmlFor="ap">Senha {(!isEdit || isEdit) && <span className="text-destructive">*</span>}</Label>
           <div className="relative">
             <Input
               id="ap"
@@ -2161,7 +2163,7 @@ function AdminFormModal({
               onChange={(e) => setPass(e.target.value)}
               placeholder={loadingPass ? "Carregando…" : "mínimo 6 caracteres"}
               className="pr-16"
-              required={!isEdit}
+              required
             />
             <button
               type="button"
