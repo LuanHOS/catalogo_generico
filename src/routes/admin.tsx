@@ -218,12 +218,12 @@ function LoginForm() {
       </div>
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div>
-          <Label htmlFor="u">Usuário</Label>
-          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus />
+          <Label htmlFor="u">Usuário <span className="text-destructive">*</span></Label>
+          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required />
         </div>
         <div>
-          <Label htmlFor="p">Senha</Label>
-          <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label htmlFor="p">Senha <span className="text-destructive">*</span></Label>
+          <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
         <Button type="submit" disabled={loading} className="w-full rounded-full py-6 text-base font-bold shadow-sm">
           {loading ? "Entrando…" : "Entrar"}
@@ -1328,7 +1328,9 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
   return (
     <div className="space-y-6">
       <form onSubmit={add} className="flex gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" />
+        <div className="flex-1">
+           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces) *" required />
+        </div>
         <Button type="submit" className="rounded-full shadow-sm"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
@@ -1350,8 +1352,8 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
                </div>
                <form onSubmit={handleRenameCat} className="flex flex-col gap-4">
                   <div>
-                     <Label>Nome da categoria</Label>
-                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1" autoFocus />
+                     <Label>Nome da categoria <span className="text-destructive">*</span></Label>
+                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1" autoFocus required />
                   </div>
                   <div className="flex justify-between border-t border-border pt-4 mt-2">
                      {isMaster ? (
@@ -1760,7 +1762,7 @@ function ProductForm({
             <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" />
           </div>
           <div className="sm:col-span-2">
-            <Label>Nome</Label>
+            <Label>Nome <span className="text-destructive">*</span></Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="sm:col-span-2">
@@ -1779,23 +1781,25 @@ function ProductForm({
             </select>
           </div>
           <div>
-            <Label>Quantidade em Estoque</Label>
+            <Label>Quantidade em Estoque <span className="text-destructive">*</span></Label>
             <Input type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} required />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={openAddStock}
-              className="mt-2 w-full flex items-center justify-center gap-2 border-primary/20 text-primary hover:bg-primary/10 transition shadow-sm"
-            >
-              <Package className="h-4 w-4" /> Dar Entrada de Estoque
-            </Button>
+            {product && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={openAddStock}
+                className="mt-2 w-full flex items-center justify-center gap-2 border-primary/20 text-primary hover:bg-primary/10 transition shadow-sm"
+              >
+                <Package className="h-4 w-4" /> Dar Entrada de Estoque
+              </Button>
+            )}
           </div>
           <div>
-            <Label>Estoque Mínimo (Alerta)</Label>
+            <Label>Estoque Mínimo (Alerta) <span className="text-destructive">*</span></Label>
             <Input type="number" min={0} value={minStock} onChange={(e) => setMinStock(e.target.value)} required />
           </div>
           <div>
-            <Label>Preço de venda (R$)</Label>
+            <Label>Preço de venda (R$) <span className="text-destructive">*</span></Label>
             <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
           </div>
           <div>
@@ -1803,8 +1807,8 @@ function ProductForm({
             <Input type="number" step="0.01" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="deixe vazio se sem promoção" />
           </div>
           <div>
-            <Label>Custo interno (R$)</Label>
-            <Input type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} />
+            <Label>Custo interno (R$) <span className="text-destructive">*</span></Label>
+            <Input type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} required />
           </div>
           <div>
             <Label>Limite por carrinho</Label>
@@ -1886,12 +1890,12 @@ function ProductForm({
             
             <div className="space-y-3">
                <div>
-                  <Label>Quantidade Recebida</Label>
-                  <Input type="number" min="1" value={addStockQty} onChange={e => setAddStockQty(e.target.value)} placeholder="Ex: 10" className="mt-1" autoFocus />
+                  <Label>Quantidade Recebida <span className="text-destructive">*</span></Label>
+                  <Input type="number" min="1" value={addStockQty} onChange={e => setAddStockQty(e.target.value)} placeholder="Ex: 10" className="mt-1" autoFocus required />
                </div>
                <div>
-                  <Label>Custo Unitário da Compra (R$)</Label>
-                  <Input type="number" step="0.01" min="0" value={addStockCost} onChange={e => setAddStockCost(e.target.value)} className="mt-1" />
+                  <Label>Custo Unitário da Compra (R$) <span className="text-destructive">*</span></Label>
+                  <Input type="number" step="0.01" min="0" value={addStockCost} onChange={e => setAddStockCost(e.target.value)} className="mt-1" required />
                </div>
             </div>
 
@@ -2135,20 +2139,21 @@ function AdminFormModal({
           <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground">Fechar</button>
         </div>
         <div>
-          <Label htmlFor="au">Usuário</Label>
+          <Label htmlFor="au">Usuário <span className="text-destructive">*</span></Label>
           <Input
             id="au"
             value={user}
             onChange={(e) => setUser(e.target.value)}
             placeholder="ex: nome"
             disabled={isEdit && editing?.fixed}
+            required
           />
           {isEdit && editing?.fixed && (
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Esse usuário é fixo — não pode renomear.</p>
           )}
         </div>
         <div>
-          <Label htmlFor="ap">Senha</Label>
+          <Label htmlFor="ap">Senha {!isEdit && <span className="text-destructive">*</span>}</Label>
           <div className="relative">
             <Input
               id="ap"
@@ -2157,6 +2162,7 @@ function AdminFormModal({
               onChange={(e) => setPass(e.target.value)}
               placeholder={loadingPass ? "Carregando…" : "mínimo 6 caracteres"}
               className="pr-16"
+              required={!isEdit}
             />
             <button
               type="button"
@@ -2462,8 +2468,9 @@ function SettingsPanel() {
               <Input 
                 value={newCode} 
                 onChange={e => setNewCode(e.target.value)} 
-                placeholder="Nova senha (ex: cliente123)" 
+                placeholder="Nova senha (ex: cliente123) *" 
                 className="max-w-xs" 
+                required
               />
               <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
             </form>
@@ -2523,7 +2530,7 @@ function SettingsPanel() {
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo
+          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo <span className="text-destructive text-sm">*</span>
         </h3>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
@@ -2534,6 +2541,7 @@ function SettingsPanel() {
             onChange={(e) => setCatalogName(e.target.value)}
             placeholder="ex: Catálogo de Produtos"
             className="flex-1"
+            required
           />
           <Button type="submit" disabled={savingName} className="rounded-full shadow-sm">
             {savingName ? "Salvando…" : "Salvar"}
@@ -2587,7 +2595,7 @@ function SettingsPanel() {
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <Phone className="h-5 w-5 text-primary" /> Número do WhatsApp
+          <Phone className="h-5 w-5 text-primary" /> Número do WhatsApp <span className="text-destructive text-sm">*</span>
         </h3>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o número que receberá os pedidos do site e o botão flutuante.
@@ -2598,6 +2606,7 @@ function SettingsPanel() {
             onChange={(e) => setNumber(e.target.value)}
             placeholder="ex: 5545984311918"
             className="flex-1"
+            required
           />
           <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm">
             {savingNumber ? "Salvando…" : "Salvar"}
