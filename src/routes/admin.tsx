@@ -1569,10 +1569,12 @@ function ProductForm({
   // Estado para Modal de Exclusão do Produto
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Estado para Modal de Entrada de Estoque (Custo Médio)
+  // Estado para Modal de Entrada de Estoque (Custo Médio) e Proteção de Fechamento
   const [showAddStockModal, setShowAddStockModal] = useState(false);
   const [addStockQty, setAddStockQty] = useState("");
   const [addStockCost, setAddStockCost] = useState("");
+  const [hasUnsavedStockChanges, setHasUnsavedStockChanges] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   async function uploadImage(file: File) {
     setUploading(true);
@@ -1650,7 +1652,16 @@ function ProductForm({
     setStock(newTotalQ.toString());
     setCost(newAvgC.toFixed(2));
     setShowAddStockModal(false);
+    setHasUnsavedStockChanges(true);
     toast.success("Estoque e custo médio atualizados na tela. Clique em 'Salvar' para gravar as alterações.");
+  }
+
+  function handleAttemptClose() {
+    if (hasUnsavedStockChanges) {
+      setShowCancelConfirm(true);
+    } else {
+      onClose();
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -1706,7 +1717,7 @@ function ProductForm({
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h3 className="font-display text-xl font-black">{product ? "Editar" : "Novo"} produto</h3>
-          <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground">Fechar</button>
+          <button type="button" onClick={handleAttemptClose} className="text-sm font-semibold text-muted-foreground">Fechar</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -1768,17 +1779,16 @@ function ProductForm({
             </select>
           </div>
           <div>
-            <div className="flex items-center justify-between mb-1">
-               <Label className="mb-0">Quantidade em Estoque</Label>
-               <button 
-                 type="button" 
-                 onClick={openAddStock}
-                 className="text-[10px] font-black uppercase tracking-wide text-primary hover:bg-primary/20 flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full transition"
-               >
-                 <Plus className="h-3 w-3" /> Entrada
-               </button>
-            </div>
+            <Label>Quantidade em Estoque</Label>
             <Input type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} required />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={openAddStock}
+              className="mt-2 w-full flex items-center justify-center gap-2 border-primary/20 text-primary hover:bg-primary/10 transition shadow-sm"
+            >
+              <Package className="h-4 w-4" /> Dar Entrada de Estoque
+            </Button>
           </div>
           <div>
             <Label>Estoque Mínimo (Alerta)</Label>
@@ -1818,13 +1828,27 @@ function ProductForm({
             </Button>
           ) : <div />}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
+            <Button type="button" variant="outline" onClick={handleAttemptClose} className="rounded-full shadow-sm">Cancelar</Button>
             <Button type="submit" disabled={saving} className="rounded-full shadow-sm">
               {saving ? "Salvando…" : "Salvar"}
             </Button>
           </div>
         </div>
       </form>
+
+      {showCancelConfirm && (
+        <ConfirmActionModal
+          title="Descartar alterações?"
+          description="Você adicionou entrada de estoque neste produto. Se fechar agora, essas alterações de quantidade e custo NÃO serão salvas."
+          onClose={() => setShowCancelConfirm(false)}
+          onConfirm={() => {
+            setShowCancelConfirm(false);
+            onClose();
+          }}
+          confirmText="Sim, fechar e descartar"
+          destructive={true}
+        />
+      )}
 
       {showRemoveImageConfirm && (
         <ConfirmActionModal
