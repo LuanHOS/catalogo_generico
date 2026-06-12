@@ -135,10 +135,10 @@ function StockConflictModal({
         <div>
           <h3 className="text-lg font-black font-display flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Oops! Houve um problema no estoque
+            Oops! Tivemos um problema com o estoque
           </h3>
           <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">
-            Alguns produtos do seu carrinho esgotaram enquanto você comprava:
+            Alguns produtos do seu carrinho sofreram alterações no estoque ou esgotaram enquanto você comprava:
           </p>
         </div>
         
@@ -728,17 +728,17 @@ function Index() {
       )}
 
       {/* Footer Branco Forçado no Fundo */}
-      <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full">
+      <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full pb-28">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
       </footer>
 
-      {/* Floating Cart Icon (Canto direito) */}
+      {/* Floating Cart Icon (Canto direito, flutuante por cima do footer/whatsapp) */}
       {!accessDenied && items.length > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-[90px] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-2xl transition hover:scale-105 sm:bottom-[100px] sm:right-6"
+          className="fixed bottom-[100px] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-2xl transition hover:scale-105 sm:bottom-[110px] sm:right-6"
           aria-label="Abrir carrinho"
         >
           <ShoppingCart className="h-6 w-6" />
@@ -806,8 +806,8 @@ function CatChip({ active, onClick, children }: { active: boolean; onClick: () =
 
 function PromoBadge() {
   return (
-    <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-black uppercase tracking-wide text-accent-foreground shadow">
-      <Tag className="h-3 w-3" /> Promoção
+    <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-black uppercase tracking-wide text-accent-foreground shadow-md border border-background">
+      <Tag className="h-4 w-4" /> Promoção
     </span>
   );
 }
@@ -862,7 +862,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
           </div>
         )}
         {outOfStock && (
-          <span className="absolute left-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground z-10 shadow-sm">
+          <span className="absolute left-3 bottom-3 rounded-full bg-destructive px-3 py-1 text-xs font-black text-destructive-foreground z-10 shadow-sm">
             Sem estoque
           </span>
         )}
