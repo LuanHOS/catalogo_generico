@@ -1840,11 +1840,6 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  function remove(a: AdminRow) {
-    if (a.fixed) return toast.error("O usuário 'admin' é fixo e não pode ser excluído.");
-    setAdminToDelete(a);
-  }
-
   async function confirmDeleteAdmin() {
     if (!adminToDelete) return;
     setIsDeletingAdmin(true);
@@ -1857,6 +1852,7 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
         return;
       }
       refresh();
+      setEditing(null); // Fecha o modal de edição se estivesse aberto
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao remover");
     } finally {
@@ -1896,15 +1892,6 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
             </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" onClick={() => setEditing(a)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(a)}
-                disabled={a.fixed}
-                title={a.fixed ? "Não pode ser excluído" : "Excluir"}
-              >
-                <Trash2 className={"h-4 w-4 " + (a.fixed ? "opacity-30" : "text-destructive")} />
-              </Button>
             </div>
           </li>
         ))}
@@ -1923,6 +1910,7 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
           editing={editing}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); refresh(); }}
+          onDelete={() => setAdminToDelete(editing)}
         />
       )}
 
@@ -1945,11 +1933,13 @@ function AdminFormModal({
   editing,
   onClose,
   onSaved,
+  onDelete,
 }: {
   title: string;
   editing?: AdminRow;
   onClose: () => void;
   onSaved: () => void;
+  onDelete?: () => void;
 }) {
   const isEdit = !!editing;
   const [user, setUser] = useState(editing?.username ?? "");
@@ -2066,11 +2056,18 @@ function AdminFormModal({
           <Switch checked={isMasterRole || (isEdit && editing?.fixed)} onCheckedChange={setIsMasterRole} disabled={isEdit && editing?.fixed} />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
-          <Button type="submit" disabled={loading} className="rounded-full shadow-sm">
-            {loading ? "Salvando…" : "Salvar"}
-          </Button>
+        <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
+          {isEdit && !editing?.fixed && onDelete ? (
+            <Button type="button" variant="ghost" onClick={onDelete} disabled={loading} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2 -ml-2">
+               <Trash2 className="h-4 w-4 mr-2" /> Excluir
+            </Button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
+            <Button type="submit" disabled={loading} className="rounded-full shadow-sm">
+              {loading ? "Salvando…" : "Salvar"}
+            </Button>
+          </div>
         </div>
       </form>
     </div>
