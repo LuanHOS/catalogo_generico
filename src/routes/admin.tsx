@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock, Image as ImageIcon, X } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
@@ -104,7 +104,7 @@ export function ConfirmActionModal({
   title: string;
   description: string | React.ReactNode;
   onClose: () => void;
-  onConfirm: () => any; // <-- Correção do TypeScript aqui
+  onConfirm: () => any;
   loading?: boolean;
   destructive?: boolean;
   confirmText?: string;
@@ -355,7 +355,9 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
         </div>
         <div className="flex justify-end gap-2 mt-2">
           <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-          <Button variant="destructive" onClick={submit} disabled={saving} className="rounded-full shadow-sm">Confirmar</Button>
+          <Button variant="destructive" onClick={submit} disabled={saving} className="rounded-full shadow-sm">
+             {saving ? "Processando..." : "Confirmar"}
+          </Button>
         </div>
       </div>
     </div>
@@ -381,7 +383,9 @@ function CompleteOrderModal({ onClose, onConfirm }: { onClose: () => void, onCon
         </div>
         <div className="flex justify-end gap-2 mt-2">
           <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-          <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">Confirmar Conclusão</Button>
+          <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
+             {saving ? "Processando..." : "Confirmar Conclusão"}
+          </Button>
         </div>
       </div>
     </div>
@@ -999,6 +1003,8 @@ function FinancesPanel() {
         start.setDate(1);
     } else if (preset === 'year') {
         start.setMonth(0, 1);
+    } else if (preset === 'all') {
+        start.setFullYear(2000, 0, 1);
     }
     setStartDate(start.toISOString().split("T")[0]);
     setEndDate(end.toISOString().split("T")[0]);
@@ -1007,8 +1013,7 @@ function FinancesPanel() {
   const totalEarned = orders.reduce((acc, o) => acc + Number(o.total), 0);
   const totalOrders = orders.length;
   const ticketMedio = totalOrders > 0 ? totalEarned / totalOrders : 0;
-  const globalTicket = globalStats.orders > 0 ? globalStats.revenue / globalStats.orders : 0;
-
+  
   let totalItemsSold = 0;
   let totalCosts = 0;
   const itemStats: Record<string, { name: string, qty: number, revenue: number }> = {};
@@ -1081,6 +1086,7 @@ function FinancesPanel() {
                 <button onClick={() => applyPreset('30d')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === '30d' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>30 Dias</button>
                 <button onClick={() => applyPreset('month')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'month' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Mês</button>
                 <button onClick={() => applyPreset('year')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'year' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Ano</button>
+                <button onClick={() => applyPreset('all')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'all' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Desde o começo</button>
             </div>
             <div className="flex items-center gap-2 w-full xl:w-auto">
                 <Input type="date" value={startDate} onChange={e => {setStartDate(e.target.value); setPeriodPreset('custom');}} className="h-9 text-sm w-full" />
@@ -1097,27 +1103,22 @@ function FinancesPanel() {
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-primary"/> Faturamento Bruto</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{brl(totalEarned)}</p>
-                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {brl(globalStats.revenue)}</p>
                     </div>
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Lucro Líquido</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(netProfit)}</p>
-                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {brl(globalStats.revenue - globalStats.cost)}</p>
                     </div>
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5 text-accent-foreground"/> Vendas</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{totalOrders}</p>
-                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {globalStats.orders}</p>
                     </div>
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Ticket Médio</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(ticketMedio)}</p>
-                      <p className="text-xs text-muted-foreground font-semibold mt-1">Global: {brl(globalTicket)}</p>
                     </div>
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-blue-600"/> Itens por Venda</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-blue-600">{itensPorVenda.toFixed(1)}</p>
-                      <p className="text-xs text-muted-foreground font-semibold mt-1">Média do período</p>
                     </div>
                   </div>
 
@@ -1257,7 +1258,11 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
   const [cats, setCats] = useState<Category[]>([]);
   const [name, setName] = useState("");
   
-  // Estado para o Modal de Exclusão
+  // Estado para Edição da Categoria no Modal
+  const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [editCatName, setEditCatName] = useState("");
+
+  // Estado para Modal de Confirmação de Exclusão (sobreposto)
   const [deletingCat, setDeletingCat] = useState<{ cat: Category, warning?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -1277,12 +1282,19 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     refresh();
   }
 
-  async function rename(c: Category) {
-    const newName = prompt("Novo nome:", c.name);
-    if (!newName) return;
-    const { error } = await supabase.from("categories").update({ name: newName }).eq("id", c.id);
+  function openEdit(c: Category) {
+    setEditingCat(c);
+    setEditCatName(c.name);
+  }
+
+  async function handleRenameCat(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingCat || !editCatName.trim()) return;
+    const { error } = await supabase.from("categories").update({ name: editCatName.trim() }).eq("id", editingCat.id);
     if (error) return toast.error(error.message);
+    setEditingCat(null);
     refresh();
+    toast.success("Categoria atualizada");
   }
 
   async function initiateDelete(c: Category) {
@@ -1306,6 +1318,7 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     
     setIsDeleting(false);
     setDeletingCat(null);
+    setEditingCat(null); // Fecha o modal de edição se estiver aberto
     
     if (error) return toast.error(error.message);
     toast.success("Categoria removida");
@@ -1323,15 +1336,38 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
         {cats.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-3 p-4">
             <span className="font-semibold">{c.name}</span>
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" onClick={() => rename(c)}><Pencil className="h-4 w-4" /></Button>
-              {isMaster && (
-                <Button variant="ghost" size="icon" onClick={() => initiateDelete(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-              )}
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
           </li>
         ))}
       </ul>
+
+      {editingCat && !deletingCat && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
+            <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+               <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black font-display">Editar Categoria</h3>
+                  <button type="button" onClick={() => setEditingCat(null)} className="text-sm font-semibold text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+               </div>
+               <form onSubmit={handleRenameCat} className="flex flex-col gap-4">
+                  <div>
+                     <Label>Nome da categoria</Label>
+                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1" autoFocus />
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-4 mt-2">
+                     {isMaster ? (
+                        <Button type="button" variant="ghost" onClick={() => initiateDelete(editingCat)} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2 -ml-2">
+                           <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                        </Button>
+                     ) : <div/>}
+                     <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => setEditingCat(null)} className="rounded-full shadow-sm">Cancelar</Button>
+                        <Button type="submit" className="rounded-full shadow-sm">Salvar</Button>
+                     </div>
+                  </div>
+               </form>
+            </div>
+         </div>
+      )}
 
       {deletingCat && (
         <ConfirmActionModal
@@ -1509,6 +1545,8 @@ function ProductForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const originalImageUrl = product?.image_url ?? "";
+  
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
   const [price, setPrice] = useState(product ? String(product.price) : "");
@@ -1520,9 +1558,13 @@ function ProductForm({
   const [barcode, setBarcode] = useState(product?.barcode ?? "");
   const [inStock, setInStock] = useState(product?.in_stock ?? true);
   const [categoryId, setCategoryId] = useState<string>(product?.category_id ?? "");
-  const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
+  const [imageUrl, setImageUrl] = useState(originalImageUrl);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Estado Visual e Confirmação de Imagem
+  const [isRemovingImage, setIsRemovingImage] = useState(false);
+  const [showRemoveImageConfirm, setShowRemoveImageConfirm] = useState(false);
   
   // Estado para Modal de Exclusão do Produto
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1557,12 +1599,27 @@ function ProductForm({
       }
       
       setImageUrl(data.publicUrl);
+      setIsRemovingImage(false);
     } catch (error) {
       console.error("Erro na compressão:", error);
       toast.error("Erro ao processar a imagem.");
     } finally {
       setUploading(false);
     }
+  }
+
+  function handleRemoveImageClick() {
+    setShowRemoveImageConfirm(true);
+  }
+
+  function confirmRemoveImage() {
+    setIsRemovingImage(true);
+    setShowRemoveImageConfirm(false);
+  }
+
+  function undoImageChanges() {
+    setImageUrl(originalImageUrl);
+    setIsRemovingImage(false);
   }
 
   async function save(e: React.FormEvent) {
@@ -1581,7 +1638,7 @@ function ProductForm({
       barcode: barcode.trim() || null,
       in_stock: inStock,
       category_id: categoryId || null,
-      image_url: imageUrl || null,
+      image_url: isRemovingImage ? null : (imageUrl || null),
     };
     
     if (!product) {
@@ -1607,6 +1664,9 @@ function ProductForm({
     onSaved();
   }
 
+  const currentPreview = isRemovingImage ? "" : imageUrl;
+  const hasImageChanges = isRemovingImage || imageUrl !== originalImageUrl;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
       <form
@@ -1623,19 +1683,33 @@ function ProductForm({
           <div className="sm:col-span-2">
             <Label>Foto</Label>
             <div className="mt-1 flex items-center gap-3">
-              <div className="h-24 w-24 overflow-hidden rounded-lg border border-border bg-secondary shadow-sm">
-                {imageUrl && <img src={imageUrl} className="h-full w-full object-cover" alt="" />}
+              <div className="h-24 w-24 overflow-hidden rounded-lg border border-border bg-secondary shadow-sm flex-shrink-0">
+                {currentPreview && <img src={currentPreview} className="h-full w-full object-cover" alt="" />}
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
-                <Upload className="h-4 w-4" />
-                {uploading ? "Enviando…" : "Enviar imagem"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
-                />
-              </label>
+              <div className="flex flex-col gap-2">
+                 <div className="flex flex-wrap gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
+                      <Upload className="h-4 w-4" />
+                      {uploading ? "Enviando…" : "Enviar imagem"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
+                      />
+                    </label>
+                    {currentPreview && (
+                       <Button type="button" variant="outline" onClick={handleRemoveImageClick} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+                          <Trash2 className="h-4 w-4" />
+                       </Button>
+                    )}
+                 </div>
+                 {hasImageChanges && (
+                    <Button type="button" variant="ghost" onClick={undoImageChanges} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground">
+                       Desfazer mudança de imagem
+                    </Button>
+                 )}
+              </div>
             </div>
           </div>
 
@@ -1699,7 +1773,7 @@ function ProductForm({
 
         <div className="flex justify-between w-full border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {product && isMaster ? (
-            <Button type="button" variant="ghost" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2">
+            <Button type="button" variant="ghost" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2 -ml-2">
                <Trash2 className="h-4 w-4 mr-2" /> Excluir Produto
             </Button>
           ) : <div />}
@@ -1711,6 +1785,16 @@ function ProductForm({
           </div>
         </div>
       </form>
+
+      {showRemoveImageConfirm && (
+        <ConfirmActionModal
+          title="Remover Imagem"
+          description="Tem certeza que deseja remover a imagem deste produto? A alteração só será salva de fato ao guardar o formulário."
+          onClose={() => setShowRemoveImageConfirm(false)}
+          onConfirm={confirmRemoveImage}
+          confirmText="Remover"
+        />
+      )}
 
       {showDeleteConfirm && (
         <ConfirmActionModal
@@ -2004,6 +2088,7 @@ function SettingsPanel() {
   const [previewLogo, setPreviewLogo] = useState("");
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [isRemovingLogo, setIsRemovingLogo] = useState(false);
+  const [showRemoveLogoConfirm, setShowRemoveLogoConfirm] = useState(false);
   
   // Novos estados do Modo Privado
   const [privateMode, setPrivateMode] = useState(false);
@@ -2105,9 +2190,20 @@ function SettingsPanel() {
   }
 
   function handleLogoRemoveClick() {
+    setShowRemoveLogoConfirm(true);
+  }
+
+  function confirmRemoveLogo() {
     setPreviewLogo("");
     setSelectedLogoFile(null);
     setIsRemovingLogo(true);
+    setShowRemoveLogoConfirm(false);
+  }
+
+  function undoLogoChanges() {
+    setPreviewLogo(catalogLogo);
+    setSelectedLogoFile(null);
+    setIsRemovingLogo(false);
   }
 
   async function submitLogo(e: React.FormEvent) {
@@ -2339,15 +2435,22 @@ function SettingsPanel() {
                 <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
-                <Upload className="h-4 w-4" />
-                Escolher imagem
-                <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
-              </label>
-              {previewLogo && (
-                 <Button type="button" variant="outline" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
-                    <Trash2 className="h-4 w-4 mr-1" /> Remover Imagem
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
+                  <Upload className="h-4 w-4" />
+                  Escolher imagem
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
+                </label>
+                {previewLogo && !isRemovingLogo && (
+                   <Button type="button" variant="outline" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+                      <Trash2 className="h-4 w-4 mr-1" /> Remover Imagem
+                   </Button>
+                )}
+              </div>
+              {hasLogoChanges && (
+                 <Button type="button" variant="ghost" onClick={undoLogoChanges} disabled={savingLogo} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground">
+                    Desfazer mudança de logo
                  </Button>
               )}
             </div>
@@ -2382,6 +2485,16 @@ function SettingsPanel() {
           Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545984311918</code>
         </p>
       </div>
+
+      {showRemoveLogoConfirm && (
+        <ConfirmActionModal
+          title="Remover Logo"
+          description="Tem certeza que deseja remover a logo do catálogo? A alteração só será definitiva ao clicar em 'Salvar Logo'."
+          onClose={() => setShowRemoveLogoConfirm(false)}
+          onConfirm={confirmRemoveLogo}
+          confirmText="Remover"
+        />
+      )}
 
       {codeToDelete && (
         <ConfirmActionModal
