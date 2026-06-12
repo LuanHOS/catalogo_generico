@@ -116,6 +116,78 @@ export function ConfirmActionModal({
   );
 }
 
+/* ---------- Modal de Conflito de Estoque (Concorrência) ---------- */
+function StockConflictModal({
+  data,
+  onClose,
+  onConfirm
+}: {
+  data: {
+    outOfStock: { id: string; name: string }[];
+    reduced: { id: string; name: string; requested: number; available: number }[];
+  };
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="bg-background w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+        <div>
+          <h3 className="text-lg font-black font-display flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            Atenção ao Estoque
+          </h3>
+          <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">
+            Alguns produtos do seu carrinho sofreram alterações no estoque ou esgotaram enquanto você comprava:
+          </p>
+        </div>
+        
+        <div className="max-h-[40vh] overflow-y-auto space-y-4 py-2">
+          {data.outOfStock.length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-destructive mb-2">Esgotados</h4>
+              <ul className="space-y-1">
+                {data.outOfStock.map((item, idx) => (
+                  <li key={idx} className="text-sm font-semibold text-foreground bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">
+                    {item.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {data.reduced.length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-yellow-600 mb-2">Quantidade Reduzida</h4>
+              <ul className="space-y-1">
+                {data.reduced.map((item, idx) => (
+                  <li key={idx} className="text-sm font-semibold text-foreground bg-yellow-500/10 px-3 py-2 rounded-lg border border-yellow-600/20">
+                    <span className="block">{item.name}</span>
+                    <span className="text-xs text-muted-foreground">Você pediu {item.requested}, mas só temos <strong className="text-yellow-700">{item.available}</strong>.</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg border border-border">
+          Ao clicar em <strong>OK, ajustar carrinho</strong>, os itens esgotados serão removidos e as quantidades serão reduzidas para o limite disponível. Você poderá revisar seu carrinho antes de finalizar a compra.
+        </p>
+
+        <div className="flex justify-end gap-2 mt-2 border-t border-border pt-4">
+          <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm">
+            Cancelar Compra
+          </Button>
+          <Button onClick={onConfirm} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
+            OK, ajustar carrinho
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Index() {
   const [catalogName, setCatalogName] = useState("Catálogo de Produtos");
   const [catalogLogo, setCatalogLogo] = useState("");
@@ -145,6 +217,12 @@ function Index() {
   // Estados para a Faixa do Admin
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPrivateModeActive, setIsPrivateModeActive] = useState(false);
+
+  // Estado de Conflito de Estoque
+  const [stockConflictData, setStockConflictData] = useState<{
+    outOfStock: { id: string; name: string }[];
+    reduced: { id: string; name: string; requested: number; available: number }[];
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -283,13 +361,24 @@ function Index() {
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
 
+  function resolveStockConflicts() {
+    if (!stockConflictData) return;
+    stockConflictData.outOfStock.forEach(item => {
+      cart.remove(item.id);
+    });
+    stockConflictData.reduced.forEach(item => {
+      cart.setQty(item.id, item.available);
+    });
+    setStockConflictData(null);
+  }
+
   async function finalizar() {
     if (!items.length) return;
     setCheckoutLoading(true);
 
     const vipCode = localStorage.getItem("vip_code");
 
-    // Puxa os produtos atualizados do banco usando a rota segura
+    // Puxa os produtos atualizados do banco na exata fração de segundo da compra
     // @ts-ignore
     const { data: currentProducts, error: checkError } = await supabase.rpc("get_catalog_secure", { p_code: vipCode || "" });
 
@@ -305,22 +394,42 @@ function Index() {
 
     const currentProductMap = new Map((currentProducts as Product[]).map(p => [p.id, p]));
     
-    // Filtra o carrinho mantendo apenas itens que AINDA existem no banco de dados
-    const validItems = items.filter(i => currentProductMap.has(i.id));
+    const outOfStockItems: { id: string; name: string }[] = [];
+    const reducedStockItems: { id: string; name: string; requested: number; available: number }[] = [];
+    let hasConflict = false;
 
-    if (validItems.length === 0) {
-      toast.error("Os produtos do seu carrinho não estão mais disponíveis no catálogo.");
+    const validItems: { id: string; name: string; price: number; qty: number; max: number }[] = [];
+
+    // Checagem rigorosa de concorrência
+    for (const i of items) {
+      const p = currentProductMap.get(i.id);
+      if (!p || !p.in_stock || p.stock <= 0) {
+        // Produto foi apagado, inativado ou esgotou
+        outOfStockItems.push({ id: i.id, name: i.name });
+        hasConflict = true;
+      } else {
+        // Produto existe, vamos checar o limite e o estoque
+        const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
+        if (i.qty > currentMax) {
+          // Cliente tem mais no carrinho do que o disponível ou permitido agora
+          reducedStockItems.push({ id: i.id, name: i.name, requested: i.qty, available: currentMax });
+          hasConflict = true;
+          validItems.push({ ...i, qty: currentMax }); // Guardamos o novo valor, mas o pedido será bloqueado
+        } else {
+          // Tudo certo com o produto
+          validItems.push(i);
+        }
+      }
+    }
+
+    // Se houve concorrência e alguém comprou antes, bloqueia e avisa
+    if (hasConflict) {
       setCheckoutLoading(false);
-      cart.clear();
-      setCartOpen(false);
+      setStockConflictData({ outOfStock: outOfStockItems, reduced: reducedStockItems });
       return;
     }
 
-    if (validItems.length < items.length) {
-      toast.info("Alguns itens foram removidos do seu pedido pois não estão mais disponíveis.");
-    }
-
-    // Recalcula o total ignorando os itens removidos
+    // Se chegou aqui, não há conflitos de estoque. Calcular total final seguro.
     const newTotal = validItems.reduce((s, i) => s + i.price * i.qty, 0);
 
     const itemsJson = validItems.map((i) => {
@@ -614,19 +723,6 @@ function Index() {
                 )}
               </>
             )}
-
-            {items.length > 0 && (
-              <div className="mt-12 flex justify-center pb-8 relative z-20">
-                <button
-                  onClick={finalizar}
-                  disabled={checkoutLoading}
-                  className="inline-flex items-center gap-3 rounded-full bg-whatsapp px-8 py-5 text-lg font-black text-whatsapp-foreground shadow-xl shadow-black/15 transition hover:scale-[1.02] active:scale-100 disabled:opacity-70 disabled:hover:scale-100"
-                >
-                  {checkoutLoading ? "Processando..." : "Finalizar Compra pelo WhatsApp"}
-                  {!checkoutLoading && <span className="rounded-full bg-black/15 px-3 py-1 text-sm">{brl(total)}</span>}
-                </button>
-              </div>
-            )}
           </main>
         </div>
       )}
@@ -638,7 +734,7 @@ function Index() {
         </div>
       </footer>
 
-      {/* Floating Cart Button (Botão Flutuante Exclusivo do Carrinho) */}
+      {/* Floating Cart Icon (Canto direito) */}
       {!accessDenied && items.length > 0 && (
         <button
           onClick={() => setCartOpen(true)}
@@ -650,6 +746,15 @@ function Index() {
             {itemCount}
           </span>
         </button>
+      )}
+
+      {/* Modal de Conflito de Estoque */}
+      {stockConflictData && (
+        <StockConflictModal
+          data={stockConflictData}
+          onClose={() => setStockConflictData(null)}
+          onConfirm={resolveStockConflicts}
+        />
       )}
 
       {/* Componentes removidos do DOM quando o acesso é negado */}
