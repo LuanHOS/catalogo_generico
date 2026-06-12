@@ -54,18 +54,27 @@ export type Database = {
           id: string
           name: string
           sort_order: number
+          deleted_at: string | null
+          created_by_name: string | null
+          deleted_by_name: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           sort_order?: number
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           sort_order?: number
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
         }
         Relationships: []
       }
@@ -77,6 +86,8 @@ export type Database = {
           status: string
           total: number
           vip_code: string | null
+          cancellation_reason: string | null
+          canceled_by_name: string | null
         }
         Insert: {
           created_at?: string
@@ -85,6 +96,8 @@ export type Database = {
           status?: string
           total: number
           vip_code?: string | null
+          cancellation_reason?: string | null
+          canceled_by_name?: string | null
         }
         Update: {
           created_at?: string
@@ -93,6 +106,8 @@ export type Database = {
           status?: string
           total?: number
           vip_code?: string | null
+          cancellation_reason?: string | null
+          canceled_by_name?: string | null
         }
         Relationships: []
       }
@@ -115,6 +130,9 @@ export type Database = {
           barcode: string | null
           sales_count: number
           updated_at: string
+          deleted_at: string | null
+          created_by_name: string | null
+          deleted_by_name: string | null
         }
         Insert: {
           category_id?: string | null
@@ -134,6 +152,9 @@ export type Database = {
           barcode?: string | null
           sales_count?: number
           updated_at?: string
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
         }
         Update: {
           category_id?: string | null
@@ -153,6 +174,9 @@ export type Database = {
           barcode?: string | null
           sales_count?: number
           updated_at?: string
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
         }
         Relationships: [
           {
@@ -236,6 +260,8 @@ export type Database = {
           order_id: string
           new_status: string
           new_total?: number
+          p_reason?: string | null
+          p_canceled_by?: string | null
         }
         Returns: undefined
       }

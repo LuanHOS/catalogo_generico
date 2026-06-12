@@ -51,7 +51,16 @@ type Product = {
   max_per_cart: number;
   sort_order: number;
 };
-type OrderRow = { id: string; created_at: string; status: string; total: number; items: any; vip_code: string | null };
+type OrderRow = { 
+  id: string; 
+  created_at: string; 
+  status: string; 
+  total: number; 
+  items: any; 
+  vip_code: string | null;
+  cancellation_reason?: string | null;
+  canceled_by_name?: string | null;
+};
 
 export const SYSTEM_THEMES = [
   { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
@@ -118,7 +127,7 @@ function AdminPage() {
   if (isAdmin === null) return <Shell><p className="p-8 text-muted-foreground font-semibold">Verificando permissões…</p></Shell>;
   if (!isAdmin) return <Shell><NotAdmin email={session.email} /></Shell>;
 
-  return <Shell><Dashboard email={session.email} isMaster={isMaster} currentUserId={session.userId} /></Shell>;
+  return <Shell><Dashboard email={session.email} isMaster={isMaster} currentUserId={session.userId} currentUserName={usernameFromEmail(session.email)} /></Shell>;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -191,7 +200,7 @@ function NotAdmin({ email }: { email: string }) {
   );
 }
 
-function Dashboard({ email, isMaster, currentUserId }: { email: string, isMaster: boolean, currentUserId: string }) {
+function Dashboard({ email, isMaster, currentUserId, currentUserName }: { email: string, isMaster: boolean, currentUserId: string, currentUserName: string }) {
   const [tab, setTab] = useState<string>("orders");
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -264,9 +273,9 @@ function Dashboard({ email, isMaster, currentUserId }: { email: string, isMaster
         ))}
       </div>
 
-      {tab === "orders" && <OrdersPanel onStatusChange={fetchPendingCount} />}
-      {tab === "products" && <ProductsPanel isMaster={isMaster} />}
-      {tab === "categories" && <CategoriesPanel isMaster={isMaster} />}
+      {tab === "orders" && <OrdersPanel onStatusChange={fetchPendingCount} currentUserName={currentUserName} />}
+      {tab === "products" && <ProductsPanel isMaster={isMaster} currentUserName={currentUserName} />}
+      {tab === "categories" && <CategoriesPanel isMaster={isMaster} currentUserName={currentUserName} />}
       {tab === "finances" && isMaster && <FinancesPanel />}
       {tab === "admins" && isMaster && <AdminsPanel currentUserId={currentUserId} />}
       {tab === "settings" && isMaster && <SettingsPanel />}
@@ -274,12 +283,46 @@ function Dashboard({ email, isMaster, currentUserId }: { email: string, isMaster
   );
 }
 
+/* ---------- Modal Reutilizável de Cancelamento de Pedido ---------- */
+function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfirm: (reason: string) => Promise<void> }) {
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit() {
+    setSaving(true);
+    await onConfirm(reason);
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+        <div>
+          <h3 className="text-lg font-black font-display text-destructive flex items-center gap-2"><AlertTriangle className="h-5 w-5"/> Cancelar Pedido</h3>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">Os produtos voltarão automaticamente para o estoque.</p>
+        </div>
+        <div>
+          <Label>Motivo (Opcional)</Label>
+          <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1" />
+        </div>
+        <div className="flex justify-end gap-2 mt-2">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
+          <Button variant="destructive" onClick={submit} disabled={saving} className="rounded-full shadow-sm">Confirmar</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Orders ---------- */
-function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
+function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () => void, currentUserName: string }) {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [showManual, setShowManual] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
+  
+  // Modal Rápido de Cancelamento da Lista
+  const [cancelModalOrder, setCancelModalOrder] = useState<OrderRow | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -297,9 +340,14 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  async function updateStatus(id: string, newStatus: string, newTotal?: number) {
-    if (newStatus === 'canceled' && !confirm("Tem certeza que deseja cancelar? O estoque será devolvido.")) return;
-    const { error } = await supabase.rpc("update_order_status", { order_id: id, new_status: newStatus, new_total: newTotal });
+  async function updateStatus(id: string, newStatus: string, newTotal?: number, reason?: string) {
+    const { error } = await supabase.rpc("update_order_status", { 
+       order_id: id, 
+       new_status: newStatus, 
+       new_total: newTotal, 
+       p_reason: reason, 
+       p_canceled_by: currentUserName 
+    });
     if (error) toast.error("Erro ao atualizar pedido: " + error.message);
     else { 
       toast.success("Status atualizado"); 
@@ -399,17 +447,28 @@ function OrdersPanel({ onStatusChange }: { onStatusChange?: () => void }) {
                 <Button variant="outline" className="border-green-500/30 text-green-600 shadow-sm hover:bg-green-50 hover:text-green-700" onClick={() => updateStatus(o.id, 'completed')}>
                   <CheckCircle className="mr-1 h-4 w-4" /> Concluir
                 </Button>
-                <Button variant="outline" className="border-destructive/30 text-destructive shadow-sm hover:bg-destructive/10" onClick={() => updateStatus(o.id, 'canceled')}>
+                <Button variant="outline" className="border-destructive/30 text-destructive shadow-sm hover:bg-destructive/10" onClick={() => setCancelModalOrder(o)}>
                   <XCircle className="mr-1 h-4 w-4" /> Cancelar
                 </Button>
               </div>
             )}
             {o.status === 'completed' && (
-                <Button variant="ghost" size="sm" className="text-muted-foreground font-semibold" onClick={(e) => { e.stopPropagation(); updateStatus(o.id, 'canceled'); }}>Cancelar Venda</Button>
+                <Button variant="ghost" size="sm" className="text-muted-foreground font-semibold" onClick={(e) => { e.stopPropagation(); setCancelModalOrder(o); }}>Cancelar Venda</Button>
             )}
           </div>
         ))}
       </div>
+
+      {cancelModalOrder && (
+        <CancelOrderModal 
+          onClose={() => setCancelModalOrder(null)} 
+          onConfirm={async (reason) => {
+            await updateStatus(cancelModalOrder.id, 'canceled', undefined, reason);
+            setCancelModalOrder(null);
+          }} 
+        />
+      )}
+
       {showManual && <ManualOrderModal onClose={() => setShowManual(false)} onSaved={() => { fetchOrders(); if (onStatusChange) onStatusChange(); }} />}
       {selectedOrder && <OrderDetailsModal order={selectedOrder} onClose={() => setSelectedOrder(null)} onUpdateStatus={updateStatus} />}
     </div>
@@ -423,7 +482,7 @@ function OrderDetailsModal({
 }: {
   order: OrderRow;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: string, total?: number) => Promise<void>;
+  onUpdateStatus: (id: string, status: string, total?: number, reason?: string) => Promise<void>;
 }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const originalTotal = items.reduce((acc, i) => acc + (Number(i.price || 0) * Number(i.quantity || 0)), 0);
@@ -431,6 +490,10 @@ function OrderDetailsModal({
   
   const [customTotal, setCustomTotal] = useState(String(order.total));
   const [saving, setSaving] = useState(false);
+  
+  // UI de Cancelamento com Motivo
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const parsedTotal = Number(customTotal) || 0;
   const discountVal = originalTotal - parsedTotal;
@@ -445,7 +508,7 @@ function OrderDetailsModal({
 
   async function handleCancelar() {
     setSaving(true);
-    await onUpdateStatus(order.id, 'canceled');
+    await onUpdateStatus(order.id, 'canceled', undefined, cancelReason);
     setSaving(false);
     onClose();
   }
@@ -520,7 +583,7 @@ function OrderDetailsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
       <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-xl font-display font-black">Detalhes do Pedido</h2>
@@ -538,6 +601,12 @@ function OrderDetailsModal({
             <p className="text-sm text-muted-foreground font-medium">{new Date(order.created_at).toLocaleString('pt-BR')}</p>
             {order.vip_code && (
               <p className="text-sm font-bold text-green-600 mt-1">Acesso VIP: {order.vip_code}</p>
+            )}
+            {order.status === 'canceled' && order.cancellation_reason && (
+              <div className="mt-2 bg-destructive/10 border border-destructive/20 p-3 rounded-xl">
+                 <p className="text-xs font-bold text-destructive uppercase tracking-wide">Motivo do Cancelamento</p>
+                 <p className="text-sm font-medium mt-1">{order.cancellation_reason}</p>
+              </div>
             )}
           </div>
 
@@ -575,6 +644,7 @@ function OrderDetailsModal({
                       value={customTotal} 
                       onChange={(e) => setCustomTotal(e.target.value)} 
                       className="pl-9 font-black text-lg h-12"
+                      disabled={showCancelConfirm}
                     />
                   </div>
                 </div>
@@ -605,14 +675,28 @@ function OrderDetailsModal({
           </div>
         </div>
 
-        {isPending && (
+        {isPending && !showCancelConfirm && (
           <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border bg-secondary/10">
-            <Button variant="outline" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+            <Button variant="outline" onClick={() => setShowCancelConfirm(true)} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
               Cancelar Pedido
             </Button>
             <Button onClick={handleConcluir} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">
               {saving ? "Processando..." : "Concluir Pedido"}
             </Button>
+          </div>
+        )}
+
+        {isPending && showCancelConfirm && (
+          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-destructive/5">
+             <Label className="text-destructive font-bold">Confirmação de Cancelamento</Label>
+             <p className="text-xs text-muted-foreground font-semibold -mt-2">O estoque será devolvido automaticamente.</p>
+             <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+             <div className="flex justify-end gap-2 mt-2">
+                <Button variant="outline" onClick={() => setShowCancelConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
+                <Button variant="destructive" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm">
+                   {saving ? "Cancelando..." : "Confirmar Exclusão"}
+                </Button>
+             </div>
           </div>
         )}
       </div>
@@ -627,7 +711,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const [search, setSearch] = useState("");
   
   useEffect(() => {
-      supabase.from("products").select("*").order("name").then(({data}) => setProducts(data as Product[] || []));
+      supabase.from("products").select("*").is("deleted_at", null).order("name").then(({data}) => setProducts(data as Product[] || []));
   }, []);
 
   const addToCart = (p: Product) => {
@@ -675,7 +759,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   });
 
   return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
          <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh]">
              <div className="flex items-center justify-between border-b border-border px-6 py-4">
                 <h2 className="text-xl font-display font-black">Novo Pedido Manual</h2>
@@ -767,7 +851,7 @@ function FinancesPanel() {
               .eq("status", "completed")
               .gte("created_at", `${startDate}T00:00:00Z`)
               .lte("created_at", `${endDate}T23:59:59Z`),
-          supabase.from("products").select("*"),
+          supabase.from("products").select("*").is("deleted_at", null),
           supabase.from("orders").select("total, items").eq("status", "completed")
       ]).then(([ordersRes, prodsRes, globalRes]) => {
           setOrders(ordersRes.data || []);
@@ -1059,12 +1143,12 @@ function FinancesPanel() {
 }
 
 /* ---------- Categories ---------- */
-function CategoriesPanel({ isMaster }: { isMaster: boolean }) {
+function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, currentUserName: string }) {
   const [cats, setCats] = useState<Category[]>([]);
   const [name, setName] = useState("");
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase.from("categories").select("*").order("sort_order");
+    const { data } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
     setCats(data ?? []);
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
@@ -1072,7 +1156,7 @@ function CategoriesPanel({ isMaster }: { isMaster: boolean }) {
   async function add(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    const { error } = await supabase.from("categories").insert({ name: name.trim(), sort_order: cats.length });
+    const { error } = await supabase.from("categories").insert({ name: name.trim(), sort_order: cats.length, created_by_name: currentUserName });
     if (error) return toast.error(error.message);
     setName("");
     toast.success("Categoria criada");
@@ -1088,7 +1172,7 @@ function CategoriesPanel({ isMaster }: { isMaster: boolean }) {
   }
 
   async function del(c: Category) {
-    const { count, error: countErr } = await supabase.from("products").select("id", { count: 'exact', head: true }).eq("category_id", c.id);
+    const { count, error: countErr } = await supabase.from("products").select("id", { count: 'exact', head: true }).eq("category_id", c.id).is("deleted_at", null);
     if (countErr) return toast.error("Erro ao verificar produtos vinculados.");
     
     if ((count ?? 0) > 0) {
@@ -1097,7 +1181,11 @@ function CategoriesPanel({ isMaster }: { isMaster: boolean }) {
       if (!confirm(`Remover categoria "${c.name}"?`)) return;
     }
 
-    const { error } = await supabase.from("categories").delete().eq("id", c.id);
+    // Libera os produtos primeiro
+    await supabase.from("products").update({ category_id: null }).eq("category_id", c.id).is("deleted_at", null);
+    
+    // Deleta a categoria via Soft Delete gravando quem deletou
+    const { error } = await supabase.from("categories").update({ deleted_at: new Date().toISOString(), deleted_by_name: currentUserName }).eq("id", c.id);
     if (error) return toast.error(error.message);
     toast.success("Categoria removida");
     refresh();
@@ -1128,7 +1216,7 @@ function CategoriesPanel({ isMaster }: { isMaster: boolean }) {
 }
 
 /* ---------- Products ---------- */
-function ProductsPanel({ isMaster }: { isMaster: boolean }) {
+function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, currentUserName: string }) {
   const [prods, setProds] = useState<Product[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -1138,21 +1226,13 @@ function ProductsPanel({ isMaster }: { isMaster: boolean }) {
 
   const refresh = useCallback(async () => {
     const [p, c] = await Promise.all([
-      supabase.from("products").select("*").order("sort_order"),
-      supabase.from("categories").select("*").order("sort_order"),
+      supabase.from("products").select("*").is("deleted_at", null).order("sort_order"),
+      supabase.from("categories").select("*").is("deleted_at", null).order("sort_order"),
     ]);
     setProds((p.data ?? []) as Product[]);
     setCats(c.data ?? []);
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
-
-  async function del(p: Product) {
-    if (!confirm(`Remover "${p.name}"?`)) return;
-    const { error } = await supabase.from("products").delete().eq("id", p.id);
-    if (error) return toast.error(error.message);
-    toast.success("Produto removido");
-    refresh();
-  }
 
   const activeCatIds = useMemo(() => new Set(prods.map(p => p.category_id).filter(Boolean)), [prods]);
   const activeCats = useMemo(() => cats.filter(c => activeCatIds.has(c.id)), [cats, activeCatIds]);
@@ -1170,6 +1250,7 @@ function ProductsPanel({ isMaster }: { isMaster: boolean }) {
 
     if (filterOption === "out_of_stock") return p.stock <= 0;
     if (filterOption === "low_stock") return p.stock > 0 && p.stock <= (p.min_stock || 0);
+    if (filterOption === "none") return p.category_id === null;
     if (filterOption !== "all") return p.category_id === filterOption;
 
     return true;
@@ -1194,6 +1275,7 @@ function ProductsPanel({ isMaster }: { isMaster: boolean }) {
             className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
           >
             <option value="all">Todos os produtos</option>
+            <option value="none">Sem categoria</option>
             <option value="out_of_stock">Sem estoque</option>
             <option value="low_stock">Estoque mínimo atingido</option>
             {activeCats.map((c) => (
@@ -1214,7 +1296,7 @@ function ProductsPanel({ isMaster }: { isMaster: boolean }) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold">
-          Nenhum produto encontrado.
+          Nenhum produto encontrado com este filtro.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -1258,9 +1340,6 @@ function ProductsPanel({ isMaster }: { isMaster: boolean }) {
                   </div>
                   <div className="mt-auto flex items-center justify-end gap-1 text-xs">
                       <button onClick={() => { setEditing(p); setShowForm(true); }} className="rounded-full p-1.5 hover:bg-secondary transition"><Pencil className="h-3.5 w-3.5" /></button>
-                      {isMaster && (
-                        <button onClick={() => del(p)} className="rounded-full p-1.5 hover:bg-destructive/10 transition"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
-                      )}
                   </div>
                 </div>
               </div>
@@ -1273,6 +1352,8 @@ function ProductsPanel({ isMaster }: { isMaster: boolean }) {
         <ProductForm
           product={editing}
           cats={cats}
+          isMaster={isMaster}
+          currentUserName={currentUserName}
           onClose={() => setShowForm(false)}
           onSaved={() => { setShowForm(false); refresh(); }}
         />
@@ -1284,11 +1365,15 @@ function ProductsPanel({ isMaster }: { isMaster: boolean }) {
 function ProductForm({
   product,
   cats,
+  isMaster,
+  currentUserName,
   onClose,
   onSaved,
 }: {
   product: Product | null;
   cats: Category[];
+  isMaster: boolean;
+  currentUserName: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -1349,7 +1434,7 @@ function ProductForm({
     e.preventDefault();
     setSaving(true);
     const saleNum = salePrice.trim() ? Number(salePrice) : null;
-    const payload = {
+    const payload: any = {
       name: name.trim(),
       description: description.trim() || null,
       price: Number(price) || 0,
@@ -1363,6 +1448,11 @@ function ProductForm({
       category_id: categoryId || null,
       image_url: imageUrl || null,
     };
+    
+    if (!product) {
+       payload.created_by_name = currentUserName;
+    }
+    
     const { error } = product
       ? await supabase.from("products").update(payload).eq("id", product.id)
       : await supabase.from("products").insert(payload);
@@ -1372,8 +1462,18 @@ function ProductForm({
     onSaved();
   }
 
+  async function handleDelete() {
+    if (!confirm(`Tem certeza que deseja remover o produto "${product!.name}"?`)) return;
+    setSaving(true);
+    const { error } = await supabase.from("products").update({ deleted_at: new Date().toISOString(), deleted_by_name: currentUserName }).eq("id", product!.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Produto removido");
+    onSaved();
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
       <form
         onSubmit={save}
         className="flex w-full max-w-2xl max-h-[100dvh] flex-col rounded-t-2xl bg-background shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
@@ -1462,11 +1562,18 @@ function ProductForm({
         </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
-          <Button type="submit" disabled={saving} className="rounded-full shadow-sm">
-            {saving ? "Salvando…" : "Salvar"}
-          </Button>
+        <div className="flex justify-between w-full border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {product && isMaster ? (
+            <Button type="button" variant="ghost" onClick={handleDelete} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2">
+               <Trash2 className="h-4 w-4 mr-2" /> Excluir Produto
+            </Button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
+            <Button type="submit" disabled={saving} className="rounded-full shadow-sm">
+              {saving ? "Salvando…" : "Salvar"}
+            </Button>
+          </div>
         </div>
       </form>
     </div>
@@ -1653,7 +1760,7 @@ function AdminFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
       <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-xl font-black">{title}</h3>
