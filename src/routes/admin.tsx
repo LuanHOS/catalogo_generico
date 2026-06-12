@@ -60,6 +60,8 @@ type OrderRow = {
   vip_code: string | null;
   cancellation_reason?: string | null;
   canceled_by_name?: string | null;
+  completed_at?: string | null;
+  canceled_at?: string | null;
 };
 
 export const SYSTEM_THEMES = [
@@ -536,9 +538,11 @@ function OrderDetailsModal({
           <h1 style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">Resumo do Pedido</h1>
           <div style="color: #555; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
             <div><strong>ID do Pedido:</strong> #${orderShortId}</div>
-            <div><strong>Data:</strong> ${new Date(orderToPrint.created_at).toLocaleString('pt-BR')}</div>
+            <div><strong>Data do Pedido:</strong> ${new Date(orderToPrint.created_at).toLocaleString('pt-BR')}</div>
             <div><strong>Status:</strong> ${statusText}</div>
-            ${orderToPrint.vip_code ? `<div style="color: #16a34a; font-weight: bold;">Senha VIP utilizada: ${orderToPrint.vip_code}</div>` : ''}
+            ${orderToPrint.status === 'completed' && orderToPrint.completed_at ? `<div><strong>Data da Conclusão:</strong> ${new Date(orderToPrint.completed_at).toLocaleString('pt-BR')}</div>` : ''}
+            ${orderToPrint.status === 'canceled' && orderToPrint.canceled_at ? `<div><strong>Data do Cancelamento:</strong> ${new Date(orderToPrint.canceled_at).toLocaleString('pt-BR')}</div>` : ''}
+            ${orderToPrint.vip_code ? `<div style="color: #16a34a; font-weight: bold; margin-top: 5px;">Senha VIP utilizada: ${orderToPrint.vip_code}</div>` : ''}
           </div>
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <thead>
@@ -596,9 +600,18 @@ function OrderDetailsModal({
         </div>
         
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div>
+          <div className="flex flex-col gap-1">
             <h3 className="font-bold text-lg leading-tight">Pedido #{order.id.split("-")[0]}</h3>
-            <p className="text-sm text-muted-foreground font-medium">{new Date(order.created_at).toLocaleString('pt-BR')}</p>
+            <p className="text-sm text-muted-foreground font-medium">Criado em: {new Date(order.created_at).toLocaleString('pt-BR')}</p>
+            
+            {order.status === 'completed' && order.completed_at && (
+               <p className="text-sm text-green-600 font-medium">Concluído em: {new Date(order.completed_at).toLocaleString('pt-BR')}</p>
+            )}
+
+            {order.status === 'canceled' && order.canceled_at && (
+               <p className="text-sm text-destructive font-medium">Cancelado em: {new Date(order.canceled_at).toLocaleString('pt-BR')}</p>
+            )}
+
             {order.vip_code && (
               <p className="text-sm font-bold text-green-600 mt-1">Acesso VIP: {order.vip_code}</p>
             )}
