@@ -135,10 +135,10 @@ function StockConflictModal({
         <div>
           <h3 className="text-lg font-black font-display flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Oops! Tivemos um problema com o estoque
+            Oops! Houve um problema no estoque
           </h3>
           <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">
-            Alguns produtos do seu carrinho sofreram alterações no estoque ou esgotaram enquanto você comprava:
+            Alguns produtos do seu carrinho esgotaram enquanto você comprava:
           </p>
         </div>
         
@@ -728,17 +728,17 @@ function Index() {
       )}
 
       {/* Footer Branco Forçado no Fundo */}
-      <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full pb-28">
+      <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
       </footer>
 
-      {/* Floating Cart Icon (Canto direito, flutuante por cima do footer/whatsapp) */}
+      {/* Floating Cart Icon (Canto direito) */}
       {!accessDenied && items.length > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-[100px] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-2xl transition hover:scale-105 sm:bottom-[110px] sm:right-6"
+          className="fixed bottom-[90px] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-2xl transition hover:scale-105 sm:bottom-[100px] sm:right-6"
           aria-label="Abrir carrinho"
         >
           <ShoppingCart className="h-6 w-6" />
