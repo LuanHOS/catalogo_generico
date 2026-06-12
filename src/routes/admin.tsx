@@ -1329,7 +1329,7 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     <div className="space-y-6">
       <form onSubmit={add} className="flex gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex-1">
-           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces) *" required />
+           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required />
         </div>
         <Button type="submit" className="rounded-full shadow-sm"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
@@ -1357,8 +1357,8 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
                   </div>
                   <div className="flex justify-between border-t border-border pt-4 mt-2">
                      {isMaster ? (
-                        <Button type="button" variant="ghost" onClick={() => initiateDelete(editingCat)} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2 -ml-2">
-                           <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                        <Button type="button" variant="ghost" size="icon" onClick={() => initiateDelete(editingCat)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                           <Trash2 className="h-5 w-5" />
                         </Button>
                      ) : <div/>}
                      <div className="flex gap-2">
@@ -1743,7 +1743,7 @@ function ProductForm({
                       />
                     </label>
                     {currentPreview && (
-                       <Button type="button" variant="outline" onClick={handleRemoveImageClick} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+                       <Button type="button" variant="outline" size="icon" onClick={handleRemoveImageClick} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
                           <Trash2 className="h-4 w-4" />
                        </Button>
                     )}
@@ -1786,9 +1786,8 @@ function ProductForm({
             {product && (
               <Button
                 type="button"
-                variant="outline"
                 onClick={openAddStock}
-                className="mt-2 w-full flex items-center justify-center gap-2 border-primary/20 text-primary hover:bg-primary/10 transition shadow-sm"
+                className="mt-2 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition shadow-sm"
               >
                 <Package className="h-4 w-4" /> Dar Entrada de Estoque
               </Button>
@@ -1827,8 +1826,8 @@ function ProductForm({
 
         <div className="flex justify-between w-full border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {product && isMaster ? (
-            <Button type="button" variant="ghost" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2 -ml-2">
-               <Trash2 className="h-4 w-4 mr-2" /> Excluir Produto
+            <Button type="button" variant="ghost" size="icon" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+               <Trash2 className="h-5 w-5" />
             </Button>
           ) : <div />}
           <div className="flex gap-2">
@@ -2153,7 +2152,7 @@ function AdminFormModal({
           )}
         </div>
         <div>
-          <Label htmlFor="ap">Senha {!isEdit && <span className="text-destructive">*</span>}</Label>
+          <Label htmlFor="ap">Senha <span className="text-destructive">*</span></Label>
           <div className="relative">
             <Input
               id="ap"
@@ -2189,8 +2188,8 @@ function AdminFormModal({
 
         <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
           {isEdit && !editing?.fixed && onDelete ? (
-            <Button type="button" variant="ghost" onClick={onDelete} disabled={loading} className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2 -ml-2">
-               <Trash2 className="h-4 w-4 mr-2" /> Excluir
+            <Button type="button" variant="ghost" size="icon" onClick={onDelete} disabled={loading} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+               <Trash2 className="h-5 w-5" />
             </Button>
           ) : <div />}
           <div className="flex gap-2">
@@ -2468,7 +2467,7 @@ function SettingsPanel() {
               <Input 
                 value={newCode} 
                 onChange={e => setNewCode(e.target.value)} 
-                placeholder="Nova senha (ex: cliente123) *" 
+                placeholder="Nova senha (ex: cliente123)" 
                 className="max-w-xs" 
                 required
               />
@@ -2530,7 +2529,7 @@ function SettingsPanel() {
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo <span className="text-destructive text-sm">*</span>
+          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo
         </h3>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
@@ -2573,8 +2572,8 @@ function SettingsPanel() {
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
                 </label>
                 {previewLogo && !isRemovingLogo && (
-                   <Button type="button" variant="outline" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
-                      <Trash2 className="h-4 w-4 mr-1" /> Remover Imagem
+                   <Button type="button" variant="outline" size="icon" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+                      <Trash2 className="h-4 w-4" />
                    </Button>
                 )}
               </div>
@@ -2595,7 +2594,7 @@ function SettingsPanel() {
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <Phone className="h-5 w-5 text-primary" /> Número do WhatsApp <span className="text-destructive text-sm">*</span>
+          <Phone className="h-5 w-5 text-primary" /> Número do WhatsApp
         </h3>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o número que receberá os pedidos do site e o botão flutuante.
