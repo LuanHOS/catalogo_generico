@@ -7,11 +7,11 @@ export function WhatsAppFloat() {
 
   return (
     <a
-      href={whatsappLink("Olá! Gostaria de tirar uma dúvida.", number)}
+      href={whatsappLink("Olá! Vim através do Catálogo de Produtos.", number)}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-2xl transition hover:scale-105 sm:right-6"
-      aria-label="Fale conosco no WhatsApp"
+      aria-label="Falar no WhatsApp"
     >
       <svg
         viewBox="0 0 24 24"
