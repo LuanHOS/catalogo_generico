@@ -7,7 +7,7 @@ import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "sonner";
-import { ShoppingBag, ShoppingCart, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp, AlertTriangle } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp, AlertTriangle, Package } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -871,6 +871,9 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
         <h3 className="text-sm line-clamp-2 font-display font-bold leading-tight text-card-foreground">
           {p.name}
         </h3>
+        <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+          <Package className="h-3 w-3" /> {p.stock} em estoque
+        </p>
         <div className="mt-2"><PriceBlock p={p} /></div>
 
         <div className="pt-3 mt-auto" onClick={(e) => e.stopPropagation()}>
@@ -950,6 +953,9 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
           <div className="flex flex-col gap-4 p-6">
             <div>
               <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl">{p.name}</h2>
+              <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                <Package className="h-4 w-4" /> {p.stock} unidades em estoque
+              </div>
               {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground">{p.description}</p>}
             </div>
             <PriceBlock p={p} big />
