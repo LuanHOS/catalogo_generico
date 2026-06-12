@@ -135,10 +135,10 @@ function StockConflictModal({
         <div>
           <h3 className="text-lg font-black font-display flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Atenção ao Estoque
+            Oops! Houve um problema no estoque
           </h3>
           <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">
-            Alguns produtos do seu carrinho sofreram alterações no estoque ou esgotaram enquanto você comprava:
+            Alguns produtos do seu carrinho esgotaram enquanto você comprava:
           </p>
         </div>
         
@@ -158,7 +158,7 @@ function StockConflictModal({
 
           {data.reduced.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wide text-yellow-600 mb-2">Quantidade Reduzida</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-yellow-600 mb-2">Quantidade insuficiente</h4>
               <ul className="space-y-1">
                 {data.reduced.map((item, idx) => (
                   <li key={idx} className="text-sm font-semibold text-foreground bg-yellow-500/10 px-3 py-2 rounded-lg border border-yellow-600/20">
@@ -172,12 +172,12 @@ function StockConflictModal({
         </div>
 
         <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg border border-border">
-          Ao clicar em <strong>OK, ajustar carrinho</strong>, os itens esgotados serão removidos e as quantidades serão reduzidas para o limite disponível. Você poderá revisar seu carrinho antes de finalizar a compra.
+          Ao clicar em <strong>OK, ajustar carrinho</strong>, ajustaremos seu carrinho automaticamente para o que temos disponível agora.
         </p>
 
         <div className="flex justify-end gap-2 mt-2 border-t border-border pt-4">
           <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm">
-            Cancelar Compra
+            Manter carrinho
           </Button>
           <Button onClick={onConfirm} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
             OK, ajustar carrinho
