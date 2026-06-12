@@ -316,6 +316,32 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
   );
 }
 
+/* ---------- Modal Reutilizável de Conclusão de Pedido ---------- */
+function CompleteOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfirm: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false);
+
+  async function submit() {
+    setSaving(true);
+    await onConfirm();
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+        <div>
+          <h3 className="text-lg font-black font-display text-green-600 flex items-center gap-2"><CheckCircle className="h-5 w-5"/> Concluir Pedido</h3>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">Tem certeza que deseja marcar este pedido como concluído? Ele será contabilizado nas suas estatísticas de vendas.</p>
+        </div>
+        <div className="flex justify-end gap-2 mt-2">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
+          <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">Confirmar Conclusão</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Orders ---------- */
 function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () => void, currentUserName: string }) {
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -323,8 +349,9 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
   const [showManual, setShowManual] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   
-  // Modal Rápido de Cancelamento da Lista
+  // Modais Rápidos
   const [cancelModalOrder, setCancelModalOrder] = useState<OrderRow | null>(null);
+  const [completeModalOrder, setCompleteModalOrder] = useState<OrderRow | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -446,7 +473,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
             </div>
             {o.status === 'pending' && (
               <div className="flex gap-2 sm:flex-col" onClick={(e) => e.stopPropagation()}>
-                <Button variant="outline" className="border-green-500/30 text-green-600 shadow-sm hover:bg-green-50 hover:text-green-700" onClick={() => updateStatus(o.id, 'completed')}>
+                <Button variant="outline" className="border-green-500/30 text-green-600 shadow-sm hover:bg-green-50 hover:text-green-700" onClick={() => setCompleteModalOrder(o)}>
                   <CheckCircle className="mr-1 h-4 w-4" /> Concluir
                 </Button>
                 <Button variant="outline" className="border-destructive/30 text-destructive shadow-sm hover:bg-destructive/10" onClick={() => setCancelModalOrder(o)}>
@@ -467,6 +494,16 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
           onConfirm={async (reason) => {
             await updateStatus(cancelModalOrder.id, 'canceled', undefined, reason);
             setCancelModalOrder(null);
+          }} 
+        />
+      )}
+
+      {completeModalOrder && (
+        <CompleteOrderModal 
+          onClose={() => setCompleteModalOrder(null)} 
+          onConfirm={async () => {
+            await updateStatus(completeModalOrder.id, 'completed', undefined);
+            setCompleteModalOrder(null);
           }} 
         />
       )}
@@ -493,8 +530,9 @@ function OrderDetailsModal({
   const [customTotal, setCustomTotal] = useState(String(order.total));
   const [saving, setSaving] = useState(false);
   
-  // UI de Cancelamento com Motivo
+  // UI de Cancelamento e Conclusão
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
   const parsedTotal = Number(customTotal) || 0;
@@ -657,7 +695,7 @@ function OrderDetailsModal({
                       value={customTotal} 
                       onChange={(e) => setCustomTotal(e.target.value)} 
                       className="pl-9 font-black text-lg h-12"
-                      disabled={showCancelConfirm}
+                      disabled={showCancelConfirm || showCompleteConfirm}
                     />
                   </div>
                 </div>
@@ -688,12 +726,12 @@ function OrderDetailsModal({
           </div>
         </div>
 
-        {isPending && !showCancelConfirm && (
+        {isPending && !showCancelConfirm && !showCompleteConfirm && (
           <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border bg-secondary/10">
             <Button variant="outline" onClick={() => setShowCancelConfirm(true)} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
               Cancelar Pedido
             </Button>
-            <Button onClick={handleConcluir} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={() => setShowCompleteConfirm(true)} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">
               {saving ? "Processando..." : "Concluir Pedido"}
             </Button>
           </div>
@@ -708,6 +746,19 @@ function OrderDetailsModal({
                 <Button variant="outline" onClick={() => setShowCancelConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
                 <Button variant="destructive" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm">
                    {saving ? "Cancelando..." : "Confirmar Exclusão"}
+                </Button>
+             </div>
+          </div>
+        )}
+
+        {isPending && showCompleteConfirm && (
+          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-green-500/5">
+             <Label className="text-green-700 font-bold">Confirmação de Conclusão</Label>
+             <p className="text-xs text-muted-foreground font-semibold -mt-2">O pedido será marcado como pago e contabilizado nas vendas.</p>
+             <div className="flex justify-end gap-2 mt-2">
+                <Button variant="outline" onClick={() => setShowCompleteConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
+                <Button onClick={handleConcluir} disabled={saving} className="rounded-full shadow-sm bg-green-600 hover:bg-green-700 text-white">
+                   {saving ? "Processando..." : "Confirmar Conclusão"}
                 </Button>
              </div>
           </div>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "sonner";
 import { z } from "zod";
-import { ShoppingBag, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -384,7 +384,7 @@ function Index() {
                   : "bg-background text-primary hover:bg-background/90"
               }`}
             >
-              <ShoppingBag className="h-4 w-4" />
+              <ShoppingCart className="h-4 w-4" />
               <span className="hidden sm:inline">Carrinho</span>
               {!accessDenied && itemCount > 0 && (
                 <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-black text-accent-foreground">
@@ -570,7 +570,7 @@ function Index() {
             )}
 
             {items.length > 0 && (
-              <div className="mt-12 flex justify-center sticky bottom-6 z-30">
+              <div className="mt-12 flex justify-center pb-8 relative z-20">
                 <button
                   onClick={finalizar}
                   disabled={checkoutLoading}
@@ -591,6 +591,20 @@ function Index() {
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
       </footer>
+
+      {/* Floating Cart Button (Botão Flutuante Exclusivo do Carrinho) */}
+      {!accessDenied && items.length > 0 && (
+        <button
+          onClick={() => setCartOpen(true)}
+          className="fixed bottom-[90px] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-2xl transition hover:scale-105 sm:bottom-[100px] sm:right-6"
+          aria-label="Abrir carrinho"
+        >
+          <ShoppingCart className="h-6 w-6" />
+          <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-black text-destructive-foreground shadow-md border-2 border-background">
+            {itemCount}
+          </span>
+        </button>
+      )}
 
       {/* Componentes removidos do DOM quando o acesso é negado */}
       {!accessDenied && cartOpen && (
@@ -863,9 +877,9 @@ function CartDrawer({
                 Limpar
               </button>
             )}
-            <button onClick={onClose} className="rounded-full p-2 hover:bg-secondary" aria-label="Fechar">
-              <ChevronDown className="h-5 w-5 rotate-[-90deg]" />
-            </button>
+            <Button variant="secondary" size="sm" onClick={onClose} className="rounded-full px-4 font-bold ml-2 shadow-sm hover:bg-secondary/80 flex items-center gap-1.5" aria-label="Minimizar">
+              Minimizar <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
+            </Button>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-4 bg-secondary/10">
