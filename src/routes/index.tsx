@@ -614,7 +614,6 @@ function Index() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   setSearchTerm(searchInput);
-                  if (searchInput.trim()) setActiveCat("all");
                 }}
                 className="flex gap-2"
               >

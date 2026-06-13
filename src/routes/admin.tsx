@@ -601,6 +601,11 @@ function OrderDetailsModal({
   const discountPerc = originalTotal > 0 ? (discountVal / originalTotal) * 100 : 0;
 
   async function handleConcluir() {
+    const rawTotal = customTotal.trim();
+    if (rawTotal === "" || rawTotal === "," || rawTotal === ".") {
+       toast.error("Valor final inválido. Por favor, insira um número válido.");
+       return;
+    }
     setSaving(true);
     await onUpdateStatus(order.id, 'completed', parsedTotal);
     setSaving(false);
@@ -633,7 +638,7 @@ function OrderDetailsModal({
 
       const container = document.createElement("div");
       container.innerHTML = `
-        <div style="font-family: sans-serif; padding: 40px; color: #333;">
+        <div style="font-family: sans-serif; padding: 40px; color: #333; width: 800px; max-width: 100%;">
           <h1 style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">Resumo do Pedido</h1>
           <div style="color: #555; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
             <div><strong>ID do Pedido:</strong> #${orderShortId}</div>
@@ -669,6 +674,14 @@ function OrderDetailsModal({
         </div>
       `;
 
+      // Renderiza o componente no body temporariamente para que o html2pdf consiga capturar os tamanhos
+      const printWrapper = document.createElement("div");
+      printWrapper.style.position = "absolute";
+      printWrapper.style.left = "-9999px";
+      printWrapper.style.top = "-9999px";
+      printWrapper.appendChild(container);
+      document.body.appendChild(printWrapper);
+
       const opt = {
         margin:       0.5,
         filename:     `Pedido-${orderShortId}.pdf`,
@@ -677,8 +690,17 @@ function OrderDetailsModal({
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
       };
 
-      await (window as any).html2pdf().set(opt).from(container).save();
-      toast.success("Download iniciado!", { id: toastId });
+      try {
+        await (window as any).html2pdf().set(opt).from(container).save();
+        toast.success("Download iniciado!", { id: toastId });
+      } catch (err) {
+        console.error(err);
+        toast.error("Erro ao gerar o PDF.", { id: toastId });
+      } finally {
+        if (document.body.contains(printWrapper)) {
+          document.body.removeChild(printWrapper);
+        }
+      }
     } catch (error) {
       console.error(error);
       toast.error("Erro ao gerar o PDF.", { id: toastId });
@@ -755,11 +777,7 @@ function OrderDetailsModal({
                       min="0"
                       max="999999"
                       value={customTotal} 
-                      onChange={(e) => {
-                         let val = e.target.value;
-                         if (val === ',' || val === '.') val = '0';
-                         setCustomTotal(val);
-                      }} 
+                      onChange={(e) => setCustomTotal(e.target.value)} 
                       onKeyDown={blockInvalidNumberChars}
                       className="pl-9 font-black text-lg h-12"
                       disabled={showCancelConfirm || showCompleteConfirm}
@@ -840,12 +858,26 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+
+  const originalTotal = cart.reduce((acc, item) => acc + (Number(item.product.sale_price) || Number(item.product.price)) * item.quantity, 0);
+  const [customTotal, setCustomTotal] = useState("");
+  const [isCustomTotalDirty, setIsCustomTotalDirty] = useState(false);
   
   useEffect(() => {
       supabase.from("products").select("*").is("deleted_at", null).order("name").then(({data}) => setProducts(data as Product[] || []));
   }, []);
 
+  useEffect(() => {
+     if (cart.length === 0) {
+         setIsCustomTotalDirty(false);
+         setCustomTotal("0");
+     } else if (!isCustomTotalDirty) {
+         setCustomTotal(String(originalTotal));
+     }
+  }, [originalTotal, cart.length, isCustomTotalDirty]);
+
   const addToCart = (p: Product) => {
+      setIsCustomTotalDirty(false); // Reseta a verificação do total ao alterar o carrinho
       setCart(c => {
           const ex = c.find(x => x.product.id === p.id);
           if (ex) {
@@ -857,14 +889,22 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   };
 
   const removeFromCart = (p: Product) => {
+      setIsCustomTotalDirty(false); // Reseta a verificação do total ao alterar o carrinho
       setCart(c => c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity - 1 } : x).filter(x => x.quantity > 0));
   };
 
-  const total = cart.reduce((acc, item) => acc + (Number(item.product.sale_price) || Number(item.product.price)) * item.quantity, 0);
-
   const save = async () => {
       if (cart.length === 0) return;
+
+      const rawTotal = customTotal.trim();
+      if (rawTotal === "" || rawTotal === "," || rawTotal === ".") {
+          toast.error("Valor final inválido. Por favor, insira um número válido.");
+          return;
+      }
+
       setSaving(true);
+      const finalParsedTotal = Number(rawTotal) || 0;
+
       const itemsJson = cart.map(c => ({
           id: c.product.id,
           name: c.product.name,
@@ -872,7 +912,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
           quantity: c.quantity,
           category_id: c.product.category_id
       }));
-      const { error } = await supabase.rpc("checkout_order", { order_total: total, order_items: itemsJson });
+      const { error } = await supabase.rpc("checkout_order", { order_total: finalParsedTotal, order_items: itemsJson });
       setSaving(false);
       if (error) { toast.error("Erro ao criar pedido: " + error.message); return; }
       toast.success("Pedido manual criado com sucesso!");
@@ -943,9 +983,28 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          </div>
                      ))}
                      </div>
-                     <div className="font-black text-xl pt-4 mt-4 border-t border-border flex justify-between">
-                         <span>Total</span>
-                         <span>{brl(total)}</span>
+                     <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2">
+                         <div className="flex justify-between text-sm text-muted-foreground font-semibold">
+                             <span>Soma dos Itens</span>
+                             <span>{brl(originalTotal)}</span>
+                         </div>
+                         <div className="flex justify-between items-center mt-1">
+                            <Label className="text-base font-black">Valor Final (R$)</Label>
+                            <Input 
+                               type="number" 
+                               step="0.01" 
+                               min="0" 
+                               max="999999" 
+                               value={customTotal} 
+                               onChange={(e) => {
+                                  setCustomTotal(e.target.value);
+                                  setIsCustomTotalDirty(true);
+                               }} 
+                               onKeyDown={blockInvalidNumberChars}
+                               className="w-32 font-black text-right h-10" 
+                               disabled={cart.length === 0}
+                            />
+                         </div>
                      </div>
                  </div>
              </div>
