@@ -97,6 +97,18 @@ const blockInvalidNumberChars = (e: React.KeyboardEvent<HTMLInputElement>) => {
   }
 };
 
+/* ---------- Bloqueio de Scroll Global ---------- */
+function ScrollLock() {
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+  return null;
+}
+
 /* ---------- Modal Reutilizável de Confirmação Genérica ---------- */
 export function ConfirmActionModal({
   title,
@@ -119,6 +131,7 @@ export function ConfirmActionModal({
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <ScrollLock />
       <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
         <div>
           <h3 className={`text-lg font-black font-display flex items-center gap-2 ${destructive ? 'text-destructive' : 'text-primary'}`}>
@@ -354,6 +367,7 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <ScrollLock />
       <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
         <div>
           <h3 className="text-lg font-black font-display text-destructive flex items-center gap-2"><AlertTriangle className="h-5 w-5"/> Cancelar Pedido</h3>
@@ -386,6 +400,7 @@ function CompleteOrderModal({ onClose, onConfirm }: { onClose: () => void, onCon
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <ScrollLock />
       <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
         <div>
           <h3 className="text-lg font-black font-display text-primary flex items-center gap-2"><CheckCircle className="h-5 w-5"/> Concluir Pedido</h3>
@@ -698,6 +713,7 @@ function OrderDetailsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
+      <ScrollLock />
       <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden break-words">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-xl font-display font-black">Detalhes do Pedido</h2>
@@ -853,7 +869,6 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   
-  // Substitui a expansão inline por um pop-up com as informações completas
   const [productDetailsToShow, setProductDetailsToShow] = useState<Product | null>(null);
 
   const originalTotal = cart.reduce((acc, item) => acc + (Number(item.product.sale_price) || Number(item.product.price)) * item.quantity, 0);
@@ -878,7 +893,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   }, [originalTotal, cart.length, isCustomTotalDirty]);
 
   const addToCart = (p: Product) => {
-      setIsCustomTotalDirty(false); // Reseta a verificação do total ao alterar o carrinho
+      setIsCustomTotalDirty(false); 
       setCart(c => {
           const ex = c.find(x => x.product.id === p.id);
           if (ex) {
@@ -890,7 +905,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   };
 
   const removeFromCart = (p: Product) => {
-      setIsCustomTotalDirty(false); // Reseta a verificação do total ao alterar o carrinho
+      setIsCustomTotalDirty(false); 
       setCart(c => c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity - 1 } : x).filter(x => x.quantity > 0));
   };
 
@@ -932,33 +947,34 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
 
   return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
-         <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh]">
-             <div className="flex items-center justify-between border-b border-border px-6 py-4">
+         <ScrollLock />
+         <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
+             <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0">
                 <h2 className="text-xl font-display font-black">Novo Pedido Manual</h2>
                 <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0">Fechar</button>
              </div>
              
-             <div className="flex-1 overflow-y-auto flex flex-col sm:flex-row">
-                 <div className="w-full sm:w-3/5 p-6 border-b sm:border-b-0 sm:border-r border-border flex flex-col">
-                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Produtos Disponíveis</h3>
-                     <div className="relative mb-4">
+             <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col sm:flex-row min-h-0">
+                 <div className="w-full sm:w-3/5 p-6 border-b sm:border-b-0 sm:border-r border-border flex flex-col min-w-0">
+                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0">Produtos Disponíveis</h3>
+                     <div className="relative mb-4 flex-shrink-0">
                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                          <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" maxLength={100} />
                      </div>
-                     <div className="grid gap-2 overflow-y-auto flex-1 pr-1">
+                     <div className="grid gap-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 min-w-0">
                      {filteredProducts.map(p => {
                          const outOfStock = p.stock <= 0;
                          const isLowStock = !outOfStock && p.stock <= (p.min_stock || 0);
                          return (
-                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
-                             <div className="flex items-center gap-3 flex-shrink-0">
-                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm flex-shrink-0">
+                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 min-w-0 " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
+                             <div className="flex items-center flex-shrink-0">
+                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm">
                                     <Plus className="h-3 w-3" />
                                 </Button>
                              </div>
-                             <div className="min-w-0 flex-1">
+                             <div className="min-w-0 flex-1 overflow-hidden">
                                 <div 
-                                    className="font-semibold text-sm truncate cursor-pointer hover:text-primary transition-colors" 
+                                    className="font-semibold text-sm truncate cursor-pointer hover:text-primary transition-colors block w-full" 
                                     onClick={() => setProductDetailsToShow(p)} 
                                     title="Clique para ver os detalhes"
                                 >
@@ -966,7 +982,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                 </div>
                                 <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
                              </div>
-                             <div className="flex items-center gap-3 flex-shrink-0">
+                             <div className="flex items-center flex-shrink-0">
                                 <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
                              </div>
                          </div>
@@ -974,14 +990,14 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      {filteredProducts.length === 0 && <p className="text-sm font-semibold text-muted-foreground text-center py-4">Nenhum produto encontrado.</p>}
                      </div>
                  </div>
-                 <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col">
-                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Carrinho</h3>
-                     {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground">O carrinho está vazio.</p>}
-                     <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                 <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col min-w-0">
+                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0">Carrinho</h3>
+                     {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground flex-shrink-0">O carrinho está vazio.</p>}
+                     <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pr-1 min-w-0">
                      {cart.map(c => (
-                         <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0">
+                         <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0 overflow-hidden">
                              <div 
-                                className="font-semibold truncate cursor-pointer hover:text-primary transition-colors" 
+                                className="font-semibold truncate cursor-pointer hover:text-primary transition-colors block w-full" 
                                 onClick={() => setProductDetailsToShow(c.product)}
                                 title="Clique para ver os detalhes"
                              >
@@ -998,7 +1014,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          </div>
                      ))}
                      </div>
-                     <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2">
+                     <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2 flex-shrink-0">
                          <div className="flex justify-between text-sm text-muted-foreground font-semibold">
                              <span>Soma dos Itens</span>
                              <span>{brl(originalTotal)}</span>
@@ -1036,7 +1052,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      </div>
                  </div>
              </div>
-             <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+             <div className="flex justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0">
                  <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
                  <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
              </div>
@@ -1045,42 +1061,47 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
          {/* Pop-up de detalhes do produto do pedido manual */}
          {productDetailsToShow && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                <ScrollLock />
                 <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-                    <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-lg font-black font-display break-words leading-tight">{productDetailsToShow.name}</h3>
+                    <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
+                        <h3 className="text-lg font-black font-display break-words whitespace-normal leading-tight flex-1 min-w-0">{productDetailsToShow.name}</h3>
                         <button onClick={() => setProductDetailsToShow(null)} className="text-muted-foreground hover:text-foreground flex-shrink-0 mt-1"><X className="h-5 w-5"/></button>
                     </div>
                     
                     <div className="flex flex-col gap-3 text-sm">
                         {productDetailsToShow.image_url && (
-                           <img src={productDetailsToShow.image_url} alt={productDetailsToShow.name} className="w-full h-40 object-cover rounded-xl border border-border" />
+                           <img src={productDetailsToShow.image_url} alt={productDetailsToShow.name} className="w-full h-40 object-cover rounded-xl border border-border flex-shrink-0" />
                         )}
-                        <div className="flex justify-between border-b border-border pb-2 mt-1">
-                           <span className="text-muted-foreground font-semibold">Preço:</span>
-                           <span className="font-bold text-primary">
-                              {brl(Number(productDetailsToShow.sale_price) || Number(productDetailsToShow.price))}
-                              {productDetailsToShow.sale_price ? <span className="text-xs line-through text-muted-foreground ml-2">{brl(Number(productDetailsToShow.price))}</span> : null}
+                        <div className="flex justify-between border-b border-border pb-2 mt-1 gap-2">
+                           <span className="text-muted-foreground font-semibold flex-shrink-0">Preço:</span>
+                           <span className="font-bold text-primary text-right break-words min-w-0">
+                              {productDetailsToShow.sale_price ? (
+                                 <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                    <span className="text-xs line-through text-muted-foreground">{brl(Number(productDetailsToShow.price))}</span>
+                                    <span>{brl(Number(productDetailsToShow.sale_price))}</span>
+                                 </div>
+                              ) : brl(Number(productDetailsToShow.price))}
                            </span>
                         </div>
-                        <div className="flex justify-between border-b border-border pb-2">
-                           <span className="text-muted-foreground font-semibold">Estoque atual:</span>
-                           <span className="font-bold">{productDetailsToShow.stock} un.</span>
+                        <div className="flex justify-between border-b border-border pb-2 gap-2">
+                           <span className="text-muted-foreground font-semibold flex-shrink-0">Estoque atual:</span>
+                           <span className="font-bold text-right break-words min-w-0">{productDetailsToShow.stock} un.</span>
                         </div>
                         {productDetailsToShow.barcode && (
-                           <div className="flex justify-between border-b border-border pb-2">
-                              <span className="text-muted-foreground font-semibold">Cód. Barras:</span>
-                              <span className="font-bold break-all text-right">{productDetailsToShow.barcode}</span>
+                           <div className="flex justify-between border-b border-border pb-2 gap-2">
+                              <span className="text-muted-foreground font-semibold flex-shrink-0">Cód. Barras:</span>
+                              <span className="font-bold break-all text-right min-w-0">{productDetailsToShow.barcode}</span>
                            </div>
                         )}
                         {productDetailsToShow.description && (
                            <div className="mt-1">
                               <span className="text-muted-foreground font-semibold">Descrição:</span>
-                              <p className="mt-1 font-medium text-muted-foreground break-words whitespace-pre-wrap">{productDetailsToShow.description}</p>
+                              <p className="mt-1 font-medium text-muted-foreground break-words whitespace-normal">{productDetailsToShow.description}</p>
                            </div>
                         )}
                     </div>
                     
-                    <div className="flex justify-end mt-2 pt-2">
+                    <div className="flex justify-end mt-2 pt-2 flex-shrink-0">
                         <Button onClick={() => setProductDetailsToShow(null)} className="rounded-full shadow-sm w-full">Fechar</Button>
                     </div>
                 </div>
@@ -1494,6 +1515,7 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
 
       {editingCat && !deletingCat && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
+            <ScrollLock />
             <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
                <div className="flex items-center justify-between">
                   <h3 className="text-lg font-black font-display">Editar Categoria</h3>
@@ -1865,6 +1887,7 @@ function ProductForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
+      <ScrollLock />
       <form
         onSubmit={save}
         className="flex w-full max-w-2xl max-h-[100dvh] flex-col rounded-t-2xl bg-background shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
@@ -2028,6 +2051,7 @@ function ProductForm({
 
       {showAddStockModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <ScrollLock />
           <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black font-display flex items-center gap-2 text-primary">
@@ -2284,6 +2308,7 @@ function AdminFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
+      <ScrollLock />
       <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto break-words">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-xl font-black truncate">{title}</h3>
