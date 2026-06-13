@@ -78,7 +78,8 @@ export function ConfirmActionModal({
   onConfirm,
   loading = false,
   destructive = true,
-  confirmText = "Confirmar"
+  confirmText = "Confirmar",
+  alertOnly = false
 }: {
   title: string;
   description: string | React.ReactNode;
@@ -87,6 +88,7 @@ export function ConfirmActionModal({
   loading?: boolean;
   destructive?: boolean;
   confirmText?: string;
+  alertOnly?: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -99,9 +101,11 @@ export function ConfirmActionModal({
           <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">{description}</p>
         </div>
         <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm">
-            Cancelar
-          </Button>
+          {!alertOnly && (
+            <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm">
+              Cancelar
+            </Button>
+          )}
           <Button 
             variant={destructive ? "destructive" : "default"} 
             onClick={onConfirm} 
@@ -569,6 +573,7 @@ function Index() {
                    value={vipCodeInput} 
                    onChange={e => setVipCodeInput(e.target.value)}
                    className="h-12 text-center text-lg font-bold"
+                   maxLength={20}
                  />
                  <Button type="submit" disabled={verifyingCode || !vipCodeInput.trim()} className="w-full h-12 rounded-full text-base font-black shadow-sm">
                    {verifyingCode ? "Verificando..." : "Acessar Catálogo"}
@@ -622,6 +627,7 @@ function Index() {
                     }}
                     placeholder="Buscar produto..."
                     className="h-11 w-full rounded-full border border-input bg-background pl-10 pr-4 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-ring"
+                    maxLength={100}
                   />
                 </div>
                 <button

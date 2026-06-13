@@ -91,6 +91,12 @@ function usernameFromEmail(email: string) {
   return email.split("@")[0] ?? email;
 }
 
+const blockInvalidNumberChars = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (['e', 'E', '+', '-'].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
 /* ---------- Modal Reutilizável de Confirmação Genérica ---------- */
 export function ConfirmActionModal({
   title,
@@ -99,7 +105,8 @@ export function ConfirmActionModal({
   onConfirm,
   loading = false,
   destructive = true,
-  confirmText = "Confirmar"
+  confirmText = "Confirmar",
+  alertOnly = false
 }: {
   title: string;
   description: string | React.ReactNode;
@@ -108,6 +115,7 @@ export function ConfirmActionModal({
   loading?: boolean;
   destructive?: boolean;
   confirmText?: string;
+  alertOnly?: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -120,9 +128,11 @@ export function ConfirmActionModal({
           <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">{description}</p>
         </div>
         <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm">
-            Cancelar
-          </Button>
+          {!alertOnly && (
+            <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm">
+              Cancelar
+            </Button>
+          )}
           <Button 
             variant={destructive ? "destructive" : "default"} 
             onClick={onConfirm} 
@@ -219,11 +229,11 @@ function LoginForm() {
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div>
           <Label htmlFor="u">Usuário <span className="text-destructive">*</span></Label>
-          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required />
+          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required maxLength={50} />
         </div>
         <div>
           <Label htmlFor="p">Senha <span className="text-destructive">*</span></Label>
-          <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required maxLength={50} />
         </div>
         <Button type="submit" disabled={loading} className="w-full rounded-full py-6 text-base font-bold shadow-sm">
           {loading ? "Entrando…" : "Entrar"}
@@ -351,7 +361,7 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
         </div>
         <div>
           <Label>Motivo (Opcional)</Label>
-          <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1" />
+          <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1" maxLength={255} />
         </div>
         <div className="flex justify-end gap-2 mt-2">
           <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
@@ -478,6 +488,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
             value={searchQuery} 
             onChange={e => setSearchQuery(e.target.value)} 
             className="pl-9 h-10" 
+            maxLength={100}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -742,8 +753,10 @@ function OrderDetailsModal({
                       type="number" 
                       step="0.01" 
                       min="0"
+                      max="999999"
                       value={customTotal} 
                       onChange={(e) => setCustomTotal(e.target.value)} 
+                      onKeyDown={blockInvalidNumberChars}
                       className="pl-9 font-black text-lg h-12"
                       disabled={showCancelConfirm || showCompleteConfirm}
                     />
@@ -791,7 +804,7 @@ function OrderDetailsModal({
           <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-destructive/5 animate-in fade-in zoom-in-95 duration-200">
              <Label className="text-destructive font-bold">Confirmação de Cancelamento</Label>
              <p className="text-xs text-muted-foreground font-semibold -mt-2">O estoque será devolvido automaticamente.</p>
-             <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+             <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} maxLength={255} />
              <div className="flex justify-end gap-2 mt-2">
                 <Button variant="outline" onClick={() => setShowCancelConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
                 <Button variant="destructive" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm">
@@ -885,7 +898,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Produtos Disponíveis</h3>
                      <div className="relative mb-4">
                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                         <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                         <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" maxLength={100} />
                      </div>
                      <div className="grid gap-2 overflow-y-auto flex-1 pr-1">
                      {filteredProducts.map(p => {
@@ -1329,7 +1342,7 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     <div className="space-y-6">
       <form onSubmit={add} className="flex gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex-1">
-           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required />
+           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces) *" required maxLength={50} />
         </div>
         <Button type="submit" className="rounded-full shadow-sm"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
@@ -1353,7 +1366,7 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
                <form onSubmit={handleRenameCat} className="flex flex-col gap-4">
                   <div>
                      <Label>Nome da categoria <span className="text-destructive">*</span></Label>
-                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1" autoFocus required />
+                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1" autoFocus required maxLength={50} />
                   </div>
                   <div className="flex justify-between border-t border-border pt-4 mt-2">
                      {isMaster ? (
@@ -1438,6 +1451,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou código de barras..."
               className="pl-9 shadow-sm"
+              maxLength={100}
             />
           </div>
           <select
@@ -1761,15 +1775,15 @@ function ProductForm({
 
           <div className="sm:col-span-2">
             <Label>Código de Barras</Label>
-            <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" />
+            <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" maxLength={50} />
           </div>
           <div className="sm:col-span-2">
             <Label>Nome <span className="text-destructive">*</span></Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} />
           </div>
           <div className="sm:col-span-2">
             <Label>Descrição</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={255} />
           </div>
           <div>
             <Label>Categoria</Label>
@@ -1784,7 +1798,7 @@ function ProductForm({
           </div>
           <div>
             <Label>Quantidade em Estoque <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} required />
+            <Input type="number" min={0} max={999999} value={stock} onChange={(e) => setStock(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
             {product && (
               <Button
                 type="button"
@@ -1797,23 +1811,23 @@ function ProductForm({
           </div>
           <div>
             <Label>Estoque Mínimo (Alerta) <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} value={minStock} onChange={(e) => setMinStock(e.target.value)} required />
+            <Input type="number" min={0} max={999999} value={minStock} onChange={(e) => setMinStock(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
           </div>
           <div>
             <Label>Preço de venda (R$) <span className="text-destructive">*</span></Label>
-            <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
+            <Input type="number" step="0.01" min={0} max={999999} value={price} onChange={(e) => setPrice(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
           </div>
           <div>
             <Label>Preço promocional (R$) <span className="text-xs font-semibold text-muted-foreground">opcional</span></Label>
-            <Input type="number" step="0.01" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="deixe vazio se sem promoção" />
+            <Input type="number" step="0.01" min={0} max={999999} value={salePrice} onChange={(e) => setSalePrice(e.target.value)} onKeyDown={blockInvalidNumberChars} placeholder="deixe vazio se sem promoção" />
           </div>
           <div>
             <Label>Custo interno (R$) <span className="text-destructive">*</span></Label>
-            <Input type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} required />
+            <Input type="number" step="0.01" min={0} max={999999} value={cost} onChange={(e) => setCost(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
           </div>
           <div>
             <Label>Limite por carrinho</Label>
-            <Input type="number" min={0} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} />
+            <Input type="number" min={0} max={999999} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} onKeyDown={blockInvalidNumberChars} />
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Deixem em 0 caso queira deixar sem limite</p>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2">
@@ -1892,11 +1906,11 @@ function ProductForm({
             <div className="space-y-3">
                <div>
                   <Label>Quantidade Recebida <span className="text-destructive">*</span></Label>
-                  <Input type="number" min="1" value={addStockQty} onChange={e => setAddStockQty(e.target.value)} placeholder="Ex: 10" className="mt-1" autoFocus required />
+                  <Input type="number" min="1" max={999999} value={addStockQty} onChange={e => setAddStockQty(e.target.value)} onKeyDown={blockInvalidNumberChars} placeholder="Ex: 10" className="mt-1" autoFocus required />
                </div>
                <div>
                   <Label>Custo Unitário da Compra (R$) <span className="text-destructive">*</span></Label>
-                  <Input type="number" step="0.01" min="0" value={addStockCost} onChange={e => setAddStockCost(e.target.value)} className="mt-1" required />
+                  <Input type="number" step="0.01" min="0" max={999999} value={addStockCost} onChange={e => setAddStockCost(e.target.value)} onKeyDown={blockInvalidNumberChars} className="mt-1" required />
                </div>
             </div>
 
@@ -2148,6 +2162,7 @@ function AdminFormModal({
             placeholder="ex: nome"
             disabled={isEdit && editing?.fixed}
             required
+            maxLength={50}
           />
           {isEdit && editing?.fixed && (
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Esse usuário é fixo — não pode renomear.</p>
@@ -2164,6 +2179,7 @@ function AdminFormModal({
               placeholder={loadingPass ? "Carregando…" : "mínimo 6 caracteres"}
               className="pr-16"
               required
+              maxLength={50}
             />
             <button
               type="button"
@@ -2232,9 +2248,10 @@ function SettingsPanel() {
   const [savingPrivate, setSavingPrivate] = useState(false);
   const [loadingCodes, setLoadingCodes] = useState(false);
   
-  // Estado para Modal de Exclusão de Senha VIP
+  // Estado para Modal de Exclusão de Senha VIP e Validação do WPP
   const [codeToDelete, setCodeToDelete] = useState<string | null>(null);
   const [isDeletingCode, setIsDeletingCode] = useState(false);
+  const [showInvalidWhatsApp, setShowInvalidWhatsApp] = useState(false);
   
   const saveNumberFn = useServerFn(updateWhatsAppNumber);
   const saveNameFn = useServerFn(updateCatalogName);
@@ -2283,9 +2300,17 @@ function SettingsPanel() {
 
   async function submitNumber(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Validação rígida: Só números, mínimo 10, máximo 15 (padrão de celular internacional)
+    const cleanNumber = number.replace(/\D/g, '');
+    if (cleanNumber.length < 10 || cleanNumber.length > 15) {
+      setShowInvalidWhatsApp(true);
+      return;
+    }
+
     setSavingNumber(true);
     try {
-      const res = await saveNumberFn({ data: { number } });
+      const res = await saveNumberFn({ data: { number: cleanNumber } });
       setNumber(res.number);
       toast.success("Número do WhatsApp atualizado");
     } catch (err) {
@@ -2472,6 +2497,7 @@ function SettingsPanel() {
                 placeholder="Nova senha (ex: cliente123)" 
                 className="max-w-xs" 
                 required
+                maxLength={20}
               />
               <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
             </form>
@@ -2543,6 +2569,7 @@ function SettingsPanel() {
             placeholder="ex: Catálogo de Produtos"
             className="flex-1"
             required
+            maxLength={50}
           />
           <Button type="submit" disabled={savingName} className="rounded-full shadow-sm">
             {savingName ? "Salvando…" : "Salvar"}
@@ -2604,19 +2631,32 @@ function SettingsPanel() {
         <form onSubmit={submitNumber} className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Input
             value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            placeholder="ex: 5545984311918"
+            onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))}
+            placeholder="ex: 5545912345678"
             className="flex-1"
             required
+            maxLength={15}
           />
           <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm">
             {savingNumber ? "Salvando…" : "Salvar"}
           </Button>
         </form>
         <p className="mt-2 text-xs font-semibold text-muted-foreground">
-          Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545984311918</code>
+          Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545912345678</code>
         </p>
       </div>
+
+      {showInvalidWhatsApp && (
+        <ConfirmActionModal
+          title="Número de WhatsApp Inválido"
+          description="O número inserido está muito curto ou incompleto. Por favor, certifique-se de digitar o Código do País + DDD + Número. Exemplo: 5545912345678."
+          onClose={() => setShowInvalidWhatsApp(false)}
+          onConfirm={() => setShowInvalidWhatsApp(false)}
+          destructive={true}
+          confirmText="Entendi"
+          alertOnly={true}
+        />
+      )}
 
       {showRemoveLogoConfirm && (
         <ConfirmActionModal
