@@ -50,6 +50,7 @@ type Product = {
   sales_count: number;
   max_per_cart: number;
   sort_order: number;
+  track_stock: boolean;
 };
 type OrderRow = { 
   id: string; 
@@ -923,7 +924,8 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
       setCart(c => {
           const ex = c.find(x => x.product.id === p.id);
           if (ex) {
-            if (ex.quantity >= p.stock) return c;
+            const currentMax = p.track_stock ? p.stock : 999999;
+            if (ex.quantity >= currentMax) return c;
             return c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity + 1 } : x);
           }
           return [...c, { product: p, quantity: 1 }];
@@ -990,12 +992,12 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      </div>
                      <div className="grid gap-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 min-w-0">
                      {filteredProducts.map(p => {
-                         const outOfStock = p.stock <= 0;
-                         const isLowStock = !outOfStock && p.stock <= (p.min_stock || 0);
+                         const outOfStock = p.track_stock && p.stock <= 0;
+                         const isLowStock = !outOfStock && p.track_stock && p.stock <= (p.min_stock || 0);
                          return (
                          <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 min-w-0 " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
                              <div className="flex items-center flex-shrink-0">
-                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm">
+                                <Button size="sm" onClick={() => addToCart(p)} disabled={outOfStock} className="rounded-full h-8 px-3 shadow-sm">
                                     <Plus className="h-3 w-3" />
                                 </Button>
                              </div>
@@ -1007,7 +1009,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                 >
                                     {p.name}
                                 </div>
-                                <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
+                                <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
                              </div>
                              <div className="flex items-center flex-shrink-0">
                                 <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
@@ -1021,7 +1023,9 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0">Carrinho</h3>
                      {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground flex-shrink-0">O carrinho está vazio.</p>}
                      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pr-1 min-w-0">
-                     {cart.map(c => (
+                     {cart.map(c => {
+                         const currentMax = c.product.track_stock ? c.product.stock : 999999;
+                         return (
                          <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0 overflow-hidden">
                              <div 
                                 className="font-semibold truncate cursor-pointer hover:text-primary transition-colors block w-full" 
@@ -1034,12 +1038,12 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                 <div className="flex items-center gap-2 flex-shrink-0">
                                     <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition shadow-sm flex-shrink-0">-</button>
                                     <span className="w-4 text-center font-bold flex-shrink-0">{c.quantity}</span>
-                                    <button onClick={() => addToCart(c.product)} disabled={c.quantity >= c.product.stock} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50 shadow-sm flex-shrink-0">+</button>
+                                    <button onClick={() => addToCart(c.product)} disabled={c.quantity >= currentMax} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50 shadow-sm flex-shrink-0">+</button>
                                 </div>
                                 <span className="font-bold text-primary flex-shrink-0">{brl((Number(c.product.sale_price) || Number(c.product.price)) * c.quantity)}</span>
                              </div>
                          </div>
-                     ))}
+                     )})}
                      </div>
                      <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2 flex-shrink-0">
                          <div className="flex justify-between text-sm text-muted-foreground font-semibold">
@@ -1112,7 +1116,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                         </div>
                         <div className="flex justify-between border-b border-border pb-2 gap-2">
                            <span className="text-muted-foreground font-semibold flex-shrink-0">Estoque atual:</span>
-                           <span className="font-bold text-right break-words min-w-0">{productDetailsToShow.stock} un.</span>
+                           <span className="font-bold text-right break-words min-w-0">{productDetailsToShow.track_stock ? `${productDetailsToShow.stock} un.` : '∞ Ilimitado'}</span>
                         </div>
                         {productDetailsToShow.barcode && (
                            <div className="flex justify-between border-b border-border pb-2 gap-2">
@@ -1249,7 +1253,7 @@ function FinancesPanel() {
 
   products.forEach(p => {
      const pStock = Number(p.stock) || 0;
-     if (p.in_stock && pStock > 0) {
+     if (p.in_stock && p.track_stock && pStock > 0) {
         capitalCusto += pStock * (Number(p.cost) || 0);
         const effPrice = Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price) ? Number(p.sale_price) : Number(p.price);
         capitalVenda += pStock * effPrice;
@@ -1319,7 +1323,7 @@ function FinancesPanel() {
                     </div>
                   </div>
 
-                  <h2 className="text-lg font-display font-black mt-8 mb-4 border-b border-border pb-2">Posição de Estoque (Tempo Real)</h2>
+                  <h2 className="text-lg font-display font-black mt-8 mb-4 border-b border-border pb-2">Posição de Estoque Físico</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between break-words">
                        <div>
@@ -1421,11 +1425,11 @@ function FinancesPanel() {
                      <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words">
                        <div className="bg-orange-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-orange-600">
                            <Clock className="h-4 w-4 flex-shrink-0" />
-                           <h3 className="text-sm font-bold uppercase tracking-wide">Baixo Giro (Encalhados no Período)</h3>
+                           <h3 className="text-sm font-bold uppercase tracking-wide">Baixo Giro Físico (Encalhados)</h3>
                        </div>
                        <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
                            {deadStock.length === 0 ? (
-                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Todos os produtos em estoque tiveram saída no período.</p>
+                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Todos os produtos físicos em estoque tiveram saída no período.</p>
                            ) : (
                               <div className="divide-y divide-border">
                                  {deadStock.slice(0, 50).map(p => (
@@ -1617,8 +1621,8 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
     if (!matchesSearch) return false;
 
     if (filterOption === "inactive") return !p.in_stock;
-    if (filterOption === "out_of_stock") return p.stock <= 0;
-    if (filterOption === "low_stock") return p.stock > 0 && p.stock <= (p.min_stock || 0);
+    if (filterOption === "out_of_stock") return p.track_stock && p.stock <= 0;
+    if (filterOption === "low_stock") return p.track_stock && p.stock > 0 && p.stock <= (p.min_stock || 0);
     if (filterOption === "none") return p.category_id === null;
     if (filterOption !== "all") return p.category_id === filterOption;
 
@@ -1673,9 +1677,9 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
             const isInactive = !p.in_stock;
-            const outOfStock = p.in_stock && p.stock <= 0;
+            const outOfStock = p.in_stock && p.track_stock && p.stock <= 0;
             const hasIssue = isInactive || outOfStock;
-            const isLowStock = !hasIssue && p.stock <= (p.min_stock || 0);
+            const isLowStock = !hasIssue && p.track_stock && p.stock <= (p.min_stock || 0);
             const promo = p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price);
             return (
               <div
@@ -1690,7 +1694,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
                 </div>
                 <div className={"flex flex-1 flex-col min-w-0 break-words " + (hasIssue ? "opacity-60" : "")}>
                   <div className="font-bold line-clamp-2 break-words" title={p.name}>{p.name}</div>
-                  <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
+                  <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
                   {(isInactive || outOfStock) && (
                     <div className="mt-0.5">
                       <span className="inline-block rounded-full bg-destructive px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-destructive-foreground">
@@ -1760,6 +1764,7 @@ function ProductForm({
   const [minStock, setMinStock] = useState(product ? String(product.min_stock ?? 0) : "0");
   const [barcode, setBarcode] = useState(product?.barcode ?? "");
   const [inStock, setInStock] = useState(product?.in_stock ?? true);
+  const [trackStock, setTrackStock] = useState(product?.track_stock ?? true);
   const [categoryId, setCategoryId] = useState<string>(product?.category_id ?? "");
   const [imageUrl, setImageUrl] = useState(originalImageUrl);
   const [uploading, setUploading] = useState(false);
@@ -1882,6 +1887,7 @@ function ProductForm({
       max_per_cart: Math.max(0, parseInt(maxPerCart || "0", 10)),
       barcode: barcode.trim() || null,
       in_stock: inStock,
+      track_stock: trackStock,
       category_id: categoryId || null,
       image_url: isRemovingImage ? null : (imageUrl || null),
     };
@@ -1982,22 +1988,31 @@ function ProductForm({
               {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
-          <div>
+          
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2 mt-2">
+            <div className="min-w-0">
+              <div className="font-semibold break-words">Controlar Estoque</div>
+              <div className="text-xs font-semibold text-muted-foreground break-words">Desative caso este produto seja um serviço ou tenha estoque infinito.</div>
+            </div>
+            <Switch checked={trackStock} onCheckedChange={setTrackStock} className="flex-shrink-0" />
+          </div>
+
+          <div className={!trackStock ? "opacity-40 pointer-events-none" : "transition-opacity"}>
             <Label>Quantidade em Estoque <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} value={stock} onChange={(e) => { if(e.target.value.length <= 15) setStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
-            {product && (
+            <Input type="number" min={0} value={stock} onChange={(e) => { if(e.target.value.length <= 15) setStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required disabled={!trackStock} />
+            {product && trackStock && (
               <Button
                 type="button"
                 onClick={openAddStock}
                 className="mt-2 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition shadow-sm break-words whitespace-normal h-auto py-2"
               >
-                <Package className="h-4 w-4 flex-shrink-0" /> Dar Entrada de Estoque
+                <Package className="h-4 w-4 flex-shrink-0" /> Dar Entrada
               </Button>
             )}
           </div>
-          <div>
+          <div className={!trackStock ? "opacity-40 pointer-events-none" : "transition-opacity"}>
             <Label>Estoque Mínimo (Alerta) <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} value={minStock} onChange={(e) => { if(e.target.value.length <= 15) setMinStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
+            <Input type="number" min={0} value={minStock} onChange={(e) => { if(e.target.value.length <= 15) setMinStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required disabled={!trackStock} />
           </div>
           <div>
             <Label>Preço de venda (R$) <span className="text-destructive">*</span></Label>

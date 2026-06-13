@@ -33,6 +33,7 @@ type Product = {
   barcode: string | null;
   sales_count: number;
   max_per_cart: number;
+  track_stock: boolean;
 };
 type Category = { id: string; name: string; sort_order: number };
 
@@ -422,13 +423,17 @@ function Index() {
     // Checagem rigorosa de concorrência
     for (const i of items) {
       const p = currentProductMap.get(i.id);
-      if (!p || !p.in_stock || p.stock <= 0) {
-        // Produto foi apagado, inativado ou esgotou
+      
+      // Produto foi apagado, inativado ou esgotou (se for pra controlar o estoque)
+      if (!p || !p.in_stock || (p.track_stock && p.stock <= 0)) {
         outOfStockItems.push({ id: i.id, name: i.name });
         hasConflict = true;
       } else {
         // Produto existe, vamos checar o limite e o estoque
-        const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
+        const currentMax = p.max_per_cart > 0 
+          ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) 
+          : (p.track_stock ? p.stock : 999999);
+
         if (i.qty > currentMax) {
           // Cliente tem mais no carrinho do que o disponível ou permitido agora
           reducedStockItems.push({ id: i.id, name: i.name, requested: i.qty, available: currentMax });
@@ -856,10 +861,12 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
   
-  const outOfStock = !p.in_stock || p.stock <= 0;
+  const outOfStock = p.track_stock && (!p.in_stock || p.stock <= 0);
   
-  // Se max_per_cart for 0, o limite é o próprio estoque
-  const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
+  const currentMax = p.max_per_cart > 0 
+    ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) 
+    : (p.track_stock ? p.stock : 999999);
+    
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
 
@@ -893,7 +900,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
           {p.name}
         </h3>
         <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-          <Package className="h-3 w-3" /> {p.stock} em estoque
+          <Package className="h-3 w-3" /> {p.track_stock ? `${p.stock} em estoque` : "Disponível"}
         </p>
         <div className="mt-2"><PriceBlock p={p} /></div>
 
@@ -933,8 +940,12 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
-  const outOfStock = !p.in_stock || p.stock <= 0;
-  const currentMax = p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock;
+  
+  const outOfStock = p.track_stock && (!p.in_stock || p.stock <= 0);
+  const currentMax = p.max_per_cart > 0 
+    ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) 
+    : (p.track_stock ? p.stock : 999999);
+    
   const reachedMax = qty >= currentMax;
   const eff = effectivePrice(p);
 
@@ -977,7 +988,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
               <div>
                 <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl break-words">{p.name}</h2>
                 <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                  <Package className="h-4 w-4" /> {p.stock} unidades em estoque
+                  <Package className="h-4 w-4" /> {p.track_stock ? `${p.stock} unidades em estoque` : "Disponível"}
                 </div>
                 {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">{p.description}</p>}
               </div>
@@ -1010,7 +1021,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
                 )}
                 {reachedMax && !outOfStock && (
                   <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
-                    Lembrete: Limite de {currentMax} unidades atingido.
+                    Lembrete: Limite atingido para este produto.
                   </p>
                 )}
               </div>
@@ -1079,7 +1090,9 @@ function CartDrawer({
               <ul className="space-y-3">
                 {items.map((i) => {
                   const p = prods.find((prod) => prod.id === i.id);
-                  const currentMax = p ? (p.max_per_cart > 0 ? Math.min(p.max_per_cart, p.stock) : p.stock) : i.max;
+                  const currentMax = p 
+                    ? (p.max_per_cart > 0 ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) : (p.track_stock ? p.stock : 999999)) 
+                    : i.max;
 
                   return (
                     <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">

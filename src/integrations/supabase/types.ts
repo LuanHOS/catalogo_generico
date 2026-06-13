@@ -136,6 +136,7 @@ export type Database = {
           deleted_at: string | null
           created_by_name: string | null
           deleted_by_name: string | null
+          track_stock: boolean | null
         }
         Insert: {
           category_id?: string | null
@@ -158,6 +159,7 @@ export type Database = {
           deleted_at?: string | null
           created_by_name?: string | null
           deleted_by_name?: string | null
+          track_stock?: boolean | null
         }
         Update: {
           category_id?: string | null
@@ -180,6 +182,7 @@ export type Database = {
           deleted_at?: string | null
           created_by_name?: string | null
           deleted_by_name?: string | null
+          track_stock?: boolean | null
         }
         Relationships: [
           {
@@ -256,6 +259,7 @@ export type Database = {
           created_at: string
           updated_at: string
           sales_count: number
+          track_stock: boolean
         }[]
       }
       has_role: {
