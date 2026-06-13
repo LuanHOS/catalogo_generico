@@ -622,89 +622,74 @@ function OrderDetailsModal({
   async function generatePDF(orderToPrint: OrderRow) {
     const toastId = toast.loading("Gerando PDF para download...");
     try {
-      if (!(window as any).html2pdf) {
+      if (!(window as any).jspdf) {
         await new Promise((resolve, reject) => {
           const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
           script.onload = resolve;
           script.onerror = reject;
           document.head.appendChild(script);
         });
       }
 
+      const { jsPDF } = (window as any).jspdf;
+      const doc = new jsPDF();
+      
       const printItems = Array.isArray(orderToPrint.items) ? orderToPrint.items : [];
       const statusText = orderToPrint.status === 'completed' ? 'Concluído' : orderToPrint.status === 'canceled' ? 'Cancelado' : 'Pendente';
       const orderShortId = orderToPrint.id.split('-')[0];
-
-      const container = document.createElement("div");
-      container.innerHTML = `
-        <div style="font-family: sans-serif; padding: 40px; color: #333; width: 800px; max-width: 100%;">
-          <h1 style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">Resumo do Pedido</h1>
-          <div style="color: #555; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
-            <div><strong>ID do Pedido:</strong> #${orderShortId}</div>
-            <div><strong>Data do Pedido:</strong> ${new Date(orderToPrint.created_at).toLocaleString('pt-BR')}</div>
-            <div><strong>Status:</strong> ${statusText}</div>
-            ${orderToPrint.status === 'completed' && orderToPrint.completed_at ? `<div><strong>Data da Conclusão:</strong> ${new Date(orderToPrint.completed_at).toLocaleString('pt-BR')}</div>` : ''}
-            ${orderToPrint.status === 'canceled' && orderToPrint.canceled_at ? `<div><strong>Data do Cancelamento:</strong> ${new Date(orderToPrint.canceled_at).toLocaleString('pt-BR')}</div>` : ''}
-            ${orderToPrint.vip_code ? `<div style="color: #16a34a; font-weight: bold; margin-top: 5px;">Senha VIP utilizada: ${orderToPrint.vip_code}</div>` : ''}
-          </div>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-            <thead>
-              <tr>
-                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 10%">Qtd</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 50%">Produto</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 20%">Preço Unit.</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; background-color: #f9f9f9; width: 20%">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${printItems.map((i: any) => `
-                <tr>
-                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${i.quantity}</td>
-                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${i.name}</td>
-                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${brl(Number(i.price || 0))}</td>
-                  <td style="padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px;">${brl(Number(i.price || 0) * Number(i.quantity || 0))}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div style="font-size: 1.5em; font-weight: bold; margin-top: 30px; text-align: right;">
-            Total Final: ${brl(Number(orderToPrint.total))}
-          </div>
-        </div>
-      `;
-
-      // Renderiza o componente fixo no topo esquerdo para que o html2canvas capture corretamente ignorando o scroll do window
-      const printWrapper = document.createElement("div");
-      printWrapper.style.position = "fixed";
-      printWrapper.style.top = "0";
-      printWrapper.style.left = "0";
-      printWrapper.style.width = "800px";
-      printWrapper.style.zIndex = "-9999";
-      printWrapper.style.opacity = "0";
-      printWrapper.style.pointerEvents = "none";
-      printWrapper.appendChild(container);
-      document.body.appendChild(printWrapper);
-
-      const opt = {
-        margin:       0.5,
-        filename:     `Pedido-${orderShortId}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, scrollY: 0, scrollX: 0, windowWidth: 800 },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-
-      try {
-        await (window as any).html2pdf().set(opt).from(container).save();
-        toast.success("Download iniciado!", { id: toastId });
-      } catch (err) {
-        console.error(err);
-        toast.error("Erro ao gerar o PDF.", { id: toastId });
-      } finally {
-        if (document.body.contains(printWrapper)) {
-          document.body.removeChild(printWrapper);
-        }
+      
+      let y = 20;
+      const marginLeft = 15;
+      const lineHeight = 7;
+      
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Resumo do Pedido", marginLeft, y);
+      y += 15;
+      
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      
+      doc.text(`ID do Pedido: #${orderShortId}`, marginLeft, y); y += lineHeight;
+      doc.text(`Data: ${new Date(orderToPrint.created_at).toLocaleString('pt-BR')}`, marginLeft, y); y += lineHeight;
+      doc.text(`Status: ${statusText}`, marginLeft, y); y += lineHeight;
+      
+      if (orderToPrint.status === 'completed' && orderToPrint.completed_at) {
+        doc.text(`Concluído em: ${new Date(orderToPrint.completed_at).toLocaleString('pt-BR')}`, marginLeft, y); y += lineHeight;
       }
+      if (orderToPrint.status === 'canceled' && orderToPrint.canceled_at) {
+        doc.text(`Cancelado em: ${new Date(orderToPrint.canceled_at).toLocaleString('pt-BR')}`, marginLeft, y); y += lineHeight;
+      }
+      if (orderToPrint.vip_code) {
+        doc.text(`Acesso VIP: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
+      }
+      
+      y += 10;
+      doc.setFont("helvetica", "bold");
+      doc.text("Itens do Pedido", marginLeft, y);
+      y += 10;
+      
+      doc.setFont("helvetica", "normal");
+      printItems.forEach((i: any) => {
+          const itemText = `${i.quantity}x ${i.name} - ${brl(Number(i.price || 0) * Number(i.quantity || 0))}`;
+          const lines = doc.splitTextToSize(itemText, 180);
+          doc.text(lines, marginLeft, y);
+          y += (lines.length * lineHeight);
+          
+          if (y > 270) {
+              doc.addPage();
+              y = 20;
+          }
+      });
+      
+      y += 10;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Total Final: ${brl(Number(orderToPrint.total))}`, marginLeft, y);
+      
+      doc.save(`Pedido-${orderShortId}.pdf`);
+      toast.success("Download iniciado!", { id: toastId });
     } catch (error) {
       console.error(error);
       toast.error("Erro ao gerar o PDF.", { id: toastId });
@@ -783,6 +768,7 @@ function OrderDetailsModal({
                       value={customTotal} 
                       onChange={(e) => {
                          let val = e.target.value;
+                         if (val.length > 15) return;
                          if (val === "" || val === "," || val === ".") val = "0";
                          setCustomTotal(val);
                       }} 
@@ -972,6 +958,11 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          const isLowStock = !outOfStock && p.stock <= (p.min_stock || 0);
                          return (
                          <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
+                             <div className="flex items-center gap-3 flex-shrink-0">
+                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm flex-shrink-0">
+                                    <Plus className="h-3 w-3" />
+                                </Button>
+                             </div>
                              <div className="min-w-0 flex-1">
                                 <div 
                                     className={`font-semibold text-sm break-words cursor-pointer ${expandedProducts.has(p.id) ? "" : "line-clamp-2"}`} 
@@ -984,9 +975,6 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                              </div>
                              <div className="flex items-center gap-3 flex-shrink-0">
                                 <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
-                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm flex-shrink-0">
-                                    <Plus className="h-3 w-3" />
-                                </Button>
                              </div>
                          </div>
                      )})}
@@ -1032,6 +1020,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                value={customTotal} 
                                onChange={(e) => {
                                   let val = e.target.value;
+                                  if (val.length > 15) return;
                                   if (val === "" || val === "," || val === ".") val = "0";
                                   setCustomTotal(val);
                                   setIsCustomTotalDirty(true);
@@ -1907,7 +1896,7 @@ function ProductForm({
           </div>
           <div>
             <Label>Quantidade em Estoque <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} max={999999} value={stock} onChange={(e) => setStock(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
+            <Input type="number" min={0} value={stock} onChange={(e) => { if(e.target.value.length <= 15) setStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
             {product && (
               <Button
                 type="button"
@@ -1920,23 +1909,23 @@ function ProductForm({
           </div>
           <div>
             <Label>Estoque Mínimo (Alerta) <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} max={999999} value={minStock} onChange={(e) => setMinStock(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
+            <Input type="number" min={0} value={minStock} onChange={(e) => { if(e.target.value.length <= 15) setMinStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
           </div>
           <div>
             <Label>Preço de venda (R$) <span className="text-destructive">*</span></Label>
-            <Input type="number" step="0.01" min={0} max={999999} value={price} onChange={(e) => setPrice(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
+            <Input type="number" step="0.01" min={0} value={price} onChange={(e) => { if(e.target.value.length <= 15) setPrice(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
           </div>
           <div>
             <Label>Preço promocional (R$) <span className="text-xs font-semibold text-muted-foreground">opcional</span></Label>
-            <Input type="number" step="0.01" min={0} max={999999} value={salePrice} onChange={(e) => setSalePrice(e.target.value)} onKeyDown={blockInvalidNumberChars} placeholder="deixe vazio se sem promoção" />
+            <Input type="number" step="0.01" min={0} value={salePrice} onChange={(e) => { if(e.target.value.length <= 15) setSalePrice(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="deixe vazio se sem promoção" />
           </div>
           <div>
             <Label>Custo interno (R$) <span className="text-destructive">*</span></Label>
-            <Input type="number" step="0.01" min={0} max={999999} value={cost} onChange={(e) => setCost(e.target.value)} onKeyDown={blockInvalidNumberChars} required />
+            <Input type="number" step="0.01" min={0} value={cost} onChange={(e) => { if(e.target.value.length <= 15) setCost(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
           </div>
           <div>
             <Label>Limite por carrinho</Label>
-            <Input type="number" min={0} max={999999} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} onKeyDown={blockInvalidNumberChars} />
+            <Input type="number" min={0} value={maxPerCart} onChange={(e) => { if(e.target.value.length <= 15) setMaxPerCart(e.target.value); }} onKeyDown={blockInvalidNumberChars} />
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Deixem em 0 caso queira deixar sem limite</p>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2">
@@ -2015,11 +2004,11 @@ function ProductForm({
             <div className="space-y-3">
                <div>
                   <Label>Quantidade Recebida <span className="text-destructive">*</span></Label>
-                  <Input type="number" min="1" max={999999} value={addStockQty} onChange={e => setAddStockQty(e.target.value)} onKeyDown={blockInvalidNumberChars} placeholder="Ex: 10" className="mt-1" autoFocus required />
+                  <Input type="number" min="1" value={addStockQty} onChange={e => { if(e.target.value.length <= 15) setAddStockQty(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="Ex: 10" className="mt-1" autoFocus required />
                </div>
                <div>
                   <Label>Custo Unitário da Compra (R$) <span className="text-destructive">*</span></Label>
-                  <Input type="number" step="0.01" min="0" max={999999} value={addStockCost} onChange={e => setAddStockCost(e.target.value)} onKeyDown={blockInvalidNumberChars} className="mt-1" required />
+                  <Input type="number" step="0.01" min="0" value={addStockCost} onChange={e => { if(e.target.value.length <= 15) setAddStockCost(e.target.value); }} onKeyDown={blockInvalidNumberChars} className="mt-1" required />
                </div>
             </div>
 
