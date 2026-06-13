@@ -852,7 +852,9 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+  
+  // Substitui a expansão inline por um pop-up com as informações completas
+  const [productDetailsToShow, setProductDetailsToShow] = useState<Product | null>(null);
 
   const originalTotal = cart.reduce((acc, item) => acc + (Number(item.product.sale_price) || Number(item.product.price)) * item.quantity, 0);
   const [customTotal, setCustomTotal] = useState("");
@@ -890,15 +892,6 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const removeFromCart = (p: Product) => {
       setIsCustomTotalDirty(false); // Reseta a verificação do total ao alterar o carrinho
       setCart(c => c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity - 1 } : x).filter(x => x.quantity > 0));
-  };
-
-  const toggleExpand = (id: string) => {
-      setExpandedProducts(prev => {
-          const next = new Set(prev);
-          if (next.has(id)) next.delete(id);
-          else next.add(id);
-          return next;
-      });
   };
 
   const save = async () => {
@@ -965,9 +958,9 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                              </div>
                              <div className="min-w-0 flex-1">
                                 <div 
-                                    className={`font-semibold text-sm break-words cursor-pointer ${expandedProducts.has(p.id) ? "" : "line-clamp-2"}`} 
-                                    onClick={() => toggleExpand(p.id)} 
-                                    title={expandedProducts.has(p.id) ? "Recolher" : "Clique para expandir..."}
+                                    className="font-semibold text-sm truncate cursor-pointer hover:text-primary transition-colors" 
+                                    onClick={() => setProductDetailsToShow(p)} 
+                                    title="Clique para ver os detalhes"
                                 >
                                     {p.name}
                                 </div>
@@ -986,11 +979,11 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground">O carrinho está vazio.</p>}
                      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                      {cart.map(c => (
-                         <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3">
+                         <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0">
                              <div 
-                                className={`font-semibold break-words cursor-pointer ${expandedProducts.has(c.product.id) ? "" : "line-clamp-2"}`} 
-                                onClick={() => toggleExpand(c.product.id)}
-                                title={expandedProducts.has(c.product.id) ? "Recolher" : "Clique para expandir..."}
+                                className="font-semibold truncate cursor-pointer hover:text-primary transition-colors" 
+                                onClick={() => setProductDetailsToShow(c.product)}
+                                title="Clique para ver os detalhes"
                              >
                                 {c.product.name}
                              </div>
@@ -1048,6 +1041,51 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                  <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
              </div>
          </div>
+
+         {/* Pop-up de detalhes do produto do pedido manual */}
+         {productDetailsToShow && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+                    <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-lg font-black font-display break-words leading-tight">{productDetailsToShow.name}</h3>
+                        <button onClick={() => setProductDetailsToShow(null)} className="text-muted-foreground hover:text-foreground flex-shrink-0 mt-1"><X className="h-5 w-5"/></button>
+                    </div>
+                    
+                    <div className="flex flex-col gap-3 text-sm">
+                        {productDetailsToShow.image_url && (
+                           <img src={productDetailsToShow.image_url} alt={productDetailsToShow.name} className="w-full h-40 object-cover rounded-xl border border-border" />
+                        )}
+                        <div className="flex justify-between border-b border-border pb-2 mt-1">
+                           <span className="text-muted-foreground font-semibold">Preço:</span>
+                           <span className="font-bold text-primary">
+                              {brl(Number(productDetailsToShow.sale_price) || Number(productDetailsToShow.price))}
+                              {productDetailsToShow.sale_price ? <span className="text-xs line-through text-muted-foreground ml-2">{brl(Number(productDetailsToShow.price))}</span> : null}
+                           </span>
+                        </div>
+                        <div className="flex justify-between border-b border-border pb-2">
+                           <span className="text-muted-foreground font-semibold">Estoque atual:</span>
+                           <span className="font-bold">{productDetailsToShow.stock} un.</span>
+                        </div>
+                        {productDetailsToShow.barcode && (
+                           <div className="flex justify-between border-b border-border pb-2">
+                              <span className="text-muted-foreground font-semibold">Cód. Barras:</span>
+                              <span className="font-bold break-all text-right">{productDetailsToShow.barcode}</span>
+                           </div>
+                        )}
+                        {productDetailsToShow.description && (
+                           <div className="mt-1">
+                              <span className="text-muted-foreground font-semibold">Descrição:</span>
+                              <p className="mt-1 font-medium text-muted-foreground break-words whitespace-pre-wrap">{productDetailsToShow.description}</p>
+                           </div>
+                        )}
+                    </div>
+                    
+                    <div className="flex justify-end mt-2 pt-2">
+                        <Button onClick={() => setProductDetailsToShow(null)} className="rounded-full shadow-sm w-full">Fechar</Button>
+                    </div>
+                </div>
+            </div>
+         )}
       </div>
   );
 }
