@@ -361,7 +361,7 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
         </div>
         <div>
           <Label>Motivo (Opcional)</Label>
-          <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1" maxLength={255} />
+          <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1 resize-y min-h-[80px] max-h-[200px]" maxLength={255} />
         </div>
         <div className="flex justify-end gap-2 mt-2">
           <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
@@ -527,7 +527,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
               {o.vip_code && (
                 <div className="mt-1 text-xs font-bold text-green-600">Acesso VIP: {o.vip_code}</div>
               )}
-              <div className="text-sm mt-2 font-medium">
+              <div className="text-sm mt-2 font-medium line-clamp-2 break-words" title={Array.isArray(o.items) ? o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ") : ""}>
                 {Array.isArray(o.items) && o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}
               </div>
               <div className="text-primary font-black mt-2">{brl(Number(o.total))}</div>
@@ -717,7 +717,7 @@ function OrderDetailsModal({
             {order.status === 'canceled' && order.cancellation_reason && (
               <div className="mt-2 bg-destructive/10 border border-destructive/20 p-3 rounded-xl">
                  <p className="text-xs font-bold text-destructive uppercase tracking-wide">Motivo do Cancelamento</p>
-                 <p className="text-sm font-medium mt-1">{order.cancellation_reason}</p>
+                 <p className="text-sm font-medium mt-1 break-words whitespace-pre-wrap">{order.cancellation_reason}</p>
               </div>
             )}
           </div>
@@ -726,12 +726,12 @@ function OrderDetailsModal({
             <h4 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Itens do Pedido</h4>
             <div className="space-y-3">
               {items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center text-sm border-b border-border pb-2">
-                  <div className="flex gap-2">
-                    <span className="font-bold">{item.quantity}x</span>
-                    <span className="font-medium">{item.name}</span>
+                <div key={idx} className="flex justify-between items-center text-sm border-b border-border pb-2 gap-4">
+                  <div className="flex gap-2 min-w-0">
+                    <span className="font-bold flex-shrink-0">{item.quantity}x</span>
+                    <span className="font-medium line-clamp-2 break-words" title={item.name}>{item.name}</span>
                   </div>
-                  <span className="font-bold text-muted-foreground">{brl((Number(item.price || 0)) * Number(item.quantity || 0))}</span>
+                  <span className="font-bold text-muted-foreground flex-shrink-0">{brl((Number(item.price || 0)) * Number(item.quantity || 0))}</span>
                 </div>
               ))}
             </div>
@@ -755,7 +755,11 @@ function OrderDetailsModal({
                       min="0"
                       max="999999"
                       value={customTotal} 
-                      onChange={(e) => setCustomTotal(e.target.value)} 
+                      onChange={(e) => {
+                         let val = e.target.value;
+                         if (val === ',' || val === '.') val = '0';
+                         setCustomTotal(val);
+                      }} 
                       onKeyDown={blockInvalidNumberChars}
                       className="pl-9 font-black text-lg h-12"
                       disabled={showCancelConfirm || showCompleteConfirm}
@@ -804,7 +808,7 @@ function OrderDetailsModal({
           <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-destructive/5 animate-in fade-in zoom-in-95 duration-200">
              <Label className="text-destructive font-bold">Confirmação de Cancelamento</Label>
              <p className="text-xs text-muted-foreground font-semibold -mt-2">O estoque será devolvido automaticamente.</p>
-             <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} maxLength={255} />
+             <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} maxLength={255} className="resize-y min-h-[80px] max-h-[200px]" />
              <div className="flex justify-end gap-2 mt-2">
                 <Button variant="outline" onClick={() => setShowCancelConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
                 <Button variant="destructive" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm">
@@ -906,11 +910,11 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          const isLowStock = !outOfStock && p.stock <= (p.min_stock || 0);
                          return (
                          <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
-                             <div>
-                                <div className="font-semibold text-sm">{p.name}</div>
+                             <div className="min-w-0 pr-2">
+                                <div className="font-semibold text-sm line-clamp-2 break-words" title={p.name}>{p.name}</div>
                                 <div className="text-xs font-semibold text-muted-foreground">Estoque: {p.stock}</div>
                              </div>
-                             <div className="flex items-center gap-3">
+                             <div className="flex items-center gap-3 flex-shrink-0">
                                 <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
                                 <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm">
                                     <Plus className="h-3 w-3" />
@@ -927,7 +931,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      <div className="flex-1 overflow-y-auto space-y-3">
                      {cart.map(c => (
                          <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3">
-                             <div className="font-semibold">{c.product.name}</div>
+                             <div className="font-semibold line-clamp-2 break-words" title={c.product.name}>{c.product.name}</div>
                              <div className="flex justify-between items-center mt-2">
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition shadow-sm">-</button>
@@ -1198,7 +1202,7 @@ function FinancesPanel() {
                                               <span className="flex items-center justify-center h-6 w-6 rounded-full bg-secondary text-xs font-black text-muted-foreground">
                                                   {idx + 1}
                                               </span>
-                                              <span className="font-semibold text-sm line-clamp-1">{item.name}</span>
+                                              <span className="font-semibold text-sm line-clamp-1 break-words">{item.name}</span>
                                           </div>
                                           <div className="text-right">
                                               <div className="font-black text-primary text-sm">{item.qty} un.</div>
@@ -1225,7 +1229,7 @@ function FinancesPanel() {
                               <div className="divide-y divide-border">
                                  {criticalStock.map(p => (
                                     <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition">
-                                       <span className="font-semibold text-foreground line-clamp-1">{p.name}</span>
+                                       <span className="font-semibold text-foreground line-clamp-1 break-words">{p.name}</span>
                                        <span className="font-black text-red-600 whitespace-nowrap">{p.stock} un.</span>
                                     </div>
                                  ))}
@@ -1246,7 +1250,7 @@ function FinancesPanel() {
                               <div className="divide-y divide-border">
                                  {deadStock.slice(0, 50).map(p => (
                                     <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition">
-                                       <span className="font-semibold text-foreground line-clamp-1">{p.name}</span>
+                                       <span className="font-semibold text-foreground line-clamp-1 break-words">{p.name}</span>
                                        <span className="font-black text-orange-600 whitespace-nowrap">Estoque: {p.stock}</span>
                                     </div>
                                  ))}
@@ -1503,8 +1507,8 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
                 <div className={"h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary " + (hasIssue ? "opacity-40" : "")}>
                   {p.image_url && <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />}
                 </div>
-                <div className={"flex flex-1 flex-col " + (hasIssue ? "opacity-60" : "")}>
-                  <div className="font-bold">{p.name}</div>
+                <div className={"flex flex-1 flex-col min-w-0 " + (hasIssue ? "opacity-60" : "")}>
+                  <div className="font-bold line-clamp-2 break-words" title={p.name}>{p.name}</div>
                   <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
                   {(isInactive || outOfStock) && (
                     <div className="mt-0.5">
@@ -1783,7 +1787,7 @@ function ProductForm({
           </div>
           <div className="sm:col-span-2">
             <Label>Descrição</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={255} />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={255} className="resize-y min-h-[80px]" />
           </div>
           <div>
             <Label>Categoria</Label>

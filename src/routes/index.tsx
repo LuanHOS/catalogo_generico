@@ -152,7 +152,7 @@ function StockConflictModal({
               <h4 className="text-xs font-bold uppercase tracking-wide text-destructive mb-2">Esgotados</h4>
               <ul className="space-y-1">
                 {data.outOfStock.map((item, idx) => (
-                  <li key={idx} className="text-sm font-semibold text-foreground bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">
+                  <li key={idx} className="text-sm font-semibold text-foreground bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20 line-clamp-2 break-words" title={item.name}>
                     {item.name}
                   </li>
                 ))}
@@ -166,7 +166,7 @@ function StockConflictModal({
               <ul className="space-y-1">
                 {data.reduced.map((item, idx) => (
                   <li key={idx} className="text-sm font-semibold text-foreground bg-yellow-500/10 px-3 py-2 rounded-lg border border-yellow-600/20">
-                    <span className="block">{item.name}</span>
+                    <span className="block line-clamp-2 break-words" title={item.name}>{item.name}</span>
                     <span className="text-xs text-muted-foreground">Você pediu {item.requested}, mas só temos <strong className="text-yellow-700">{item.available}</strong>.</span>
                   </li>
                 ))}
@@ -875,7 +875,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
         )}
       </div>
       <div className="p-3 flex flex-1 flex-col">
-        <h3 className="text-sm line-clamp-2 font-display font-bold leading-tight text-card-foreground">
+        <h3 className="text-sm line-clamp-2 font-display font-bold leading-tight text-card-foreground break-words" title={p.name}>
           {p.name}
         </h3>
         <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
@@ -933,7 +933,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-0 sm:items-center sm:p-6" role="dialog">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl bg-background shadow-2xl sm:rounded-3xl">
+      <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl bg-background shadow-2xl sm:rounded-3xl flex flex-col max-h-[90vh] sm:max-h-[85vh]">
         <button
           onClick={onClose}
           className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow hover:bg-secondary"
@@ -941,62 +941,64 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
         >
           <X className="h-5 w-5" />
         </button>
-        <div className="grid gap-0 sm:grid-cols-2">
-          <div className="relative aspect-square w-full bg-secondary border-b border-border/40 sm:border-b-0 sm:border-r">
-            {isPromo(p) && <PromoBadge />}
-            {p.image_url ? (
-              <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                <ShoppingBag className="h-16 w-16 opacity-30" />
-              </div>
-            )}
-            {outOfStock && (
-              <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground shadow-sm">
-                Sem estoque
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col gap-4 p-6">
-            <div>
-              <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl">{p.name}</h2>
-              <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                <Package className="h-4 w-4" /> {p.stock} unidades em estoque
-              </div>
-              {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground">{p.description}</p>}
-            </div>
-            <PriceBlock p={p} big />
-            <div className="mt-auto pt-4">
-              {qty === 0 ? (
-                <Button
-                  type="button"
-                  disabled={outOfStock}
-                  onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                  className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
-                </Button>
+        <div className="overflow-y-auto flex-1 w-full">
+          <div className="grid gap-0 sm:grid-cols-2">
+            <div className="relative aspect-square w-full bg-secondary border-b border-border/40 sm:border-b-0 sm:border-r">
+              {isPromo(p) && <PromoBadge />}
+              {p.image_url ? (
+                <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
-                  <button onClick={() => cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="text-lg font-black">{qty} no carrinho</span>
-                  <button
-                    disabled={reachedMax}
-                    onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-40"
-                    aria-label="Aumentar"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                  <ShoppingBag className="h-16 w-16 opacity-30" />
                 </div>
               )}
-              {reachedMax && !outOfStock && (
-                <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
-                  Lembrete: Limite de {currentMax} unidades atingido.
-                </p>
+              {outOfStock && (
+                <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground shadow-sm">
+                  Sem estoque
+                </span>
               )}
+            </div>
+            <div className="flex flex-col gap-4 p-6">
+              <div>
+                <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl break-words">{p.name}</h2>
+                <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                  <Package className="h-4 w-4" /> {p.stock} unidades em estoque
+                </div>
+                {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">{p.description}</p>}
+              </div>
+              <PriceBlock p={p} big />
+              <div className="mt-auto pt-4">
+                {qty === 0 ? (
+                  <Button
+                    type="button"
+                    disabled={outOfStock}
+                    onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
+                    className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
+                  </Button>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
+                    <button onClick={() => cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="text-lg font-black">{qty} no carrinho</span>
+                    <button
+                      disabled={reachedMax}
+                      onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
+                      className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-40"
+                      aria-label="Aumentar"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                {reachedMax && !outOfStock && (
+                  <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
+                    Lembrete: Limite de {currentMax} unidades atingido.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1065,11 +1067,11 @@ function CartDrawer({
 
                   return (
                     <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
-                      <div className="flex-1">
-                        <div className="font-bold leading-tight">{i.name}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold leading-tight line-clamp-2 break-words" title={i.name}>{i.name}</div>
                         <div className="text-sm font-semibold text-muted-foreground">{brl(i.price)} cada</div>
                       </div>
-                      <div className="flex items-center gap-1 rounded-full bg-secondary px-1 border border-border/50">
+                      <div className="flex items-center gap-1 rounded-full bg-secondary px-1 border border-border/50 flex-shrink-0">
                         <button onClick={() => cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
                           <Minus className="h-3 w-3" />
                         </button>
@@ -1082,7 +1084,7 @@ function CartDrawer({
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <button onClick={() => cart.remove(i.id)} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                      <button onClick={() => cart.remove(i.id)} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </li>
