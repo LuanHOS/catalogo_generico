@@ -88,6 +88,7 @@ export type Database = {
           vip_code: string | null
           cancellation_reason: string | null
           canceled_by_name: string | null
+          is_presential: boolean | null
         }
         Insert: {
           created_at?: string
@@ -98,6 +99,7 @@ export type Database = {
           vip_code?: string | null
           cancellation_reason?: string | null
           canceled_by_name?: string | null
+          is_presential?: boolean | null
         }
         Update: {
           created_at?: string
@@ -108,6 +110,7 @@ export type Database = {
           vip_code?: string | null
           cancellation_reason?: string | null
           canceled_by_name?: string | null
+          is_presential?: boolean | null
         }
         Relationships: []
       }
@@ -224,6 +227,13 @@ export type Database = {
           p_vip_code?: string | null
         }
         Returns: string
+      }
+      checkout_presential_order: {
+        Args: {
+          order_total: number
+          order_items: Json
+        }
+        Returns: undefined
       }
       get_catalog_secure: {
         Args: {

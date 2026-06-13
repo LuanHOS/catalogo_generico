@@ -62,6 +62,7 @@ type OrderRow = {
   canceled_by_name?: string | null;
   completed_at?: string | null;
   canceled_at?: string | null;
+  is_presential?: boolean | null;
 };
 
 export const SYSTEM_THEMES = [
@@ -439,7 +440,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
     if (endDate) q = q.lte("created_at", `${endDate}T23:59:59Z`);
 
     const { data } = await q;
-    setOrders(data || []);
+    setOrders((data as OrderRow[]) || []);
   }, [startDate, endDate]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
@@ -491,7 +492,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
           ))}
         </div>
         <Button onClick={() => setShowManual(true)} className="rounded-full shadow-sm flex-shrink-0">
-          <Plus className="mr-1 h-4 w-4" /> Novo Pedido Manual
+          <Plus className="mr-1 h-4 w-4" /> Fazer Venda Presencial
         </Button>
       </div>
 
@@ -532,11 +533,12 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
             onClick={() => setSelectedOrder(o)}
           >
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-bold text-lg">Pedido #{o.id.split("-")[0]}</span>
                 {o.status === 'pending' && <span className="bg-yellow-500/15 text-yellow-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Pendente</span>}
                 {o.status === 'completed' && <span className="bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Concluído</span>}
                 {o.status === 'canceled' && <span className="bg-destructive/15 text-destructive px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Cancelado</span>}
+                {o.is_presential && <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Venda Presencial</span>}
               </div>
               <p className="text-sm text-muted-foreground mt-1 font-medium">{new Date(o.created_at).toLocaleString('pt-BR')}</p>
               {o.vip_code && (
@@ -727,7 +729,10 @@ function OrderDetailsModal({
         
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="flex flex-col gap-1">
-            <h3 className="font-bold text-lg leading-tight">Pedido #{order.id.split("-")[0]}</h3>
+            <h3 className="font-bold text-lg leading-tight flex items-center gap-2 flex-wrap">
+               Pedido #{order.id.split("-")[0]}
+               {order.is_presential && <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Venda Presencial</span>}
+            </h3>
             <p className="text-sm text-muted-foreground font-medium">Criado em: {new Date(order.created_at).toLocaleString('pt-BR')}</p>
             
             {order.status === 'completed' && order.completed_at && (
@@ -928,10 +933,11 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
           quantity: c.quantity,
           category_id: c.product.category_id
       }));
-      const { error } = await supabase.rpc("checkout_order", { order_total: finalParsedTotal, order_items: itemsJson });
+      
+      const { error } = await supabase.rpc("checkout_presential_order", { order_total: finalParsedTotal, order_items: itemsJson });
       setSaving(false);
-      if (error) { toast.error("Erro ao criar pedido: " + error.message); return; }
-      toast.success("Pedido manual criado com sucesso!");
+      if (error) { toast.error("Erro ao finalizar venda: " + error.message); return; }
+      toast.success("Venda presencial concluída com sucesso!");
       onSaved();
       onClose();
   };
@@ -950,7 +956,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
          <ScrollLock />
          <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
              <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0">
-                <h2 className="text-xl font-display font-black">Novo Pedido Manual</h2>
+                <h2 className="text-xl font-display font-black">Nova Venda Presencial</h2>
                 <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0">Fechar</button>
              </div>
              
@@ -1054,7 +1060,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
              </div>
              <div className="flex justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0">
                  <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
-                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
+                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0">{saving ? "Processando..." : "Concluir Venda"}</Button>
              </div>
          </div>
 
@@ -1138,7 +1144,7 @@ function FinancesPanel() {
           supabase.from("products").select("*").is("deleted_at", null),
           supabase.from("orders").select("total, items").eq("status", "completed")
       ]).then(([ordersRes, prodsRes, globalRes]) => {
-          setOrders(ordersRes.data || []);
+          setOrders((ordersRes.data as OrderRow[]) || []);
           setProducts(prodsRes.data as Product[] || []);
           if (globalRes.data) {
               let rev = 0;
