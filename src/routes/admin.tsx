@@ -19,7 +19,7 @@ import {
   createAccessCode,
   deleteAccessCode,
 } from "@/lib/admin.functions";
-import { brl, DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
+import { brl, DEFAULT_WHATSAPP_NUMBER, whatsappLink } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -2637,9 +2637,21 @@ function SettingsPanel() {
             required
             maxLength={20}
           />
-          <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm">
-            {savingNumber ? "Salvando…" : "Salvar"}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={() => {
+                const cleanNumber = number.replace(/\D/g, '');
+                if (cleanNumber.length < 10 || cleanNumber.length > 15) {
+                  setShowInvalidWhatsApp(true);
+                  return;
+                }
+                window.open(whatsappLink("Teste de número válido - Catálogo", cleanNumber), "_blank");
+              }} className="rounded-full shadow-sm flex-1 sm:flex-auto">
+              Testar número
+            </Button>
+            <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm flex-1 sm:flex-auto">
+              {savingNumber ? "Salvando…" : "Salvar"}
+            </Button>
+          </div>
         </form>
         <p className="mt-2 text-xs font-semibold text-muted-foreground">
           Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545912345678</code>
@@ -2649,7 +2661,7 @@ function SettingsPanel() {
       {showInvalidWhatsApp && (
         <ConfirmActionModal
           title="Número de WhatsApp Inválido"
-          description="O número inserido está muito curto ou incompleto. Por favor, certifique-se de digitar o Código do País + DDD + Número. Exemplo: 5545912345678."
+          description="O número inserido está muito curto ou incompleto. Por favor, certifique-se de digitar o Código do País + DDD + Número. Exemplo: 5545984311918."
           onClose={() => setShowInvalidWhatsApp(false)}
           onConfirm={() => setShowInvalidWhatsApp(false)}
           destructive={true}
