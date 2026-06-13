@@ -70,6 +70,18 @@ function isPromo(p: Pick<Product, "price" | "sale_price">) {
   return sale != null && sale > 0 && sale < Number(p.price);
 }
 
+/* ---------- Bloqueio de Scroll Global ---------- */
+function ScrollLock() {
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+  return null;
+}
+
 /* ---------- Modal Reutilizável de Confirmação Genérica ---------- */
 export function ConfirmActionModal({
   title,
@@ -92,6 +104,7 @@ export function ConfirmActionModal({
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <ScrollLock />
       <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
         <div>
           <h3 className={`text-lg font-black font-display flex items-center gap-2 ${destructive ? 'text-destructive' : 'text-primary'}`}>
@@ -135,6 +148,7 @@ function StockConflictModal({
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <ScrollLock />
       <div className="bg-background w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
         <div>
           <h3 className="text-lg font-black font-display flex items-center gap-2 text-destructive">
@@ -778,6 +792,7 @@ function Index() {
       {/* Modal de Logo Expandida */}
       {!accessDenied && showLogoModal && catalogLogo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setShowLogoModal(false)}>
+          <ScrollLock />
           <div className="relative max-w-md w-full flex justify-center" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setShowLogoModal(false)}
@@ -931,6 +946,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-0 sm:items-center sm:p-6" role="dialog">
+      <ScrollLock />
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl bg-background shadow-2xl sm:rounded-3xl flex flex-col max-h-[90vh] sm:max-h-[85vh]">
         <button
@@ -1035,6 +1051,7 @@ function CartDrawer({
   return (
     <>
       <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
+        <ScrollLock />
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
         <aside className="relative flex h-full w-full max-w-md flex-col bg-background shadow-2xl">
           <header className="flex items-center justify-between border-b border-border px-5 py-4">

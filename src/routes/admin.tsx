@@ -545,7 +545,10 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
                 <div className="mt-1 text-xs font-bold text-green-600">Acesso VIP: {o.vip_code}</div>
               )}
               <div className="text-sm mt-2 font-medium line-clamp-2 break-words" title={Array.isArray(o.items) ? o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ") : ""}>
-                {Array.isArray(o.items) && o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}
+                {Array.isArray(o.items) && o.items.map((i: any) => {
+                   const shortName = i.name && i.name.length > 20 ? i.name.substring(0, 20) + "..." : i.name;
+                   return `${i.quantity}x ${shortName}`;
+                }).join(", ")}
               </div>
               <div className="text-primary font-black mt-2">{brl(Number(o.total))}</div>
             </div>
@@ -688,8 +691,13 @@ function OrderDetailsModal({
       y += 10;
       
       doc.setFont("helvetica", "normal");
+      
+      let sumOriginal = 0;
+      
       printItems.forEach((i: any) => {
-          const itemText = `${i.quantity}x ${i.name} - ${brl(Number(i.price || 0) * Number(i.quantity || 0))}`;
+          const itemTotal = Number(i.price || 0) * Number(i.quantity || 0);
+          sumOriginal += itemTotal;
+          const itemText = `${i.quantity}x ${i.name} - ${brl(itemTotal)}`;
           const lines = doc.splitTextToSize(itemText, 180);
           doc.text(lines, marginLeft, y);
           y += (lines.length * lineHeight);
@@ -701,6 +709,19 @@ function OrderDetailsModal({
       });
       
       y += 10;
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      
+      const diff = sumOriginal - Number(orderToPrint.total);
+      
+      if (diff > 0) {
+          doc.text(`Desconto aplicado: ${brl(diff)}`, marginLeft, y);
+          y += 8;
+      } else if (diff < 0) {
+          doc.text(`Acréscimo aplicado: ${brl(Math.abs(diff))}`, marginLeft, y);
+          y += 8;
+      }
+      
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(`Total Final: ${brl(Number(orderToPrint.total))}`, marginLeft, y);
