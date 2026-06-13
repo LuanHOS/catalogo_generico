@@ -2557,7 +2557,7 @@ function SettingsPanel() {
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo <span className="text-destructive text-sm">*</span>
+          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo
         </h3>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
