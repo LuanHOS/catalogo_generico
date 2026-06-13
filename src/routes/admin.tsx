@@ -229,7 +229,7 @@ function LoginForm() {
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div>
           <Label htmlFor="u">Usuário <span className="text-destructive">*</span></Label>
-          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required maxLength={50} />
+          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required maxLength={30} />
         </div>
         <div>
           <Label htmlFor="p">Senha <span className="text-destructive">*</span></Label>
@@ -1342,7 +1342,7 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     <div className="space-y-6">
       <form onSubmit={add} className="flex gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex-1">
-           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces) *" required maxLength={50} />
+           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required maxLength={50} />
         </div>
         <Button type="submit" className="rounded-full shadow-sm"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
@@ -2162,7 +2162,7 @@ function AdminFormModal({
             placeholder="ex: nome"
             disabled={isEdit && editing?.fixed}
             required
-            maxLength={50}
+            maxLength={30}
           />
           {isEdit && editing?.fixed && (
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Esse usuário é fixo — não pode renomear.</p>
@@ -2178,7 +2178,7 @@ function AdminFormModal({
               onChange={(e) => setPass(e.target.value)}
               placeholder={loadingPass ? "Carregando…" : "mínimo 6 caracteres"}
               className="pr-16"
-              required
+              required={!isEdit}
               maxLength={50}
             />
             <button
@@ -2557,7 +2557,7 @@ function SettingsPanel() {
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo
+          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo <span className="text-destructive text-sm">*</span>
         </h3>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
@@ -2635,7 +2635,7 @@ function SettingsPanel() {
             placeholder="ex: 5545912345678"
             className="flex-1"
             required
-            maxLength={15}
+            maxLength={20}
           />
           <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm">
             {savingNumber ? "Salvando…" : "Salvar"}

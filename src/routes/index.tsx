@@ -374,6 +374,7 @@ function Index() {
       cart.setQty(item.id, item.available);
     });
     setStockConflictData(null);
+    window.location.reload(); // Recarrega a página inteira para atualizar os cards de estoque
   }
 
   async function finalizar() {
