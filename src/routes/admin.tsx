@@ -119,7 +119,7 @@ export function ConfirmActionModal({
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
         <div>
           <h3 className={`text-lg font-black font-display flex items-center gap-2 ${destructive ? 'text-destructive' : 'text-primary'}`}>
             {destructive && <AlertTriangle className="h-5 w-5" />}
@@ -129,7 +129,7 @@ export function ConfirmActionModal({
         </div>
         <div className="flex justify-end gap-2 mt-2">
           {!alertOnly && (
-            <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm">
+            <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm flex-shrink-0">
               Cancelar
             </Button>
           )}
@@ -137,7 +137,7 @@ export function ConfirmActionModal({
             variant={destructive ? "destructive" : "default"} 
             onClick={onConfirm} 
             disabled={loading} 
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm flex-shrink-0"
           >
             {loading ? "Processando..." : confirmText}
           </Button>
@@ -354,7 +354,7 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
         <div>
           <h3 className="text-lg font-black font-display text-destructive flex items-center gap-2"><AlertTriangle className="h-5 w-5"/> Cancelar Pedido</h3>
           <p className="text-sm text-muted-foreground mt-1 font-medium">Os produtos voltarão automaticamente para o estoque.</p>
@@ -364,8 +364,8 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
           <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1 resize-y min-h-[80px] max-h-[200px]" maxLength={255} />
         </div>
         <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-          <Button variant="destructive" onClick={submit} disabled={saving} className="rounded-full shadow-sm">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
+          <Button variant="destructive" onClick={submit} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">
              {saving ? "Processando..." : "Confirmar"}
           </Button>
         </div>
@@ -386,14 +386,14 @@ function CompleteOrderModal({ onClose, onConfirm }: { onClose: () => void, onCon
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
         <div>
           <h3 className="text-lg font-black font-display text-primary flex items-center gap-2"><CheckCircle className="h-5 w-5"/> Concluir Pedido</h3>
           <p className="text-sm text-muted-foreground mt-1 font-medium">Tem certeza que deseja marcar este pedido como concluído? Ele será contabilizado nas suas estatísticas de vendas.</p>
         </div>
         <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-          <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
+          <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">
              {saving ? "Processando..." : "Confirmar Conclusão"}
           </Button>
         </div>
@@ -475,7 +475,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
             </button>
           ))}
         </div>
-        <Button onClick={() => setShowManual(true)} className="rounded-full shadow-sm">
+        <Button onClick={() => setShowManual(true)} className="rounded-full shadow-sm flex-shrink-0">
           <Plus className="mr-1 h-4 w-4" /> Novo Pedido Manual
         </Button>
       </div>
@@ -513,7 +513,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
         {filtered.map(o => (
           <div 
             key={o.id} 
-            className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm cursor-pointer hover:border-primary/30 transition"
+            className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm cursor-pointer hover:border-primary/30 transition break-words"
             onClick={() => setSelectedOrder(o)}
           >
             <div>
@@ -533,7 +533,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
               <div className="text-primary font-black mt-2">{brl(Number(o.total))}</div>
             </div>
             {o.status === 'pending' && (
-              <div className="flex gap-2 sm:flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="flex gap-2 sm:flex-col flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Button variant="outline" className="border-green-500/30 text-green-600 shadow-sm hover:bg-green-50 hover:text-green-700" onClick={() => setCompleteModalOrder(o)}>
                   <CheckCircle className="mr-1 h-4 w-4" /> Concluir
                 </Button>
@@ -543,7 +543,7 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
               </div>
             )}
             {o.status === 'completed' && (
-                <Button variant="ghost" size="sm" className="text-muted-foreground font-semibold" onClick={(e) => { e.stopPropagation(); setCancelModalOrder(o); }}>Cancelar Venda</Button>
+                <Button variant="ghost" size="sm" className="text-muted-foreground font-semibold flex-shrink-0" onClick={(e) => { e.stopPropagation(); setCancelModalOrder(o); }}>Cancelar Venda</Button>
             )}
           </div>
         ))}
@@ -674,11 +674,15 @@ function OrderDetailsModal({
         </div>
       `;
 
-      // Renderiza o componente no body temporariamente para que o html2pdf consiga capturar os tamanhos
+      // Renderiza o componente fixo no topo esquerdo para que o html2canvas capture corretamente ignorando o scroll do window
       const printWrapper = document.createElement("div");
-      printWrapper.style.position = "absolute";
-      printWrapper.style.left = "-9999px";
-      printWrapper.style.top = "-9999px";
+      printWrapper.style.position = "fixed";
+      printWrapper.style.top = "0";
+      printWrapper.style.left = "0";
+      printWrapper.style.width = "800px";
+      printWrapper.style.zIndex = "-9999";
+      printWrapper.style.opacity = "0";
+      printWrapper.style.pointerEvents = "none";
       printWrapper.appendChild(container);
       document.body.appendChild(printWrapper);
 
@@ -686,7 +690,7 @@ function OrderDetailsModal({
         margin:       0.5,
         filename:     `Pedido-${orderShortId}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
+        html2canvas:  { scale: 2, scrollY: 0, scrollX: 0, windowWidth: 800 },
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
       };
 
@@ -709,14 +713,14 @@ function OrderDetailsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
-      <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden break-words">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-xl font-display font-black">Detalhes do Pedido</h2>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => generatePDF(order)} title="Baixar PDF" className="text-muted-foreground hover:text-foreground">
               <Share2 className="h-5 w-5" />
             </Button>
-            <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Fechar</button>
+            <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0">Fechar</button>
           </div>
         </div>
         
@@ -777,7 +781,11 @@ function OrderDetailsModal({
                       min="0"
                       max="999999"
                       value={customTotal} 
-                      onChange={(e) => setCustomTotal(e.target.value)} 
+                      onChange={(e) => {
+                         let val = e.target.value;
+                         if (val === "" || val === "," || val === ".") val = "0";
+                         setCustomTotal(val);
+                      }} 
                       onKeyDown={blockInvalidNumberChars}
                       className="pl-9 font-black text-lg h-12"
                       disabled={showCancelConfirm || showCompleteConfirm}
@@ -813,10 +821,10 @@ function OrderDetailsModal({
 
         {isPending && !showCancelConfirm && !showCompleteConfirm && (
           <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border bg-secondary/10">
-            <Button variant="outline" onClick={() => setShowCancelConfirm(true)} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+            <Button variant="outline" onClick={() => setShowCancelConfirm(true)} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 flex-shrink-0">
               Cancelar Pedido
             </Button>
-            <Button onClick={() => setShowCompleteConfirm(true)} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
+            <Button onClick={() => setShowCompleteConfirm(true)} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">
               Concluir Pedido
             </Button>
           </div>
@@ -828,8 +836,8 @@ function OrderDetailsModal({
              <p className="text-xs text-muted-foreground font-semibold -mt-2">O estoque será devolvido automaticamente.</p>
              <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} maxLength={255} className="resize-y min-h-[80px] max-h-[200px]" />
              <div className="flex justify-end gap-2 mt-2">
-                <Button variant="outline" onClick={() => setShowCancelConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-                <Button variant="destructive" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm">
+                <Button variant="outline" onClick={() => setShowCancelConfirm(false)} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
+                <Button variant="destructive" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">
                    {saving ? "Cancelando..." : "Confirmar Exclusão"}
                 </Button>
              </div>
@@ -841,8 +849,8 @@ function OrderDetailsModal({
              <Label className="text-primary font-bold flex items-center gap-1.5"><CheckCircle className="h-4 w-4"/> Confirmação de Conclusão</Label>
              <p className="text-xs text-muted-foreground font-semibold -mt-2 mb-1">O pedido será marcado como pago e contabilizado nas vendas.</p>
              <div className="flex justify-end gap-2 mt-2">
-                <Button variant="outline" onClick={() => setShowCompleteConfirm(false)} disabled={saving} className="rounded-full shadow-sm">Voltar</Button>
-                <Button onClick={handleConcluir} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">
+                <Button variant="outline" onClick={() => setShowCompleteConfirm(false)} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
+                <Button onClick={handleConcluir} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">
                    {saving ? "Processando..." : "Confirmar Conclusão"}
                 </Button>
              </div>
@@ -858,11 +866,16 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const originalTotal = cart.reduce((acc, item) => acc + (Number(item.product.sale_price) || Number(item.product.price)) * item.quantity, 0);
   const [customTotal, setCustomTotal] = useState("");
   const [isCustomTotalDirty, setIsCustomTotalDirty] = useState(false);
   
+  const parsedTotal = Number(customTotal) || 0;
+  const discountVal = originalTotal - parsedTotal;
+  const discountPerc = originalTotal > 0 ? (discountVal / originalTotal) * 100 : 0;
+
   useEffect(() => {
       supabase.from("products").select("*").is("deleted_at", null).order("name").then(({data}) => setProducts(data as Product[] || []));
   }, []);
@@ -891,6 +904,15 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const removeFromCart = (p: Product) => {
       setIsCustomTotalDirty(false); // Reseta a verificação do total ao alterar o carrinho
       setCart(c => c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity - 1 } : x).filter(x => x.quantity > 0));
+  };
+
+  const toggleExpand = (id: string) => {
+      setExpandedProducts(prev => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+      });
   };
 
   const save = async () => {
@@ -934,7 +956,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
          <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh]">
              <div className="flex items-center justify-between border-b border-border px-6 py-4">
                 <h2 className="text-xl font-display font-black">Novo Pedido Manual</h2>
-                <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground">Fechar</button>
+                <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0">Fechar</button>
              </div>
              
              <div className="flex-1 overflow-y-auto flex flex-col sm:flex-row">
@@ -949,14 +971,20 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          const outOfStock = p.stock <= 0;
                          const isLowStock = !outOfStock && p.stock <= (p.min_stock || 0);
                          return (
-                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
-                             <div className="min-w-0 pr-2">
-                                <div className="font-semibold text-sm line-clamp-2 break-words" title={p.name}>{p.name}</div>
-                                <div className="text-xs font-semibold text-muted-foreground">Estoque: {p.stock}</div>
+                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
+                             <div className="min-w-0 flex-1">
+                                <div 
+                                    className={`font-semibold text-sm break-words cursor-pointer ${expandedProducts.has(p.id) ? "" : "line-clamp-2"}`} 
+                                    onClick={() => toggleExpand(p.id)} 
+                                    title={expandedProducts.has(p.id) ? "Recolher" : "Clique para expandir..."}
+                                >
+                                    {p.name}
+                                </div>
+                                <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
                              </div>
                              <div className="flex items-center gap-3 flex-shrink-0">
                                 <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
-                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm">
+                                <Button size="sm" onClick={() => addToCart(p)} disabled={p.stock <= 0} className="rounded-full h-8 px-3 shadow-sm flex-shrink-0">
                                     <Plus className="h-3 w-3" />
                                 </Button>
                              </div>
@@ -968,17 +996,23 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                  <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col">
                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Carrinho</h3>
                      {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground">O carrinho está vazio.</p>}
-                     <div className="flex-1 overflow-y-auto space-y-3">
+                     <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                      {cart.map(c => (
                          <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3">
-                             <div className="font-semibold line-clamp-2 break-words" title={c.product.name}>{c.product.name}</div>
-                             <div className="flex justify-between items-center mt-2">
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition shadow-sm">-</button>
-                                    <span className="w-4 text-center font-bold">{c.quantity}</span>
-                                    <button onClick={() => addToCart(c.product)} disabled={c.quantity >= c.product.stock} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50 shadow-sm">+</button>
+                             <div 
+                                className={`font-semibold break-words cursor-pointer ${expandedProducts.has(c.product.id) ? "" : "line-clamp-2"}`} 
+                                onClick={() => toggleExpand(c.product.id)}
+                                title={expandedProducts.has(c.product.id) ? "Recolher" : "Clique para expandir..."}
+                             >
+                                {c.product.name}
+                             </div>
+                             <div className="flex justify-between items-center mt-2 gap-2">
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition shadow-sm flex-shrink-0">-</button>
+                                    <span className="w-4 text-center font-bold flex-shrink-0">{c.quantity}</span>
+                                    <button onClick={() => addToCart(c.product)} disabled={c.quantity >= c.product.stock} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50 shadow-sm flex-shrink-0">+</button>
                                 </div>
-                                <span className="font-bold text-primary">{brl((Number(c.product.sale_price) || Number(c.product.price)) * c.quantity)}</span>
+                                <span className="font-bold text-primary flex-shrink-0">{brl((Number(c.product.sale_price) || Number(c.product.price)) * c.quantity)}</span>
                              </div>
                          </div>
                      ))}
@@ -988,8 +1022,8 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                              <span>Soma dos Itens</span>
                              <span>{brl(originalTotal)}</span>
                          </div>
-                         <div className="flex justify-between items-center mt-1">
-                            <Label className="text-base font-black">Valor Final (R$)</Label>
+                         <div className="flex justify-between items-center mt-1 gap-2">
+                            <Label className="text-base font-black flex-shrink-0">Valor Final (R$)</Label>
                             <Input 
                                type="number" 
                                step="0.01" 
@@ -997,20 +1031,32 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                max="999999" 
                                value={customTotal} 
                                onChange={(e) => {
-                                  setCustomTotal(e.target.value);
+                                  let val = e.target.value;
+                                  if (val === "" || val === "," || val === ".") val = "0";
+                                  setCustomTotal(val);
                                   setIsCustomTotalDirty(true);
                                }} 
                                onKeyDown={blockInvalidNumberChars}
-                               className="w-32 font-black text-right h-10" 
+                               className="w-32 font-black text-right h-10 flex-shrink-0" 
                                disabled={cart.length === 0}
                             />
                          </div>
+                         {discountVal > 0 && (
+                            <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center mt-2">
+                                Desconto aplicado: {brl(discountVal)} ({discountPerc.toFixed(1)}%)
+                            </div>
+                         )}
+                         {discountVal < 0 && (
+                            <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center mt-2">
+                                Acréscimo aplicado: {brl(Math.abs(discountVal))}
+                            </div>
+                         )}
                      </div>
                  </div>
              </div>
              <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
-                 <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
-                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
+                 <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
+                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0">{saving ? "Processando..." : "Finalizar Pedido"}</Button>
              </div>
          </div>
       </div>
@@ -1176,23 +1222,23 @@ function FinancesPanel() {
           ) : (
               <>
                   <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-primary"/> Faturamento Bruto</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{brl(totalEarned)}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Lucro Líquido</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(netProfit)}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5 text-accent-foreground"/> Vendas</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{totalOrders}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Ticket Médio</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(ticketMedio)}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-blue-600"/> Itens por Venda</h3>
                       <p className="text-xl sm:text-2xl font-black mt-2 text-blue-600">{itensPorVenda.toFixed(1)}</p>
                     </div>
@@ -1200,7 +1246,7 @@ function FinancesPanel() {
 
                   <h2 className="text-lg font-display font-black mt-8 mb-4 border-b border-border pb-2">Posição de Estoque (Tempo Real)</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between break-words">
                        <div>
                           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Capital Imobilizado</h3>
                           <div className="flex items-baseline gap-2">
@@ -1209,14 +1255,14 @@ function FinancesPanel() {
                           </div>
                           <p className="text-xs font-bold text-green-600 mt-1">Potencial de Venda: {brl(capitalVenda)}</p>
                        </div>
-                       <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center"><Package className="h-6 w-6 text-muted-foreground"/></div>
+                       <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><Package className="h-6 w-6 text-muted-foreground"/></div>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between break-words">
                        <div>
                           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Volume Físico</h3>
                           <p className="text-2xl font-black text-foreground">{totalFisico} <span className="text-sm font-semibold text-muted-foreground">unidades</span></p>
                        </div>
-                       <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center"><Layers className="h-6 w-6 text-muted-foreground"/></div>
+                       <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><Layers className="h-6 w-6 text-muted-foreground"/></div>
                     </div>
                   </div>
 
@@ -1246,7 +1292,7 @@ function FinancesPanel() {
                        )}
                     </div>
 
-                    <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col">
+                    <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words">
                        <div className="bg-secondary/50 px-5 py-3 border-b border-border">
                            <h3 className="text-sm font-bold uppercase tracking-wide">Top 10 Produtos (Curva ABC)</h3>
                        </div>
@@ -1256,14 +1302,14 @@ function FinancesPanel() {
                           ) : (
                               <div className="divide-y divide-border">
                                   {top10.map((item, idx) => (
-                                      <div key={idx} className="flex items-center justify-between p-3 px-5 hover:bg-secondary/20 transition">
-                                          <div className="flex items-center gap-3">
-                                              <span className="flex items-center justify-center h-6 w-6 rounded-full bg-secondary text-xs font-black text-muted-foreground">
+                                      <div key={idx} className="flex items-center justify-between p-3 px-5 hover:bg-secondary/20 transition gap-2">
+                                          <div className="flex items-center gap-3 min-w-0">
+                                              <span className="flex items-center justify-center h-6 w-6 flex-shrink-0 rounded-full bg-secondary text-xs font-black text-muted-foreground">
                                                   {idx + 1}
                                               </span>
                                               <span className="font-semibold text-sm line-clamp-1 break-words">{item.name}</span>
                                           </div>
-                                          <div className="text-right">
+                                          <div className="text-right flex-shrink-0">
                                               <div className="font-black text-primary text-sm">{item.qty} un.</div>
                                               <div className="text-[10px] font-semibold text-muted-foreground">{brl(item.revenue)}</div>
                                           </div>
@@ -1276,9 +1322,9 @@ function FinancesPanel() {
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col">
+                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words">
                        <div className="bg-red-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-red-600">
-                           <AlertTriangle className="h-4 w-4" />
+                           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                            <h3 className="text-sm font-bold uppercase tracking-wide">Alerta de Estoque Crítico</h3>
                        </div>
                        <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
@@ -1287,9 +1333,9 @@ function FinancesPanel() {
                            ) : (
                               <div className="divide-y divide-border">
                                  {criticalStock.map(p => (
-                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition">
+                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2">
                                        <span className="font-semibold text-foreground line-clamp-1 break-words">{p.name}</span>
-                                       <span className="font-black text-red-600 whitespace-nowrap">{p.stock} un.</span>
+                                       <span className="font-black text-red-600 whitespace-nowrap flex-shrink-0">{p.stock} un.</span>
                                     </div>
                                  ))}
                               </div>
@@ -1297,9 +1343,9 @@ function FinancesPanel() {
                        </div>
                      </div>
 
-                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col">
+                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words">
                        <div className="bg-orange-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-orange-600">
-                           <Clock className="h-4 w-4" />
+                           <Clock className="h-4 w-4 flex-shrink-0" />
                            <h3 className="text-sm font-bold uppercase tracking-wide">Baixo Giro (Encalhados no Período)</h3>
                        </div>
                        <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
@@ -1308,9 +1354,9 @@ function FinancesPanel() {
                            ) : (
                               <div className="divide-y divide-border">
                                  {deadStock.slice(0, 50).map(p => (
-                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition">
+                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2">
                                        <span className="font-semibold text-foreground line-clamp-1 break-words">{p.name}</span>
-                                       <span className="font-black text-orange-600 whitespace-nowrap">Estoque: {p.stock}</span>
+                                       <span className="font-black text-orange-600 whitespace-nowrap flex-shrink-0">Estoque: {p.stock}</span>
                                     </div>
                                  ))}
                                  {deadStock.length > 50 && (
@@ -1407,24 +1453,24 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
         <div className="flex-1">
            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required maxLength={50} />
         </div>
-        <Button type="submit" className="rounded-full shadow-sm"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
+        <Button type="submit" className="rounded-full shadow-sm flex-shrink-0"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
         {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium">Nenhuma categoria ainda.</li>}
         {cats.map((c) => (
-          <li key={c.id} className="flex items-center justify-between gap-3 p-4">
-            <span className="font-semibold">{c.name}</span>
-            <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
+          <li key={c.id} className="flex items-center justify-between gap-3 p-4 break-words">
+            <span className="font-semibold break-words">{c.name}</span>
+            <Button variant="ghost" size="icon" onClick={() => openEdit(c)} className="flex-shrink-0"><Pencil className="h-4 w-4" /></Button>
           </li>
         ))}
       </ul>
 
       {editingCat && !deletingCat && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
-            <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
                <div className="flex items-center justify-between">
                   <h3 className="text-lg font-black font-display">Editar Categoria</h3>
-                  <button type="button" onClick={() => setEditingCat(null)} className="text-sm font-semibold text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+                  <button type="button" onClick={() => setEditingCat(null)} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0"><X className="h-4 w-4"/></button>
                </div>
                <form onSubmit={handleRenameCat} className="flex flex-col gap-4">
                   <div>
@@ -1433,13 +1479,13 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
                   </div>
                   <div className="flex justify-between border-t border-border pt-4 mt-2">
                      {isMaster ? (
-                        <Button type="button" variant="ghost" size="icon" onClick={() => initiateDelete(editingCat)} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => initiateDelete(editingCat)} className="text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                            <Trash2 className="h-5 w-5" />
                         </Button>
                      ) : <div/>}
                      <div className="flex gap-2">
-                        <Button type="button" variant="outline" onClick={() => setEditingCat(null)} className="rounded-full shadow-sm">Cancelar</Button>
-                        <Button type="submit" className="rounded-full shadow-sm">Salvar</Button>
+                        <Button type="button" variant="outline" onClick={() => setEditingCat(null)} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
+                        <Button type="submit" className="rounded-full shadow-sm flex-shrink-0">Salvar</Button>
                      </div>
                   </div>
                </form>
@@ -1534,7 +1580,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
             ))}
           </select>
         </div>
-        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm">
+        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm flex-shrink-0">
           <Plus className="mr-1 h-4 w-4" /> Novo produto
         </Button>
       </div>
@@ -1566,7 +1612,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
                 <div className={"h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary " + (hasIssue ? "opacity-40" : "")}>
                   {p.image_url && <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />}
                 </div>
-                <div className={"flex flex-1 flex-col min-w-0 " + (hasIssue ? "opacity-60" : "")}>
+                <div className={"flex flex-1 flex-col min-w-0 break-words " + (hasIssue ? "opacity-60" : "")}>
                   <div className="font-bold line-clamp-2 break-words" title={p.name}>{p.name}</div>
                   <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.stock}</div>
                   {(isInactive || outOfStock) && (
@@ -1588,7 +1634,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
                     )}
                   </div>
                   <div className="mt-auto flex items-center justify-end gap-1 text-xs">
-                      <button onClick={() => { setEditing(p); setShowForm(true); }} className="rounded-full p-1.5 hover:bg-secondary transition"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => { setEditing(p); setShowForm(true); }} className="rounded-full p-1.5 hover:bg-secondary transition flex-shrink-0"><Pencil className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               </div>
@@ -1798,7 +1844,7 @@ function ProductForm({
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h3 className="font-display text-xl font-black">{product ? "Editar" : "Novo"} produto</h3>
-          <button type="button" onClick={handleAttemptClose} className="text-sm font-semibold text-muted-foreground">Fechar</button>
+          <button type="button" onClick={handleAttemptClose} className="text-sm font-semibold text-muted-foreground flex-shrink-0">Fechar</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -1809,10 +1855,10 @@ function ProductForm({
               <div className="h-24 w-24 overflow-hidden rounded-lg border border-border bg-secondary shadow-sm flex-shrink-0">
                 {currentPreview && <img src={currentPreview} className="h-full w-full object-cover" alt="" />}
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 min-w-0">
                  <div className="flex flex-wrap gap-2">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
-                      <Upload className="h-4 w-4" />
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words">
+                      <Upload className="h-4 w-4 flex-shrink-0" />
                       {uploading ? "Enviando…" : "Enviar imagem"}
                       <input
                         type="file"
@@ -1822,13 +1868,13 @@ function ProductForm({
                       />
                     </label>
                     {currentPreview && (
-                       <Button type="button" variant="outline" size="icon" onClick={handleRemoveImageClick} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+                       <Button type="button" variant="outline" size="icon" onClick={handleRemoveImageClick} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 flex-shrink-0">
                           <Trash2 className="h-4 w-4" />
                        </Button>
                     )}
                  </div>
                  {hasImageChanges && (
-                    <Button type="button" variant="ghost" onClick={undoImageChanges} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground">
+                    <Button type="button" variant="ghost" onClick={undoImageChanges} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground break-words whitespace-normal text-left">
                        Desfazer mudança de imagem
                     </Button>
                  )}
@@ -1866,9 +1912,9 @@ function ProductForm({
               <Button
                 type="button"
                 onClick={openAddStock}
-                className="mt-2 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition shadow-sm"
+                className="mt-2 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition shadow-sm break-words whitespace-normal h-auto py-2"
               >
-                <Package className="h-4 w-4" /> Dar Entrada de Estoque
+                <Package className="h-4 w-4 flex-shrink-0" /> Dar Entrada de Estoque
               </Button>
             )}
           </div>
@@ -1893,25 +1939,25 @@ function ProductForm({
             <Input type="number" min={0} max={999999} value={maxPerCart} onChange={(e) => setMaxPerCart(e.target.value)} onKeyDown={blockInvalidNumberChars} />
             <p className="mt-1 text-xs font-semibold text-muted-foreground">Deixem em 0 caso queira deixar sem limite</p>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2">
-            <div>
-              <div className="font-semibold">Exibir na Loja (Ativo)</div>
-              <div className="text-xs font-semibold text-muted-foreground">Desative para ocultar o produto completamente sem excluí-lo.</div>
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2">
+            <div className="min-w-0">
+              <div className="font-semibold break-words">Exibir na Loja (Ativo)</div>
+              <div className="text-xs font-semibold text-muted-foreground break-words">Desative para ocultar o produto completamente sem excluí-lo.</div>
             </div>
-            <Switch checked={inStock} onCheckedChange={setInStock} />
+            <Switch checked={inStock} onCheckedChange={setInStock} className="flex-shrink-0" />
           </div>
         </div>
         </div>
 
         <div className="flex justify-between w-full border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {product && isMaster ? (
-            <Button type="button" variant="ghost" size="icon" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+            <Button type="button" variant="ghost" size="icon" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                <Trash2 className="h-5 w-5" />
             </Button>
           ) : <div />}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={handleAttemptClose} className="rounded-full shadow-sm">Cancelar</Button>
-            <Button type="submit" disabled={saving} className="rounded-full shadow-sm">
+            <Button type="button" variant="outline" onClick={handleAttemptClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
+            <Button type="submit" disabled={saving} className="rounded-full shadow-sm flex-shrink-0">
               {saving ? "Salvando…" : "Salvar"}
             </Button>
           </div>
@@ -1955,12 +2001,12 @@ function ProductForm({
 
       {showAddStockModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black font-display flex items-center gap-2 text-primary">
-                <Package className="h-5 w-5" /> Entrada de Estoque
+                <Package className="h-5 w-5 flex-shrink-0" /> Entrada de Estoque
               </h3>
-              <button type="button" onClick={() => setShowAddStockModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+              <button type="button" onClick={() => setShowAddStockModal(false)} className="text-muted-foreground hover:text-foreground flex-shrink-0"><X className="h-4 w-4"/></button>
             </div>
             <p className="text-sm text-muted-foreground font-medium -mt-2 leading-relaxed">
                Adicione novas unidades e o sistema calculará o <strong>Custo Médio Ponderado</strong> automaticamente.
@@ -1977,22 +2023,22 @@ function ProductForm({
                </div>
             </div>
 
-            <div className="bg-secondary/30 p-3 rounded-lg border border-border mt-1">
-               <div className="flex justify-between text-xs font-semibold mb-1">
+            <div className="bg-secondary/30 p-3 rounded-lg border border-border mt-1 break-words">
+               <div className="flex justify-between text-xs font-semibold mb-1 gap-2">
                   <span className="text-muted-foreground">Estoque atual:</span>
                   <span className="text-foreground">{parseInt(stock || "0", 10)} un</span>
                </div>
-               <div className="flex justify-between text-xs font-semibold mb-2 pb-2 border-b border-border/50">
+               <div className="flex justify-between text-xs font-semibold mb-2 pb-2 border-b border-border/50 gap-2">
                   <span className="text-muted-foreground">Custo atual:</span>
                   <span className="text-foreground">{brl(parseFloat(cost || "0"))}</span>
                </div>
-               <div className="flex justify-between text-sm font-bold mb-1">
+               <div className="flex justify-between text-sm font-bold mb-1 gap-2">
                   <span className="text-muted-foreground">Novo Estoque:</span>
                   <span className="text-foreground">{(parseInt(stock || "0", 10) || 0) + (parseInt(addStockQty || "0", 10) || 0)} un</span>
                </div>
-               <div className="flex justify-between text-sm font-bold">
+               <div className="flex justify-between text-sm font-bold gap-2">
                   <span className="text-muted-foreground">Novo Custo Médio:</span>
-                  <span className="text-primary">
+                  <span className="text-primary break-all text-right">
                      {(() => {
                         const cQ = parseInt(stock || "0", 10) || 0;
                         const cC = parseFloat(cost || "0") || 0;
@@ -2007,8 +2053,8 @@ function ProductForm({
             </div>
 
             <div className="flex justify-end gap-2 mt-2">
-              <Button variant="outline" type="button" onClick={() => setShowAddStockModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
-              <Button type="button" onClick={confirmAddStock} disabled={!addStockQty || parseInt(addStockQty) <= 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90">Aplicar Valores</Button>
+              <Button variant="outline" type="button" onClick={() => setShowAddStockModal(false)} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
+              <Button type="button" onClick={confirmAddStock} disabled={!addStockQty || parseInt(addStockQty) <= 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">Aplicar Valores</Button>
             </div>
           </div>
         </div>
@@ -2070,12 +2116,12 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <p className="text-sm font-medium text-muted-foreground break-words">
           <ShieldAlert className="mr-1 inline h-4 w-4" />
           O usuário <code className="rounded bg-secondary px-1.5 py-0.5">admin</code> é fixo e não pode ser excluído nem renomeado.
         </p>
-        <Button onClick={() => setShowCreate(true)} className="rounded-full shadow-sm">
+        <Button onClick={() => setShowCreate(true)} className="rounded-full shadow-sm flex-shrink-0">
           <UserPlus className="mr-1 h-4 w-4" /> Novo administrador
         </Button>
       </div>
@@ -2084,10 +2130,10 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
         {loading && <li className="p-6 text-center text-muted-foreground font-semibold">Carregando…</li>}
         {!loading && admins.length === 0 && <li className="p-6 text-center text-muted-foreground font-semibold">Nenhum administrador.</li>}
         {admins.map((a) => (
-          <li key={a.id} className="flex items-center justify-between gap-3 p-4">
-            <div>
-              <div className="font-semibold flex items-center gap-2">
-                {a.username}
+          <li key={a.id} className="flex items-center justify-between gap-3 p-4 break-words">
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold flex flex-wrap items-center gap-2">
+                <span className="truncate break-words">{a.username}</span>
                 {a.isMaster ? (
                   <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">Master</span>
                 ) : (
@@ -2095,9 +2141,9 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
                 )}
                 {a.fixed && <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground border border-border shadow-sm">Fixo</span>}
               </div>
-              <div className="text-xs font-semibold text-muted-foreground">{a.email}</div>
+              <div className="text-xs font-semibold text-muted-foreground break-all">{a.email}</div>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <Button variant="ghost" size="icon" onClick={() => setEditing(a)} title="Editar"><Pencil className="h-4 w-4" /></Button>
             </div>
           </li>
@@ -2211,10 +2257,10 @@ function AdminFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
-      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl">
+      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto break-words">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-xl font-black">{title}</h3>
-          <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground">Fechar</button>
+          <h3 className="font-display text-xl font-black truncate">{title}</h3>
+          <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground flex-shrink-0 ml-2">Fechar</button>
         </div>
         <div>
           <Label htmlFor="au">Usuário <span className="text-destructive">*</span></Label>
@@ -2259,23 +2305,23 @@ function AdminFormModal({
           )}
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm">
-          <div className={(isEdit && editing?.fixed) ? "opacity-50" : ""}>
-            <div className="font-semibold">Administrador Master</div>
-            <div className="text-xs font-semibold text-muted-foreground">Desative para limitar acesso.</div>
+        <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm gap-2 break-words">
+          <div className={(isEdit && editing?.fixed) ? "opacity-50 min-w-0" : "min-w-0"}>
+            <div className="font-semibold break-words">Administrador Master</div>
+            <div className="text-xs font-semibold text-muted-foreground break-words">Desative para limitar acesso.</div>
           </div>
-          <Switch checked={isMasterRole || (isEdit && editing?.fixed)} onCheckedChange={setIsMasterRole} disabled={isEdit && editing?.fixed} />
+          <Switch checked={isMasterRole || (isEdit && editing?.fixed)} onCheckedChange={setIsMasterRole} disabled={isEdit && editing?.fixed} className="flex-shrink-0" />
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
           {isEdit && !editing?.fixed && onDelete ? (
-            <Button type="button" variant="ghost" size="icon" onClick={onDelete} disabled={loading} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+            <Button type="button" variant="ghost" size="icon" onClick={onDelete} disabled={loading} className="text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                <Trash2 className="h-5 w-5" />
             </Button>
           ) : <div />}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm">Cancelar</Button>
-            <Button type="submit" disabled={loading} className="rounded-full shadow-sm">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
+            <Button type="submit" disabled={loading} className="rounded-full shadow-sm flex-shrink-0">
               {loading ? "Salvando…" : "Salvar"}
             </Button>
           </div>
@@ -2537,17 +2583,17 @@ function SettingsPanel() {
   return (
     <div className="space-y-4">
       
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
             <h3 className="font-display text-lg font-black flex items-center gap-2">
-              <Lock className="h-5 w-5 text-primary" /> Catálogo Exclusivo (Modo Privado)
+              <Lock className="h-5 w-5 text-primary flex-shrink-0" /> Catálogo Exclusivo (Modo Privado)
             </h3>
-            <p className="mt-1 text-sm font-medium text-muted-foreground">
+            <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
               Exija uma senha para os clientes visualizarem os produtos. Você continua tendo acesso livre.
             </p>
           </div>
-          <Switch checked={privateMode} onCheckedChange={togglePrivateMode} disabled={savingPrivate} />
+          <Switch checked={privateMode} onCheckedChange={togglePrivateMode} disabled={savingPrivate} className="flex-shrink-0" />
         </div>
 
         {privateMode && (
@@ -2562,7 +2608,7 @@ function SettingsPanel() {
                 required
                 maxLength={20}
               />
-              <Button type="submit"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+              <Button type="submit" className="flex-shrink-0"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
             </form>
 
             {loadingCodes ? (
@@ -2572,11 +2618,11 @@ function SettingsPanel() {
             ) : (
               <ul className="space-y-2">
                 {accessCodes.map(c => (
-                  <li key={c.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-2 bg-secondary/30 max-w-md">
-                    <span className="font-mono font-bold">{c.code}</span>
+                  <li key={c.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-2 bg-secondary/30 max-w-md break-words gap-2">
+                    <span className="font-mono font-bold break-all">{c.code}</span>
                     <button 
                       onClick={() => handleDeleteCode(c.id)} 
-                      className="text-muted-foreground hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition"
+                      className="text-muted-foreground hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition flex-shrink-0"
                       title="Revogar Acesso"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -2589,11 +2635,11 @@ function SettingsPanel() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <Palette className="h-5 w-5 text-primary" /> Cores do Sistema
+          <Palette className="h-5 w-5 text-primary flex-shrink-0" /> Cores do Sistema
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
           Personalize a aparência do seu catálogo. As alterações são aplicadas instantaneamente após salvar.
         </p>
 
@@ -2618,11 +2664,11 @@ function SettingsPanel() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-primary" /> Nome do Catálogo
+          <ShoppingBag className="h-5 w-5 text-primary flex-shrink-0" /> Nome do Catálogo
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
         </p>
         <form onSubmit={submitName} className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -2634,17 +2680,17 @@ function SettingsPanel() {
             required
             maxLength={50}
           />
-          <Button type="submit" disabled={savingName} className="rounded-full shadow-sm">
+          <Button type="submit" disabled={savingName} className="rounded-full shadow-sm flex-shrink-0">
             {savingName ? "Salvando…" : "Salvar"}
           </Button>
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ImageIcon className="h-5 w-5 text-primary" /> Logo da Loja
+          <ImageIcon className="h-5 w-5 text-primary flex-shrink-0" /> Logo da Loja
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
           Adicione a logomarca da sua empresa. Ela aparecerá no cabeçalho do catálogo.
         </p>
         <form onSubmit={submitLogo} className="mt-4 flex flex-col gap-4">
@@ -2656,21 +2702,21 @@ function SettingsPanel() {
                 <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
               )}
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition">
-                  <Upload className="h-4 w-4" />
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words">
+                  <Upload className="h-4 w-4 flex-shrink-0" />
                   Escolher imagem
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
                 </label>
                 {previewLogo && !isRemovingLogo && (
-                   <Button type="button" variant="outline" size="icon" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
+                   <Button type="button" variant="outline" size="icon" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 flex-shrink-0">
                       <Trash2 className="h-4 w-4" />
                    </Button>
                 )}
               </div>
               {hasLogoChanges && (
-                 <Button type="button" variant="ghost" onClick={undoLogoChanges} disabled={savingLogo} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground">
+                 <Button type="button" variant="ghost" onClick={undoLogoChanges} disabled={savingLogo} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground break-words whitespace-normal text-left">
                     Desfazer mudança de logo
                  </Button>
               )}
@@ -2684,11 +2730,11 @@ function SettingsPanel() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
         <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <Phone className="h-5 w-5 text-primary" /> Número do WhatsApp
+          <Phone className="h-5 w-5 text-primary flex-shrink-0" /> Número do WhatsApp
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
           Este é o número que receberá os pedidos do site e o botão flutuante.
         </p>
         <form onSubmit={submitNumber} className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -2716,7 +2762,7 @@ function SettingsPanel() {
             </Button>
           </div>
         </form>
-        <p className="mt-2 text-xs font-semibold text-muted-foreground">
+        <p className="mt-2 text-xs font-semibold text-muted-foreground break-words">
           Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545912345678</code>
         </p>
       </div>
