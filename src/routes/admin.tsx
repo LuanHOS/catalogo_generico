@@ -134,15 +134,15 @@ export function ConfirmActionModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <ScrollLock />
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
-        <div>
-          <h3 className={`text-lg font-black font-display flex items-center gap-2 ${destructive ? 'text-destructive' : 'text-primary'}`}>
-            {destructive && <AlertTriangle className="h-5 w-5" />}
-            {title}
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words min-w-0">
+        <div className="min-w-0 max-w-full">
+          <h3 className={`text-lg font-black font-display flex items-center gap-2 min-w-0 ${destructive ? 'text-destructive' : 'text-primary'}`}>
+            {destructive && <AlertTriangle className="h-5 w-5 flex-shrink-0" />}
+            <span className="truncate">{title}</span>
           </h3>
-          <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">{description}</p>
+          <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed break-words whitespace-normal">{description}</p>
         </div>
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex justify-end gap-2 mt-2 flex-shrink-0">
           {!alertOnly && (
             <Button variant="outline" onClick={onClose} disabled={loading} className="rounded-full shadow-sm flex-shrink-0">
               Cancelar
@@ -205,14 +205,14 @@ function AdminPage() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background max-w-[100vw] overflow-x-hidden">
       <Toaster position="top-center" richColors />
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 min-w-0">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground flex-shrink-0">
             <ArrowLeft className="h-4 w-4" /> Voltar ao catálogo
           </Link>
-          <div className="font-display text-lg font-black">Painel Admin</div>
+          <div className="font-display text-lg font-black truncate">Painel Admin</div>
         </div>
       </header>
       {children}
@@ -236,24 +236,24 @@ function LoginForm() {
   }
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 p-6 sm:p-10">
-      <div>
-        <h1 className="font-display text-3xl font-black">Área do Administrador</h1>
-        <p className="mt-1 text-sm text-muted-foreground font-medium">Entre para gerenciar o catálogo.</p>
+    <div className="mx-auto flex max-w-md flex-col gap-6 p-6 sm:p-10 min-w-0">
+      <div className="min-w-0">
+        <h1 className="font-display text-3xl font-black truncate">Área do Administrador</h1>
+        <p className="mt-1 text-sm text-muted-foreground font-medium truncate">Entre para gerenciar o catálogo.</p>
       </div>
-      <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div>
-          <Label htmlFor="u">Usuário <span className="text-destructive">*</span></Label>
-          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required maxLength={30} />
+      <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm min-w-0">
+        <div className="min-w-0">
+          <Label htmlFor="u" className="truncate block">Usuário <span className="text-destructive">*</span></Label>
+          <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required maxLength={30} className="w-full min-w-0" />
         </div>
-        <div>
-          <Label htmlFor="p">Senha <span className="text-destructive">*</span></Label>
-          <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required maxLength={50} />
+        <div className="min-w-0">
+          <Label htmlFor="p" className="truncate block">Senha <span className="text-destructive">*</span></Label>
+          <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required maxLength={50} className="w-full min-w-0" />
         </div>
         <Button type="submit" disabled={loading} className="w-full rounded-full py-6 text-base font-bold shadow-sm">
           {loading ? "Entrando…" : "Entrar"}
         </Button>
-        <p className="text-center text-xs text-muted-foreground font-semibold">
+        <p className="text-center text-xs text-muted-foreground font-semibold truncate">
           Apenas para Funcionários
         </p>
       </form>
@@ -263,12 +263,12 @@ function LoginForm() {
 
 function NotAdmin({ email }: { email: string }) {
   return (
-    <div className="mx-auto max-w-md p-10 text-center">
-      <p className="text-lg font-bold">Olá, {usernameFromEmail(email)}</p>
-      <p className="mt-2 text-sm text-muted-foreground font-medium">
+    <div className="mx-auto max-w-md p-10 text-center min-w-0 break-words">
+      <p className="text-lg font-bold truncate">Olá, {usernameFromEmail(email)}</p>
+      <p className="mt-2 text-sm text-muted-foreground font-medium whitespace-normal break-words">
         Sua conta não tem permissão de administrador.
       </p>
-      <Button onClick={() => supabase.auth.signOut()} className="mt-6 rounded-full shadow-sm">Sair</Button>
+      <Button onClick={() => supabase.auth.signOut()} className="mt-6 rounded-full shadow-sm w-full">Sair</Button>
     </div>
   );
 }
@@ -308,31 +308,31 @@ function Dashboard({ email, isMaster, currentUserId, currentUserName }: { email:
   const visibleTabs = allTabs.filter(t => !t.masterOnly || isMaster);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-black">Gerenciar Catálogo</h1>
-          <p className="text-sm text-muted-foreground font-medium flex items-center gap-2">
-            Logado como <span className="font-bold text-foreground">{usernameFromEmail(email)}</span>
+    <div className="mx-auto max-w-6xl px-4 py-8 min-w-0">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-3xl font-black truncate">Gerenciar Catálogo</h1>
+          <p className="text-sm text-muted-foreground font-medium flex items-center gap-2 flex-wrap min-w-0">
+            <span className="truncate">Logado como <span className="font-bold text-foreground">{usernameFromEmail(email)}</span></span>
             {isMaster ? (
-              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">Master</span>
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary flex-shrink-0">Master</span>
             ) : (
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Operador</span>
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground flex-shrink-0">Operador</span>
             )}
           </p>
         </div>
-        <Button variant="outline" onClick={() => supabase.auth.signOut()} className="rounded-full shadow-sm">
+        <Button variant="outline" onClick={() => supabase.auth.signOut()} className="rounded-full shadow-sm flex-shrink-0">
           <LogOut className="mr-2 h-4 w-4" /> Sair
         </Button>
       </div>
 
-      <div className="mb-6 flex gap-2 border-b border-border overflow-x-auto">
+      <div className="mb-6 flex gap-2 border-b border-border overflow-x-auto min-w-0">
         {visibleTabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={
-              "whitespace-nowrap border-b-2 px-4 py-2 text-sm font-bold transition " +
+              "whitespace-nowrap border-b-2 px-4 py-2 text-sm font-bold transition flex-shrink-0 " +
               (tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")
             }
           >
@@ -346,12 +346,14 @@ function Dashboard({ email, isMaster, currentUserId, currentUserName }: { email:
         ))}
       </div>
 
-      {tab === "orders" && <OrdersPanel onStatusChange={fetchPendingCount} currentUserName={currentUserName} />}
-      {tab === "products" && <ProductsPanel isMaster={isMaster} currentUserName={currentUserName} />}
-      {tab === "categories" && <CategoriesPanel isMaster={isMaster} currentUserName={currentUserName} />}
-      {tab === "finances" && isMaster && <FinancesPanel />}
-      {tab === "admins" && isMaster && <AdminsPanel currentUserId={currentUserId} />}
-      {tab === "settings" && isMaster && <SettingsPanel />}
+      <div className="min-w-0 max-w-full">
+        {tab === "orders" && <OrdersPanel onStatusChange={fetchPendingCount} currentUserName={currentUserName} />}
+        {tab === "products" && <ProductsPanel isMaster={isMaster} currentUserName={currentUserName} />}
+        {tab === "categories" && <CategoriesPanel isMaster={isMaster} currentUserName={currentUserName} />}
+        {tab === "finances" && isMaster && <FinancesPanel />}
+        {tab === "admins" && isMaster && <AdminsPanel currentUserId={currentUserId} />}
+        {tab === "settings" && isMaster && <SettingsPanel />}
+      </div>
     </div>
   );
 }
@@ -370,16 +372,18 @@ function CancelOrderModal({ onClose, onConfirm }: { onClose: () => void, onConfi
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <ScrollLock />
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
-        <div>
-          <h3 className="text-lg font-black font-display text-destructive flex items-center gap-2"><AlertTriangle className="h-5 w-5"/> Cancelar Pedido</h3>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Os produtos voltarão automaticamente para o estoque.</p>
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words min-w-0">
+        <div className="min-w-0 max-w-full">
+          <h3 className="text-lg font-black font-display text-destructive flex items-center gap-2 min-w-0">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0"/> <span className="truncate">Cancelar Pedido</span>
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1 font-medium whitespace-normal break-words">Os produtos voltarão automaticamente para o estoque.</p>
         </div>
-        <div>
-          <Label>Motivo (Opcional)</Label>
-          <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1 resize-y min-h-[80px] max-h-[200px]" maxLength={255} />
+        <div className="min-w-0 max-w-full">
+          <Label className="truncate block">Motivo (Opcional)</Label>
+          <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Ex: Cliente desistiu da compra" className="mt-1 resize-y min-h-[80px] max-h-[200px] w-full" maxLength={255} />
         </div>
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex justify-end gap-2 mt-2 flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
           <Button variant="destructive" onClick={submit} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">
              {saving ? "Processando..." : "Confirmar"}
@@ -403,12 +407,14 @@ function CompleteOrderModal({ onClose, onConfirm }: { onClose: () => void, onCon
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <ScrollLock />
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
-        <div>
-          <h3 className="text-lg font-black font-display text-primary flex items-center gap-2"><CheckCircle className="h-5 w-5"/> Concluir Pedido</h3>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Tem certeza que deseja marcar este pedido como concluído? Ele será contabilizado nas suas estatísticas de vendas.</p>
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words min-w-0">
+        <div className="min-w-0 max-w-full">
+          <h3 className="text-lg font-black font-display text-primary flex items-center gap-2 min-w-0">
+             <CheckCircle className="h-5 w-5 flex-shrink-0"/> <span className="truncate">Concluir Pedido</span>
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1 font-medium whitespace-normal break-words">Tem certeza que deseja marcar este pedido como concluído? Ele será contabilizado nas suas estatísticas de vendas.</p>
         </div>
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex justify-end gap-2 mt-2 flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
           <Button onClick={submit} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">
              {saving ? "Processando..." : "Confirmar Conclusão"}
@@ -479,79 +485,79 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
   }, [orders, statusFilter, searchQuery]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex gap-2 p-1 bg-secondary rounded-lg border border-border">
+    <div className="space-y-4 min-w-0 max-w-full">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 min-w-0">
+        <div className="flex gap-2 p-1 bg-secondary rounded-lg border border-border overflow-x-auto w-full sm:w-auto min-w-0">
           {(["pending", "completed", "canceled", "all"] as const).map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${statusFilter === s ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap flex-shrink-0 ${statusFilter === s ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               {s === "pending" ? "Pendentes" : s === "completed" ? "Concluídos" : s === "canceled" ? "Cancelados" : "Todos"}
             </button>
           ))}
         </div>
-        <Button onClick={() => setShowManual(true)} className="rounded-full shadow-sm flex-shrink-0">
+        <Button onClick={() => setShowManual(true)} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
           <Plus className="mr-1 h-4 w-4" /> Fazer Venda Presencial
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 bg-card p-3 rounded-xl border border-border shadow-sm">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-3 bg-card p-3 rounded-xl border border-border shadow-sm min-w-0">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Buscar por ID, produto ou senha VIP..." 
             value={searchQuery} 
             onChange={e => setSearchQuery(e.target.value)} 
-            className="pl-9 h-10" 
+            className="pl-9 h-10 w-full min-w-0" 
             maxLength={100}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-shrink-0 overflow-x-auto">
           <Input 
             type="date" 
             value={startDate} 
             onChange={e => setStartDate(e.target.value)} 
-            className="h-10 w-full sm:w-auto text-sm" 
+            className="h-10 w-[130px] sm:w-auto text-sm flex-shrink-0" 
           />
-          <span className="text-muted-foreground text-sm font-semibold">até</span>
+          <span className="text-muted-foreground text-sm font-semibold flex-shrink-0">até</span>
           <Input 
             type="date" 
             value={endDate} 
             onChange={e => setEndDate(e.target.value)} 
-            className="h-10 w-full sm:w-auto text-sm" 
+            className="h-10 w-[130px] sm:w-auto text-sm flex-shrink-0" 
           />
         </div>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-3 min-w-0 max-w-full">
         {filtered.length === 0 && <div className="p-12 text-center text-muted-foreground font-semibold border border-dashed border-border rounded-xl">Nenhum pedido encontrado.</div>}
         {filtered.map(o => (
           <div 
             key={o.id} 
-            className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm cursor-pointer hover:border-primary/30 transition break-words"
+            className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm cursor-pointer hover:border-primary/30 transition break-words min-w-0 max-w-full"
             onClick={() => setSelectedOrder(o)}
           >
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-bold text-lg">Pedido #{o.id.split("-")[0]}</span>
-                {o.status === 'pending' && <span className="bg-yellow-500/15 text-yellow-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Pendente</span>}
-                {o.status === 'completed' && <span className="bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Concluído</span>}
-                {o.status === 'canceled' && <span className="bg-destructive/15 text-destructive px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Cancelado</span>}
-                {o.is_presential && <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Venda Presencial</span>}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <span className="font-bold text-lg truncate block max-w-full">Pedido #{o.id.split("-")[0]}</span>
+                {o.status === 'pending' && <span className="bg-yellow-500/15 text-yellow-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide flex-shrink-0">Pendente</span>}
+                {o.status === 'completed' && <span className="bg-green-500/15 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide flex-shrink-0">Concluído</span>}
+                {o.status === 'canceled' && <span className="bg-destructive/15 text-destructive px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide flex-shrink-0">Cancelado</span>}
+                {o.is_presential && <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide flex-shrink-0">Venda Presencial</span>}
               </div>
-              <p className="text-sm text-muted-foreground mt-1 font-medium">{new Date(o.created_at).toLocaleString('pt-BR')}</p>
+              <p className="text-sm text-muted-foreground mt-1 font-medium truncate">{new Date(o.created_at).toLocaleString('pt-BR')}</p>
               {o.vip_code && (
-                <div className="mt-1 text-xs font-bold text-green-600">Acesso VIP: {o.vip_code}</div>
+                <div className="mt-1 text-xs font-bold text-green-600 truncate">Acesso VIP: {o.vip_code}</div>
               )}
-              <div className="text-sm mt-2 font-medium line-clamp-2 break-words" title={Array.isArray(o.items) ? o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ") : ""}>
+              <div className="text-sm mt-2 font-medium line-clamp-2 break-words max-w-full" title={Array.isArray(o.items) ? o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(", ") : ""}>
                 {Array.isArray(o.items) && o.items.map((i: any) => {
                    const shortName = i.name && i.name.length > 20 ? i.name.substring(0, 20) + "..." : i.name;
                    return `${i.quantity}x ${shortName}`;
                 }).join(", ")}
               </div>
-              <div className="text-primary font-black mt-2">{brl(Number(o.total))}</div>
+              <div className="text-primary font-black mt-2 truncate">{brl(Number(o.total))}</div>
             </div>
             {o.status === 'pending' && (
               <div className="flex gap-2 sm:flex-col flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -683,7 +689,7 @@ function OrderDetailsModal({
         doc.text(`Cancelado em: ${new Date(orderToPrint.canceled_at).toLocaleString('pt-BR')}`, marginLeft, y); y += lineHeight;
       }
       if (orderToPrint.vip_code) {
-        doc.text(`Acesso VIP: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
+        doc.text(`Acesso: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
       }
       
       y += 10;
@@ -738,10 +744,10 @@ function OrderDetailsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
       <ScrollLock />
-      <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden break-words">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-xl font-display font-black">Detalhes do Pedido</h2>
-          <div className="flex items-center gap-2">
+      <div className="bg-background w-full max-w-lg rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden break-words min-w-0">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0 min-w-0">
+          <h2 className="text-xl font-display font-black truncate">Detalhes do Pedido</h2>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => generatePDF(order)} title="Baixar PDF" className="text-muted-foreground hover:text-foreground">
               <Share2 className="h-5 w-5" />
             </Button>
@@ -749,41 +755,41 @@ function OrderDetailsModal({
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="flex flex-col gap-1">
-            <h3 className="font-bold text-lg leading-tight flex items-center gap-2 flex-wrap">
-               Pedido #{order.id.split("-")[0]}
-               {order.is_presential && <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide">Venda Presencial</span>}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 min-w-0">
+          <div className="flex flex-col gap-1 min-w-0">
+            <h3 className="font-bold text-lg leading-tight flex items-center gap-2 flex-wrap min-w-0">
+               <span className="truncate max-w-full">Pedido #{order.id.split("-")[0]}</span>
+               {order.is_presential && <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide flex-shrink-0">Venda Presencial</span>}
             </h3>
-            <p className="text-sm text-muted-foreground font-medium">Criado em: {new Date(order.created_at).toLocaleString('pt-BR')}</p>
+            <p className="text-sm text-muted-foreground font-medium truncate">Criado em: {new Date(order.created_at).toLocaleString('pt-BR')}</p>
             
             {order.status === 'completed' && order.completed_at && (
-               <p className="text-sm text-green-600 font-medium">Concluído em: {new Date(order.completed_at).toLocaleString('pt-BR')}</p>
+               <p className="text-sm text-green-600 font-medium truncate">Concluído em: {new Date(order.completed_at).toLocaleString('pt-BR')}</p>
             )}
 
             {order.status === 'canceled' && order.canceled_at && (
-               <p className="text-sm text-destructive font-medium">Cancelado em: {new Date(order.canceled_at).toLocaleString('pt-BR')}</p>
+               <p className="text-sm text-destructive font-medium truncate">Cancelado em: {new Date(order.canceled_at).toLocaleString('pt-BR')}</p>
             )}
 
             {order.vip_code && (
-              <p className="text-sm font-bold text-green-600 mt-1">Acesso VIP: {order.vip_code}</p>
+              <p className="text-sm font-bold text-green-600 mt-1 truncate">Acesso VIP: {order.vip_code}</p>
             )}
             {order.status === 'canceled' && order.cancellation_reason && (
-              <div className="mt-2 bg-destructive/10 border border-destructive/20 p-3 rounded-xl">
-                 <p className="text-xs font-bold text-destructive uppercase tracking-wide">Motivo do Cancelamento</p>
+              <div className="mt-2 bg-destructive/10 border border-destructive/20 p-3 rounded-xl min-w-0">
+                 <p className="text-xs font-bold text-destructive uppercase tracking-wide truncate">Motivo do Cancelamento</p>
                  <p className="text-sm font-medium mt-1 break-words whitespace-pre-wrap">{order.cancellation_reason}</p>
               </div>
             )}
           </div>
 
-          <div>
-            <h4 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3">Itens do Pedido</h4>
-            <div className="space-y-3">
+          <div className="min-w-0 max-w-full">
+            <h4 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 truncate">Itens do Pedido</h4>
+            <div className="space-y-3 min-w-0">
               {items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center text-sm border-b border-border pb-2 gap-4">
-                  <div className="flex gap-2 min-w-0">
+                <div key={idx} className="flex justify-between items-center text-sm border-b border-border pb-2 gap-4 min-w-0">
+                  <div className="flex gap-2 min-w-0 flex-1">
                     <span className="font-bold flex-shrink-0">{item.quantity}x</span>
-                    <span className="font-medium line-clamp-2 break-words" title={item.name}>{item.name}</span>
+                    <span className="font-medium line-clamp-2 break-words w-full" title={item.name}>{item.name}</span>
                   </div>
                   <span className="font-bold text-muted-foreground flex-shrink-0">{brl((Number(item.price || 0)) * Number(item.quantity || 0))}</span>
                 </div>
@@ -791,17 +797,17 @@ function OrderDetailsModal({
             </div>
           </div>
 
-          <div className="bg-secondary/30 p-4 rounded-xl space-y-3">
-            <div className="flex justify-between items-center text-sm">
-              <span className="font-semibold text-muted-foreground">Soma dos Itens</span>
-              <span className="font-bold text-foreground">{brl(originalTotal)}</span>
+          <div className="bg-secondary/30 p-4 rounded-xl space-y-3 min-w-0">
+            <div className="flex justify-between items-center text-sm gap-2">
+              <span className="font-semibold text-muted-foreground truncate">Soma dos Itens</span>
+              <span className="font-bold text-foreground flex-shrink-0">{brl(originalTotal)}</span>
             </div>
 
             {isPending ? (
               <>
-                <div className="flex flex-col gap-2 pt-2 border-t border-border">
-                  <Label>Valor Final (Desconto)</Label>
-                  <div className="relative">
+                <div className="flex flex-col gap-2 pt-2 border-t border-border min-w-0">
+                  <Label className="truncate">Valor Final (Desconto)</Label>
+                  <div className="relative min-w-0">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
                     <Input 
                       type="number" 
@@ -816,30 +822,30 @@ function OrderDetailsModal({
                          setCustomTotal(val);
                       }} 
                       onKeyDown={blockInvalidNumberChars}
-                      className="pl-9 font-black text-lg h-12"
+                      className="pl-9 font-black text-lg h-12 w-full min-w-0"
                       disabled={showCancelConfirm || showCompleteConfirm}
                     />
                   </div>
                 </div>
                 {discountVal > 0 && (
-                  <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center">
+                  <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center break-words whitespace-normal min-w-0">
                     Desconto aplicado: {brl(discountVal)} ({discountPerc.toFixed(1)}%)
                   </div>
                 )}
                 {discountVal < 0 && (
-                  <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center">
+                  <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center break-words whitespace-normal min-w-0">
                     Acréscimo aplicado: {brl(Math.abs(discountVal))}
                   </div>
                 )}
               </>
             ) : (
-              <div className="pt-2 border-t border-border space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold uppercase text-xs tracking-wide">Total Cobrado</span>
-                  <span className="font-black text-xl text-primary">{brl(order.total)}</span>
+              <div className="pt-2 border-t border-border space-y-1 min-w-0">
+                <div className="flex justify-between items-center gap-2">
+                  <span className="font-bold uppercase text-xs tracking-wide truncate">Total Cobrado</span>
+                  <span className="font-black text-xl text-primary flex-shrink-0">{brl(order.total)}</span>
                 </div>
                 {(originalTotal - order.total) > 0 && (
-                  <div className="text-xs font-bold text-green-600 text-right">
+                  <div className="text-xs font-bold text-green-600 text-right truncate">
                     Desconto de {brl(originalTotal - order.total)} dado na venda.
                   </div>
                 )}
@@ -849,22 +855,22 @@ function OrderDetailsModal({
         </div>
 
         {isPending && !showCancelConfirm && !showCompleteConfirm && (
-          <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border bg-secondary/10">
-            <Button variant="outline" onClick={() => setShowCancelConfirm(true)} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border bg-secondary/10 flex-shrink-0 min-w-0">
+            <Button variant="outline" onClick={() => setShowCancelConfirm(true)} disabled={saving} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 flex-shrink-0 w-full sm:w-auto">
               Cancelar Pedido
             </Button>
-            <Button onClick={() => setShowCompleteConfirm(true)} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">
+            <Button onClick={() => setShowCompleteConfirm(true)} disabled={saving || parsedTotal < 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0 w-full sm:w-auto">
               Concluir Pedido
             </Button>
           </div>
         )}
 
         {isPending && showCancelConfirm && (
-          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-destructive/5 animate-in fade-in zoom-in-95 duration-200">
-             <Label className="text-destructive font-bold">Confirmação de Cancelamento</Label>
-             <p className="text-xs text-muted-foreground font-semibold -mt-2">O estoque será devolvido automaticamente.</p>
-             <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} maxLength={255} className="resize-y min-h-[80px] max-h-[200px]" />
-             <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-destructive/5 animate-in fade-in zoom-in-95 duration-200 min-w-0 flex-shrink-0">
+             <Label className="text-destructive font-bold truncate">Confirmação de Cancelamento</Label>
+             <p className="text-xs text-muted-foreground font-semibold -mt-2 truncate">O estoque será devolvido automaticamente.</p>
+             <Textarea placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} maxLength={255} className="resize-y min-h-[80px] max-h-[200px] w-full min-w-0" />
+             <div className="flex justify-end gap-2 mt-2 flex-shrink-0">
                 <Button variant="outline" onClick={() => setShowCancelConfirm(false)} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
                 <Button variant="destructive" onClick={handleCancelar} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">
                    {saving ? "Cancelando..." : "Confirmar Exclusão"}
@@ -874,10 +880,10 @@ function OrderDetailsModal({
         )}
 
         {isPending && showCompleteConfirm && (
-          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-green-500/5 animate-in fade-in zoom-in-95 duration-200">
-             <Label className="text-primary font-bold flex items-center gap-1.5"><CheckCircle className="h-4 w-4"/> Confirmação de Conclusão</Label>
-             <p className="text-xs text-muted-foreground font-semibold -mt-2 mb-1">O pedido será marcado como pago e contabilizado nas vendas.</p>
-             <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-col gap-3 px-6 py-4 border-t border-border bg-green-500/5 animate-in fade-in zoom-in-95 duration-200 min-w-0 flex-shrink-0">
+             <Label className="text-primary font-bold flex items-center gap-1.5 min-w-0"><CheckCircle className="h-4 w-4 flex-shrink-0"/> <span className="truncate">Confirmação de Conclusão</span></Label>
+             <p className="text-xs text-muted-foreground font-semibold -mt-2 mb-1 break-words whitespace-normal">O pedido será marcado como pago e contabilizado nas vendas.</p>
+             <div className="flex justify-end gap-2 mt-2 flex-shrink-0">
                 <Button variant="outline" onClick={() => setShowCompleteConfirm(false)} disabled={saving} className="rounded-full shadow-sm flex-shrink-0">Voltar</Button>
                 <Button onClick={handleConcluir} disabled={saving} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">
                    {saving ? "Processando..." : "Confirmar Conclusão"}
@@ -977,81 +983,81 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
          <ScrollLock />
-         <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
-             <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0">
-                <h2 className="text-xl font-display font-black">Nova Venda Presencial</h2>
-                <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0">Fechar</button>
+         <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden min-w-0">
+             <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0 min-w-0">
+                <h2 className="text-xl font-display font-black truncate">Nova Venda Presencial</h2>
+                <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0 ml-2">Fechar</button>
              </div>
              
              <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col sm:flex-row min-h-0">
                  <div className="w-full sm:w-3/5 p-6 border-b sm:border-b-0 sm:border-r border-border flex flex-col min-w-0">
-                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0">Produtos Disponíveis</h3>
-                     <div className="relative mb-4 flex-shrink-0">
+                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0 truncate">Produtos Disponíveis</h3>
+                     <div className="relative mb-4 flex-shrink-0 min-w-0">
                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                         <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" maxLength={100} />
+                         <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-full min-w-0" maxLength={100} />
                      </div>
-                     <div className="grid gap-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 min-w-0">
+                     <div className="grid gap-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 min-w-0 max-w-full">
                      {filteredProducts.map(p => {
                          const outOfStock = p.track_stock && p.stock <= 0;
                          const isLowStock = !outOfStock && p.track_stock && p.stock <= (p.min_stock || 0);
                          return (
-                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 min-w-0 " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
+                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 min-w-0 max-w-full " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
                              <div className="flex items-center flex-shrink-0">
-                                <Button size="sm" onClick={() => addToCart(p)} disabled={outOfStock} className="rounded-full h-8 px-3 shadow-sm">
+                                <Button size="sm" onClick={() => addToCart(p)} disabled={outOfStock} className="rounded-full h-8 px-3 shadow-sm flex-shrink-0">
                                     <Plus className="h-3 w-3" />
                                 </Button>
                              </div>
                              <div className="min-w-0 flex-1 overflow-hidden">
                                 <div 
-                                    className="font-semibold text-sm line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full" 
+                                    className="font-semibold text-sm line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full min-w-0" 
                                     onClick={() => setProductDetailsToShow(p)} 
                                     title="Clique para ver os detalhes"
                                 >
                                     {p.name}
                                 </div>
-                                <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
+                                <div className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
                              </div>
                              <div className="flex items-center flex-shrink-0">
-                                <span className="font-bold text-primary">{brl(Number(p.sale_price) || Number(p.price))}</span>
+                                <span className="font-bold text-primary truncate">{brl(Number(p.sale_price) || Number(p.price))}</span>
                              </div>
                          </div>
                      )})}
-                     {filteredProducts.length === 0 && <p className="text-sm font-semibold text-muted-foreground text-center py-4">Nenhum produto encontrado.</p>}
+                     {filteredProducts.length === 0 && <p className="text-sm font-semibold text-muted-foreground text-center py-4 truncate">Nenhum produto encontrado.</p>}
                      </div>
                  </div>
                  <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col min-w-0">
-                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0">Carrinho</h3>
-                     {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground flex-shrink-0">O carrinho está vazio.</p>}
-                     <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pr-1 min-w-0">
+                     <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0 truncate">Carrinho</h3>
+                     {cart.length === 0 && <p className="text-sm font-medium text-muted-foreground flex-shrink-0 truncate">O carrinho está vazio.</p>}
+                     <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pr-1 min-w-0 max-w-full">
                      {cart.map(c => {
                          const currentMax = c.product.track_stock ? c.product.stock : 999999;
                          return (
-                         <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0 overflow-hidden">
+                         <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0 overflow-hidden max-w-full">
                              <div 
-                                className="font-semibold line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full" 
+                                className="font-semibold line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full min-w-0" 
                                 onClick={() => setProductDetailsToShow(c.product)}
                                 title="Clique para ver os detalhes"
                              >
                                 {c.product.name}
                              </div>
-                             <div className="flex justify-between items-center mt-2 gap-2">
+                             <div className="flex justify-between items-center mt-2 gap-2 min-w-0">
                                 <div className="flex items-center gap-2 flex-shrink-0">
                                     <button onClick={() => removeFromCart(c.product)} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition shadow-sm flex-shrink-0">-</button>
                                     <span className="w-4 text-center font-bold flex-shrink-0">{c.quantity}</span>
                                     <button onClick={() => addToCart(c.product)} disabled={c.quantity >= currentMax} className="bg-secondary text-foreground rounded-full w-7 h-7 flex items-center justify-center border border-border hover:bg-border transition disabled:opacity-50 shadow-sm flex-shrink-0">+</button>
                                 </div>
-                                <span className="font-bold text-primary flex-shrink-0">{brl((Number(c.product.sale_price) || Number(c.product.price)) * c.quantity)}</span>
+                                <span className="font-bold text-primary flex-shrink-0 truncate">{brl((Number(c.product.sale_price) || Number(c.product.price)) * c.quantity)}</span>
                              </div>
                          </div>
                      )})}
                      </div>
-                     <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2 flex-shrink-0">
-                         <div className="flex justify-between text-sm text-muted-foreground font-semibold">
-                             <span>Soma dos Itens</span>
-                             <span>{brl(originalTotal)}</span>
+                     <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2 flex-shrink-0 min-w-0">
+                         <div className="flex justify-between text-sm text-muted-foreground font-semibold gap-2 min-w-0">
+                             <span className="truncate">Soma dos Itens</span>
+                             <span className="flex-shrink-0">{brl(originalTotal)}</span>
                          </div>
-                         <div className="flex justify-between items-center mt-1 gap-2">
-                            <Label className="text-base font-black flex-shrink-0">Valor Final (R$)</Label>
+                         <div className="flex justify-between items-center mt-1 gap-2 min-w-0">
+                            <Label className="text-base font-black flex-shrink-0 truncate">Valor Final (R$)</Label>
                             <Input 
                                type="number" 
                                step="0.01" 
@@ -1066,26 +1072,28 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                   setIsCustomTotalDirty(true);
                                }} 
                                onKeyDown={blockInvalidNumberChars}
-                               className="w-32 font-black text-right h-10 flex-shrink-0" 
+                               className="w-32 font-black text-right h-10 flex-shrink-0 min-w-0" 
                                disabled={cart.length === 0}
                             />
                          </div>
                          {discountVal > 0 && (
-                            <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center mt-2">
+                            <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center mt-2 break-words whitespace-normal min-w-0 max-w-full">
                                 Desconto aplicado: {brl(discountVal)} ({discountPerc.toFixed(1)}%)
                             </div>
                          )}
                          {discountVal < 0 && (
-                            <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center mt-2">
+                            <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center mt-2 break-words whitespace-normal min-w-0 max-w-full">
                                 Acréscimo aplicado: {brl(Math.abs(discountVal))}
                             </div>
                          )}
                      </div>
                  </div>
              </div>
-             <div className="flex justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0">
+             <div className="flex justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0 min-w-0">
                  <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
-                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0">{saving ? "Processando..." : "Concluir Venda"}</Button>
+                 <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
+                    {saving ? "Processando..." : "Concluir Venda"}
+                 </Button>
              </div>
          </div>
 
@@ -1093,19 +1101,19 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
          {productDetailsToShow && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
                 <ScrollLock />
-                <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-                    <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
+                <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] break-words min-w-0">
+                    <div className="flex items-start justify-between gap-3 border-b border-border pb-3 min-w-0">
                         <h3 className="text-lg font-black font-display break-words whitespace-normal leading-tight flex-1 min-w-0">{productDetailsToShow.name}</h3>
                         <button onClick={() => setProductDetailsToShow(null)} className="text-muted-foreground hover:text-foreground flex-shrink-0 mt-1"><X className="h-5 w-5"/></button>
                     </div>
                     
-                    <div className="flex flex-col gap-3 text-sm">
+                    <div className="flex flex-col gap-3 text-sm min-w-0">
                         {productDetailsToShow.image_url && (
                            <img src={productDetailsToShow.image_url} alt={productDetailsToShow.name} className="w-full h-40 object-cover rounded-xl border border-border flex-shrink-0" />
                         )}
-                        <div className="flex justify-between border-b border-border pb-2 mt-1 gap-2">
-                           <span className="text-muted-foreground font-semibold flex-shrink-0">Preço:</span>
-                           <span className="font-bold text-primary text-right break-words min-w-0">
+                        <div className="flex justify-between border-b border-border pb-2 mt-1 gap-2 min-w-0">
+                           <span className="text-muted-foreground font-semibold flex-shrink-0 truncate">Preço:</span>
+                           <span className="font-bold text-primary text-right break-words min-w-0 flex-shrink-0">
                               {productDetailsToShow.sale_price ? (
                                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
                                     <span className="text-xs line-through text-muted-foreground">{brl(Number(productDetailsToShow.price))}</span>
@@ -1114,20 +1122,20 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                               ) : brl(Number(productDetailsToShow.price))}
                            </span>
                         </div>
-                        <div className="flex justify-between border-b border-border pb-2 gap-2">
-                           <span className="text-muted-foreground font-semibold flex-shrink-0">Estoque atual:</span>
-                           <span className="font-bold text-right break-words min-w-0">{productDetailsToShow.track_stock ? `${productDetailsToShow.stock} un.` : '∞ Ilimitado'}</span>
+                        <div className="flex justify-between border-b border-border pb-2 gap-2 min-w-0">
+                           <span className="text-muted-foreground font-semibold flex-shrink-0 truncate">Estoque atual:</span>
+                           <span className="font-bold text-right break-words min-w-0 flex-shrink-0">{productDetailsToShow.track_stock ? `${productDetailsToShow.stock} un.` : '∞ Ilimitado'}</span>
                         </div>
                         {productDetailsToShow.barcode && (
-                           <div className="flex justify-between border-b border-border pb-2 gap-2">
-                              <span className="text-muted-foreground font-semibold flex-shrink-0">Cód. Barras:</span>
-                              <span className="font-bold break-all text-right min-w-0">{productDetailsToShow.barcode}</span>
+                           <div className="flex justify-between border-b border-border pb-2 gap-2 min-w-0">
+                              <span className="text-muted-foreground font-semibold flex-shrink-0 truncate">Cód. Barras:</span>
+                              <span className="font-bold break-all text-right min-w-0 max-w-[150px] sm:max-w-full">{productDetailsToShow.barcode}</span>
                            </div>
                         )}
                         {productDetailsToShow.description && (
-                           <div className="mt-1">
-                              <span className="text-muted-foreground font-semibold">Descrição:</span>
-                              <p className="mt-1 font-medium text-muted-foreground break-words whitespace-normal">{productDetailsToShow.description}</p>
+                           <div className="mt-1 min-w-0 max-w-full">
+                              <span className="text-muted-foreground font-semibold block truncate">Descrição:</span>
+                              <p className="mt-1 font-medium text-muted-foreground break-words whitespace-pre-wrap w-full">{productDetailsToShow.description}</p>
                            </div>
                         )}
                     </div>
@@ -1279,20 +1287,20 @@ function FinancesPanel() {
   const top10 = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 10);
 
   return (
-      <div className="space-y-6">
-          <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
-            <div className="flex gap-2 p-1 bg-secondary rounded-lg border border-border w-full xl:w-auto overflow-x-auto">
-                <button onClick={() => applyPreset('today')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'today' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Hoje</button>
-                <button onClick={() => applyPreset('7d')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === '7d' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>7 Dias</button>
-                <button onClick={() => applyPreset('30d')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === '30d' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>30 Dias</button>
-                <button onClick={() => applyPreset('month')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'month' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Mês</button>
-                <button onClick={() => applyPreset('year')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'year' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Ano</button>
-                <button onClick={() => applyPreset('all')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap ${periodPreset === 'all' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Desde o começo</button>
+      <div className="space-y-6 min-w-0">
+          <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm min-w-0">
+            <div className="flex gap-2 p-1 bg-secondary rounded-lg border border-border w-full xl:w-auto overflow-x-auto min-w-0">
+                <button onClick={() => applyPreset('today')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap flex-shrink-0 ${periodPreset === 'today' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Hoje</button>
+                <button onClick={() => applyPreset('7d')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap flex-shrink-0 ${periodPreset === '7d' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>7 Dias</button>
+                <button onClick={() => applyPreset('30d')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap flex-shrink-0 ${periodPreset === '30d' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>30 Dias</button>
+                <button onClick={() => applyPreset('month')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap flex-shrink-0 ${periodPreset === 'month' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Mês</button>
+                <button onClick={() => applyPreset('year')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap flex-shrink-0 ${periodPreset === 'year' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Este Ano</button>
+                <button onClick={() => applyPreset('all')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition whitespace-nowrap flex-shrink-0 ${periodPreset === 'all' ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Desde o começo</button>
             </div>
-            <div className="flex items-center gap-2 w-full xl:w-auto">
-                <Input type="date" value={startDate} onChange={e => {setStartDate(e.target.value); setPeriodPreset('custom');}} className="h-9 text-sm w-full" />
-                <span className="text-muted-foreground text-sm font-semibold">até</span>
-                <Input type="date" value={endDate} onChange={e => {setEndDate(e.target.value); setPeriodPreset('custom');}} className="h-9 text-sm w-full" />
+            <div className="flex items-center gap-2 w-full xl:w-auto min-w-0 overflow-x-auto">
+                <Input type="date" value={startDate} onChange={e => {setStartDate(e.target.value); setPeriodPreset('custom');}} className="h-9 text-sm w-[130px] sm:w-auto flex-shrink-0" />
+                <span className="text-muted-foreground text-sm font-semibold flex-shrink-0">até</span>
+                <Input type="date" value={endDate} onChange={e => {setEndDate(e.target.value); setPeriodPreset('custom');}} className="h-9 text-sm w-[130px] sm:w-auto flex-shrink-0" />
             </div>
           </div>
 
@@ -1300,64 +1308,64 @@ function FinancesPanel() {
               <p className="text-muted-foreground text-center font-semibold py-10">Carregando métricas financeiras...</p>
           ) : (
               <>
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-primary"/> Faturamento Bruto</h3>
-                      <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{brl(totalEarned)}</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 min-w-0">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words min-w-0 max-w-full">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1 truncate"><TrendingUp className="h-3.5 w-3.5 text-primary flex-shrink-0"/> <span className="truncate">Faturamento Bruto</span></h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-foreground truncate">{brl(totalEarned)}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Lucro Líquido</h3>
-                      <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(netProfit)}</p>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words min-w-0 max-w-full">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1 truncate"><DollarSign className="h-3.5 w-3.5 text-green-600 flex-shrink-0"/> <span className="truncate">Lucro Líquido</span></h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-green-600 truncate">{brl(netProfit)}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5 text-accent-foreground"/> Vendas</h3>
-                      <p className="text-xl sm:text-2xl font-black mt-2 text-foreground">{totalOrders}</p>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words min-w-0 max-w-full">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1 truncate"><ShoppingBag className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0"/> <span className="truncate">Vendas</span></h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-foreground truncate">{totalOrders}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-green-600"/> Ticket Médio</h3>
-                      <p className="text-xl sm:text-2xl font-black mt-2 text-green-600">{brl(ticketMedio)}</p>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words min-w-0 max-w-full">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1 truncate"><DollarSign className="h-3.5 w-3.5 text-green-600 flex-shrink-0"/> <span className="truncate">Ticket Médio</span></h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-green-600 truncate">{brl(ticketMedio)}</p>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words">
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-blue-600"/> Itens por Venda</h3>
-                      <p className="text-xl sm:text-2xl font-black mt-2 text-blue-600">{itensPorVenda.toFixed(1)}</p>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm break-words min-w-0 max-w-full">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1 truncate"><Layers className="h-3.5 w-3.5 text-blue-600 flex-shrink-0"/> <span className="truncate">Itens por Venda</span></h3>
+                      <p className="text-xl sm:text-2xl font-black mt-2 text-blue-600 truncate">{itensPorVenda.toFixed(1)}</p>
                     </div>
                   </div>
 
-                  <h2 className="text-lg font-display font-black mt-8 mb-4 border-b border-border pb-2">Posição de Estoque Físico</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between break-words">
-                       <div>
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Capital Imobilizado</h3>
-                          <div className="flex items-baseline gap-2">
-                             <span className="text-2xl font-black text-foreground">{brl(capitalCusto)}</span>
-                             <span className="text-xs font-semibold text-muted-foreground">a preço de custo</span>
+                  <h2 className="text-lg font-display font-black mt-8 mb-4 border-b border-border pb-2 truncate">Posição de Estoque Físico</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between break-words min-w-0 max-w-full gap-3">
+                       <div className="min-w-0">
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 truncate">Capital Imobilizado</h3>
+                          <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
+                             <span className="text-2xl font-black text-foreground truncate max-w-full">{brl(capitalCusto)}</span>
+                             <span className="text-xs font-semibold text-muted-foreground truncate">a preço de custo</span>
                           </div>
-                          <p className="text-xs font-bold text-green-600 mt-1">Potencial de Venda: {brl(capitalVenda)}</p>
+                          <p className="text-xs font-bold text-green-600 mt-1 truncate max-w-full">Potencial de Venda: {brl(capitalVenda)}</p>
                        </div>
                        <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><Package className="h-6 w-6 text-muted-foreground"/></div>
                     </div>
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between break-words">
-                       <div>
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Volume Físico</h3>
-                          <p className="text-2xl font-black text-foreground">{totalFisico} <span className="text-sm font-semibold text-muted-foreground">unidades</span></p>
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex items-center justify-between break-words min-w-0 max-w-full gap-3">
+                       <div className="min-w-0">
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 truncate">Volume Físico</h3>
+                          <p className="text-2xl font-black text-foreground truncate max-w-full">{totalFisico} <span className="text-sm font-semibold text-muted-foreground">unidades</span></p>
                        </div>
                        <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><Layers className="h-6 w-6 text-muted-foreground"/></div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex flex-col">
-                       <h3 className="text-sm font-bold uppercase tracking-wide mb-4">Faturamento Diário (Período)</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6 min-w-0 max-w-full">
+                    <div className="border border-border bg-card rounded-xl p-5 shadow-sm flex flex-col min-w-0 max-w-full">
+                       <h3 className="text-sm font-bold uppercase tracking-wide mb-4 truncate">Faturamento Diário (Período)</h3>
                        {chartData.length === 0 ? (
-                          <p className="text-xs text-muted-foreground m-auto">Sem dados para o gráfico.</p>
+                          <p className="text-xs text-muted-foreground m-auto truncate">Sem dados para o gráfico.</p>
                        ) : (
-                          <div className="flex h-48 items-end gap-1 sm:gap-2 mt-auto">
+                          <div className="flex h-48 items-end gap-1 sm:gap-2 mt-auto min-w-0 max-w-full">
                             {chartData.map(d => {
                                const isActive = activeChartBar === d.date;
                                return (
                                <div 
                                  key={d.date} 
-                                 className="group relative flex flex-1 flex-col items-center justify-end h-full cursor-pointer"
+                                 className="group relative flex flex-1 flex-col items-center justify-end h-full cursor-pointer min-w-0"
                                  onClick={() => setActiveChartBar(isActive ? null : d.date)}
                                >
                                   <div className={`absolute bottom-full mb-2 ${isActive ? 'block' : 'hidden group-hover:block'} bg-foreground text-background text-xs font-bold py-1 px-2 rounded whitespace-nowrap z-10 shadow-xl`}>
@@ -1371,26 +1379,26 @@ function FinancesPanel() {
                        )}
                     </div>
 
-                    <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words">
-                       <div className="bg-secondary/50 px-5 py-3 border-b border-border">
-                           <h3 className="text-sm font-bold uppercase tracking-wide">Top 10 Produtos (Curva ABC)</h3>
+                    <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words min-w-0 max-w-full">
+                       <div className="bg-secondary/50 px-5 py-3 border-b border-border min-w-0">
+                           <h3 className="text-sm font-bold uppercase tracking-wide truncate">Top 10 Produtos (Curva ABC)</h3>
                        </div>
-                       <div className="flex-1 overflow-y-auto" style={{ maxHeight: '240px' }}>
+                       <div className="flex-1 overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '240px' }}>
                           {top10.length === 0 ? (
-                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Nenhuma venda no período.</p>
+                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold truncate">Nenhuma venda no período.</p>
                           ) : (
-                              <div className="divide-y divide-border">
+                              <div className="divide-y divide-border min-w-0">
                                   {top10.map((item, idx) => (
-                                      <div key={idx} className="flex items-center justify-between p-3 px-5 hover:bg-secondary/20 transition gap-2">
-                                          <div className="flex items-center gap-3 min-w-0">
+                                      <div key={idx} className="flex items-center justify-between p-3 px-5 hover:bg-secondary/20 transition gap-2 min-w-0 max-w-full">
+                                          <div className="flex items-center gap-3 min-w-0 flex-1">
                                               <span className="flex items-center justify-center h-6 w-6 flex-shrink-0 rounded-full bg-secondary text-xs font-black text-muted-foreground">
                                                   {idx + 1}
                                               </span>
-                                              <span className="font-semibold text-sm line-clamp-1 break-words">{item.name}</span>
+                                              <span className="font-semibold text-sm truncate w-full" title={item.name}>{item.name}</span>
                                           </div>
-                                          <div className="text-right flex-shrink-0">
-                                              <div className="font-black text-primary text-sm">{item.qty} un.</div>
-                                              <div className="text-[10px] font-semibold text-muted-foreground">{brl(item.revenue)}</div>
+                                          <div className="text-right flex-shrink-0 min-w-0 max-w-[100px]">
+                                              <div className="font-black text-primary text-sm truncate max-w-full">{item.qty} un.</div>
+                                              <div className="text-[10px] font-semibold text-muted-foreground truncate max-w-full">{brl(item.revenue)}</div>
                                           </div>
                                       </div>
                                   ))}
@@ -1400,21 +1408,21 @@ function FinancesPanel() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words">
-                       <div className="bg-red-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-red-600">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6 min-w-0 max-w-full">
+                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words min-w-0 max-w-full">
+                       <div className="bg-red-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-red-600 min-w-0">
                            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                           <h3 className="text-sm font-bold uppercase tracking-wide">Alerta de Estoque Crítico</h3>
+                           <h3 className="text-sm font-bold uppercase tracking-wide truncate">Alerta de Estoque Crítico</h3>
                        </div>
-                       <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                       <div className="overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '200px' }}>
                            {criticalStock.length === 0 ? (
-                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Nenhum produto em nível crítico de estoque.</p>
+                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold truncate">Nenhum produto em nível crítico de estoque.</p>
                            ) : (
-                              <div className="divide-y divide-border">
+                              <div className="divide-y divide-border min-w-0">
                                  {criticalStock.map(p => (
-                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2">
-                                       <span className="font-semibold text-foreground line-clamp-1 break-words">{p.name}</span>
-                                       <span className="font-black text-red-600 whitespace-nowrap flex-shrink-0">{p.stock} un.</span>
+                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2 min-w-0">
+                                       <span className="font-semibold text-foreground truncate w-full flex-1" title={p.name}>{p.name}</span>
+                                       <span className="font-black text-red-600 whitespace-nowrap flex-shrink-0 truncate">{p.stock} un.</span>
                                     </div>
                                  ))}
                               </div>
@@ -1422,24 +1430,24 @@ function FinancesPanel() {
                        </div>
                      </div>
 
-                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words">
-                       <div className="bg-orange-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-orange-600">
+                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words min-w-0 max-w-full">
+                       <div className="bg-orange-500/10 px-5 py-3 border-b border-border flex items-center gap-2 text-orange-600 min-w-0">
                            <Clock className="h-4 w-4 flex-shrink-0" />
-                           <h3 className="text-sm font-bold uppercase tracking-wide">Baixo Giro Físico (Encalhados)</h3>
+                           <h3 className="text-sm font-bold uppercase tracking-wide truncate">Baixo Giro Físico (Encalhados)</h3>
                        </div>
-                       <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                       <div className="overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '200px' }}>
                            {deadStock.length === 0 ? (
-                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold">Todos os produtos físicos em estoque tiveram saída no período.</p>
+                              <p className="p-5 text-center text-muted-foreground text-xs font-semibold whitespace-normal break-words">Todos os produtos físicos em estoque tiveram saída no período.</p>
                            ) : (
-                              <div className="divide-y divide-border">
+                              <div className="divide-y divide-border min-w-0">
                                  {deadStock.slice(0, 50).map(p => (
-                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2">
-                                       <span className="font-semibold text-foreground line-clamp-1 break-words">{p.name}</span>
-                                       <span className="font-black text-orange-600 whitespace-nowrap flex-shrink-0">Estoque: {p.stock}</span>
+                                    <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2 min-w-0">
+                                       <span className="font-semibold text-foreground truncate w-full flex-1" title={p.name}>{p.name}</span>
+                                       <span className="font-black text-orange-600 whitespace-nowrap flex-shrink-0 truncate">Estoque: {p.stock}</span>
                                     </div>
                                  ))}
                                  {deadStock.length > 50 && (
-                                    <div className="p-2 text-center text-xs font-bold text-muted-foreground bg-secondary/30">
+                                    <div className="p-2 text-center text-xs font-bold text-muted-foreground bg-secondary/30 truncate">
                                        + {deadStock.length - 50} outros itens
                                     </div>
                                  )}
@@ -1564,22 +1572,22 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
   }
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={add} className="flex flex-col sm:flex-row gap-3 rounded-xl border border-border bg-card p-4 shadow-sm items-start sm:items-center">
-        <div className="flex-1 w-full">
-           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required maxLength={50} />
+    <div className="space-y-6 min-w-0 max-w-full">
+      <form onSubmit={add} className="flex flex-col sm:flex-row gap-3 rounded-xl border border-border bg-card p-4 shadow-sm items-start sm:items-center min-w-0 max-w-full">
+        <div className="flex-1 w-full min-w-0">
+           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required maxLength={50} className="w-full min-w-0" />
         </div>
-        <div className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded-lg border border-border flex-shrink-0 w-full sm:w-auto">
-           <Switch checked={isVip} onCheckedChange={setIsVip} id="new-vip-switch" />
-           <Label htmlFor="new-vip-switch" className="text-xs font-bold cursor-pointer whitespace-nowrap flex items-center gap-1.5"><Crown className="h-3.5 w-3.5 text-yellow-600"/> Área Exclusiva</Label>
+        <div className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded-lg border border-border flex-shrink-0 w-full sm:w-auto overflow-hidden">
+           <Switch checked={isVip} onCheckedChange={setIsVip} id="new-vip-switch" className="flex-shrink-0" />
+           <Label htmlFor="new-vip-switch" className="text-xs font-bold cursor-pointer truncate flex items-center gap-1.5 min-w-0"><Crown className="h-3.5 w-3.5 text-yellow-600 flex-shrink-0"/> <span className="truncate">Área Exclusiva</span></Label>
         </div>
         <Button type="submit" className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
 
-      <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
-        {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium">Nenhuma categoria ainda.</li>}
+      <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm min-w-0 max-w-full">
+        {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium truncate">Nenhuma categoria ainda.</li>}
         {cats.map((c, idx) => (
-          <li key={c.id} className="flex items-center justify-between gap-3 p-4">
+          <li key={c.id} className="flex items-center justify-between gap-3 p-4 min-w-0 w-full">
             <span className="font-semibold flex items-center gap-2 min-w-0 flex-1">
                {c.is_vip && <span title="Área Exclusiva" className="inline-block flex-shrink-0 align-text-bottom"><Crown className="h-4 w-4 text-yellow-500" /></span>}
                <span className="truncate block" title={c.name}>{c.name}</span>
@@ -1596,24 +1604,24 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
       {editingCat && !deletingCat && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
             <ScrollLock />
-            <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
-               <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black font-display">Editar Categoria</h3>
-                  <button type="button" onClick={() => setEditingCat(null)} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0"><X className="h-4 w-4"/></button>
+            <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words min-w-0">
+               <div className="flex items-center justify-between min-w-0">
+                  <h3 className="text-lg font-black font-display truncate">Editar Categoria</h3>
+                  <button type="button" onClick={() => setEditingCat(null)} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0 ml-2"><X className="h-4 w-4"/></button>
                </div>
-               <form onSubmit={handleRenameCat} className="flex flex-col gap-4">
-                  <div>
-                     <Label>Nome da categoria <span className="text-destructive">*</span></Label>
-                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1" autoFocus required maxLength={50} />
+               <form onSubmit={handleRenameCat} className="flex flex-col gap-4 min-w-0 max-w-full">
+                  <div className="min-w-0">
+                     <Label className="truncate block">Nome da categoria <span className="text-destructive">*</span></Label>
+                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1 w-full min-w-0" autoFocus required maxLength={50} />
                   </div>
-                  <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border">
-                     <div>
-                        <Label className="font-bold flex items-center gap-1.5"><Crown className="h-4 w-4 text-yellow-600"/> Área Exclusiva</Label>
-                        <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">Exige senha VIP para acessar.</p>
+                  <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border min-w-0 gap-3">
+                     <div className="min-w-0">
+                        <Label className="font-bold flex items-center gap-1.5 truncate"><Crown className="h-4 w-4 text-yellow-600 flex-shrink-0"/> <span className="truncate">Área Exclusiva</span></Label>
+                        <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 truncate">Exige senha VIP para acessar.</p>
                      </div>
-                     <Switch checked={editCatVip} onCheckedChange={setEditCatVip} />
+                     <Switch checked={editCatVip} onCheckedChange={setEditCatVip} className="flex-shrink-0" />
                   </div>
-                  <div className="flex justify-between border-t border-border pt-4 mt-2">
+                  <div className="flex justify-between border-t border-border pt-4 mt-2 flex-shrink-0">
                      {isMaster ? (
                         <Button type="button" variant="ghost" size="icon" onClick={() => initiateDelete(editingCat)} className="text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                            <Trash2 className="h-5 w-5" />
@@ -1686,23 +1694,23 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-xl flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
+    <div className="space-y-4 min-w-0 max-w-full">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between min-w-0 max-w-full">
+        <div className="relative flex-1 sm:max-w-xl flex flex-col sm:flex-row gap-2 min-w-0">
+          <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou código de barras..."
-              className="pl-9 shadow-sm"
+              className="pl-9 shadow-sm w-full min-w-0"
               maxLength={100}
             />
           </div>
           <select
             value={filterOption}
             onChange={(e) => setFilterOption(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input flex-shrink-0 min-w-0 max-w-full truncate"
           >
             <option value="all">Todos os produtos</option>
             <option value="none">Sem categoria</option>
@@ -1710,27 +1718,27 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
             <option value="low_stock">Estoque mínimo atingido</option>
             <option value="inactive">Inativos</option>
             {activeCats.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.id} className="truncate">
                 {c.name}
               </option>
             ))}
           </select>
         </div>
-        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm flex-shrink-0">
+        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
           <Plus className="mr-1 h-4 w-4" /> Novo produto
         </Button>
       </div>
 
       {prods.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold">
+        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold break-words whitespace-normal min-w-0">
           Nenhum produto ainda. Adicione o primeiro!
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold">
+        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground font-semibold break-words whitespace-normal min-w-0">
           Nenhum produto encontrado com este filtro.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 min-w-0 max-w-full">
           {filtered.map((p) => {
             const isInactive = !p.in_stock;
             const outOfStock = p.in_stock && p.track_stock && p.stock <= 0;
@@ -1745,7 +1753,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
               <div
                 key={p.id}
                 className={
-                  "relative flex gap-3 rounded-xl border bg-card p-3 shadow-sm transition " +
+                  "relative flex gap-3 rounded-xl border bg-card p-3 shadow-sm transition min-w-0 max-w-full " +
                   (hasIssue ? "border-destructive/60 ring-2 ring-destructive/30 bg-destructive/5" : isLowStock ? "border-yellow-600 ring-2 ring-yellow-600/50 bg-yellow-500/5" : "border-border")
                 }
               >
@@ -1753,30 +1761,30 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
                   {p.image_url && <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />}
                 </div>
                 <div className={"flex flex-1 flex-col min-w-0 break-words " + (hasIssue ? "opacity-60" : "")}>
-                  <div className="font-bold line-clamp-2 break-words" title={p.name}>
+                  <div className="font-bold line-clamp-2 break-words w-full" title={p.name}>
                      {isVipProd && <span title="Área Exclusiva" className="inline-block mr-1 align-text-bottom"><Crown className="h-3.5 w-3.5 text-yellow-500" /></span>}
                      {p.name}
                   </div>
-                  <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
+                  <div className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
                   {(isInactive || outOfStock) && (
                     <div className="mt-0.5">
-                      <span className="inline-block rounded-full bg-destructive px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-destructive-foreground">
+                      <span className="inline-block rounded-full bg-destructive px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-destructive-foreground truncate">
                         {isInactive ? "Inativo" : "Sem estoque"}
                       </span>
                     </div>
                   )}
-                  <div className="text-sm mt-1">
+                  <div className="text-sm mt-1 truncate">
                     {promo ? (
                       <>
-                        <span className="text-muted-foreground font-semibold line-through mr-1">{brl(Number(p.price))}</span>
-                        <span className="text-primary font-black">{brl(Number(p.sale_price))}</span>
-                        <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-accent-foreground">Promo</span>
+                        <span className="text-muted-foreground font-semibold line-through mr-1 truncate">{brl(Number(p.price))}</span>
+                        <span className="text-primary font-black truncate">{brl(Number(p.sale_price))}</span>
+                        <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-accent-foreground flex-shrink-0">Promo</span>
                       </>
                     ) : (
-                      <span className="text-primary font-black">{brl(Number(p.price))}</span>
+                      <span className="text-primary font-black truncate">{brl(Number(p.price))}</span>
                     )}
                   </div>
-                  <div className="mt-auto flex items-center justify-end gap-1 text-xs">
+                  <div className="mt-auto flex items-center justify-end gap-1 text-xs flex-shrink-0">
                       <button onClick={() => { setEditing(p); setShowForm(true); }} className="rounded-full p-1.5 hover:bg-secondary transition flex-shrink-0"><Pencil className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
@@ -1986,26 +1994,26 @@ function ProductForm({
       <ScrollLock />
       <form
         onSubmit={save}
-        className="flex w-full max-w-2xl max-h-[100dvh] flex-col rounded-t-2xl bg-background shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        className="flex w-full max-w-2xl max-h-[100dvh] flex-col rounded-t-2xl bg-background shadow-2xl sm:max-h-[90vh] sm:rounded-2xl min-w-0"
       >
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h3 className="font-display text-xl font-black">{product ? "Editar" : "Novo"} produto</h3>
-          <button type="button" onClick={handleAttemptClose} className="text-sm font-semibold text-muted-foreground flex-shrink-0">Fechar</button>
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0 min-w-0">
+          <h3 className="font-display text-xl font-black truncate">{product ? "Editar" : "Novo"} produto</h3>
+          <button type="button" onClick={handleAttemptClose} className="text-sm font-semibold text-muted-foreground flex-shrink-0 ml-2">Fechar</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Label>Foto</Label>
-            <div className="mt-1 flex items-center gap-3">
+        <div className="flex-1 overflow-y-auto px-6 py-4 min-w-0">
+        <div className="grid gap-4 sm:grid-cols-2 min-w-0 max-w-full">
+          <div className="sm:col-span-2 min-w-0">
+            <Label className="truncate block">Foto</Label>
+            <div className="mt-1 flex items-center gap-3 min-w-0">
               <div className="h-24 w-24 overflow-hidden rounded-lg border border-border bg-secondary shadow-sm flex-shrink-0">
                 {currentPreview && <img src={currentPreview} className="h-full w-full object-cover" alt="" />}
               </div>
-              <div className="flex flex-col gap-2 min-w-0">
-                 <div className="flex flex-wrap gap-2">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words">
+              <div className="flex flex-col gap-2 min-w-0 flex-1">
+                 <div className="flex flex-wrap gap-2 min-w-0">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words min-w-0 max-w-full">
                       <Upload className="h-4 w-4 flex-shrink-0" />
-                      {uploading ? "Enviando…" : "Enviar imagem"}
+                      <span className="truncate">{uploading ? "Enviando…" : "Enviar imagem"}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -2020,7 +2028,7 @@ function ProductForm({
                     )}
                  </div>
                  {hasImageChanges && (
-                    <Button type="button" variant="ghost" onClick={undoImageChanges} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground break-words whitespace-normal text-left">
+                    <Button type="button" variant="ghost" onClick={undoImageChanges} className="text-xs h-7 px-2 justify-start w-full sm:w-max text-muted-foreground break-words whitespace-normal text-left min-w-0">
                        Desfazer mudança de imagem
                     </Button>
                  )}
@@ -2028,22 +2036,22 @@ function ProductForm({
             </div>
           </div>
 
-          <div className="sm:col-span-2">
-            <Label>Código de Barras</Label>
-            <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" maxLength={50} />
+          <div className="sm:col-span-2 min-w-0">
+            <Label className="truncate block">Código de Barras</Label>
+            <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Ex: 789102030" maxLength={50} className="w-full min-w-0" />
           </div>
-          <div className="sm:col-span-2">
-            <Label>Nome <span className="text-destructive">*</span></Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} />
+          <div className="sm:col-span-2 min-w-0">
+            <Label className="truncate block">Nome <span className="text-destructive">*</span></Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} className="w-full min-w-0" />
           </div>
-          <div className="sm:col-span-2">
-            <Label>Descrição</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={255} className="resize-y min-h-[80px]" />
+          <div className="sm:col-span-2 min-w-0">
+            <Label className="truncate block">Descrição</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={255} className="resize-y min-h-[80px] w-full min-w-0" />
           </div>
-          <div>
-            <Label>Categoria</Label>
+          <div className="min-w-0">
+            <Label className="truncate block">Categoria</Label>
             <select
-              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-medium"
+              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-medium min-w-0 truncate"
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
             >
@@ -2056,17 +2064,17 @@ function ProductForm({
             </select>
           </div>
           
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2 mt-2">
-            <div className="min-w-0">
-              <div className="font-semibold break-words">Controlar Estoque</div>
-              <div className="text-xs font-semibold text-muted-foreground break-words">Desative caso este produto seja um serviço ou tenha estoque infinito.</div>
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2 mt-2 min-w-0 max-w-full">
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold truncate w-full">Controlar Estoque</div>
+              <div className="text-xs font-semibold text-muted-foreground break-words whitespace-normal mt-0.5">Desative caso este produto seja um serviço ou tenha estoque infinito.</div>
             </div>
             <Switch checked={trackStock} onCheckedChange={setTrackStock} className="flex-shrink-0" />
           </div>
 
-          <div className={!trackStock ? "opacity-40 pointer-events-none" : "transition-opacity"}>
-            <Label>Quantidade em Estoque <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} value={stock} onChange={(e) => { if(e.target.value.length <= 15) setStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required disabled={!trackStock} />
+          <div className={(!trackStock ? "opacity-40 pointer-events-none" : "transition-opacity") + " min-w-0"}>
+            <Label className="truncate block">Quantidade em Estoque <span className="text-destructive">*</span></Label>
+            <Input type="number" min={0} value={stock} onChange={(e) => { if(e.target.value.length <= 15) setStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required disabled={!trackStock} className="w-full min-w-0" />
             {product && trackStock && (
               <Button
                 type="button"
@@ -2077,38 +2085,38 @@ function ProductForm({
               </Button>
             )}
           </div>
-          <div className={!trackStock ? "opacity-40 pointer-events-none" : "transition-opacity"}>
-            <Label>Estoque Mínimo (Alerta) <span className="text-destructive">*</span></Label>
-            <Input type="number" min={0} value={minStock} onChange={(e) => { if(e.target.value.length <= 15) setMinStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required disabled={!trackStock} />
+          <div className={(!trackStock ? "opacity-40 pointer-events-none" : "transition-opacity") + " min-w-0"}>
+            <Label className="truncate block">Estoque Mínimo (Alerta) <span className="text-destructive">*</span></Label>
+            <Input type="number" min={0} value={minStock} onChange={(e) => { if(e.target.value.length <= 15) setMinStock(e.target.value); }} onKeyDown={blockInvalidNumberChars} required disabled={!trackStock} className="w-full min-w-0" />
           </div>
-          <div>
-            <Label>Preço de venda (R$) <span className="text-destructive">*</span></Label>
-            <Input type="number" step="0.01" min={0} value={price} onChange={(e) => { if(e.target.value.length <= 15) setPrice(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
+          <div className="min-w-0">
+            <Label className="truncate block">Preço de venda (R$) <span className="text-destructive">*</span></Label>
+            <Input type="number" step="0.01" min={0} value={price} onChange={(e) => { if(e.target.value.length <= 15) setPrice(e.target.value); }} onKeyDown={blockInvalidNumberChars} required className="w-full min-w-0" />
           </div>
-          <div>
-            <Label>Preço promocional (R$) <span className="text-xs font-semibold text-muted-foreground">opcional</span></Label>
-            <Input type="number" step="0.01" min={0} value={salePrice} onChange={(e) => { if(e.target.value.length <= 15) setSalePrice(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="deixe vazio se sem promoção" />
+          <div className="min-w-0">
+            <Label className="truncate block">Preço promocional (R$) <span className="text-xs font-semibold text-muted-foreground">opcional</span></Label>
+            <Input type="number" step="0.01" min={0} value={salePrice} onChange={(e) => { if(e.target.value.length <= 15) setSalePrice(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="deixe vazio se sem promoção" className="w-full min-w-0" />
           </div>
-          <div>
-            <Label>Custo interno (R$) <span className="text-destructive">*</span></Label>
-            <Input type="number" step="0.01" min={0} value={cost} onChange={(e) => { if(e.target.value.length <= 15) setCost(e.target.value); }} onKeyDown={blockInvalidNumberChars} required />
+          <div className="min-w-0">
+            <Label className="truncate block">Custo interno (R$) <span className="text-destructive">*</span></Label>
+            <Input type="number" step="0.01" min={0} value={cost} onChange={(e) => { if(e.target.value.length <= 15) setCost(e.target.value); }} onKeyDown={blockInvalidNumberChars} required className="w-full min-w-0" />
           </div>
-          <div>
-            <Label>Limite por carrinho</Label>
-            <Input type="number" min={0} value={maxPerCart} onChange={(e) => { if(e.target.value.length <= 15) setMaxPerCart(e.target.value); }} onKeyDown={blockInvalidNumberChars} />
-            <p className="mt-1 text-xs font-semibold text-muted-foreground">Deixem em 0 caso queira deixar sem limite</p>
+          <div className="min-w-0">
+            <Label className="truncate block">Limite por carrinho</Label>
+            <Input type="number" min={0} value={maxPerCart} onChange={(e) => { if(e.target.value.length <= 15) setMaxPerCart(e.target.value); }} onKeyDown={blockInvalidNumberChars} className="w-full min-w-0" />
+            <p className="mt-1 text-xs font-semibold text-muted-foreground break-words whitespace-normal">Deixem em 0 caso queira deixar sem limite</p>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2">
-            <div className="min-w-0">
-              <div className="font-semibold break-words">Exibir na Loja (Ativo)</div>
-              <div className="text-xs font-semibold text-muted-foreground break-words">Desative para ocultar o produto completamente sem excluí-lo.</div>
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2 min-w-0 max-w-full">
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold truncate w-full">Exibir na Loja (Ativo)</div>
+              <div className="text-xs font-semibold text-muted-foreground break-words whitespace-normal mt-0.5">Desative para ocultar o produto completamente sem excluí-lo.</div>
             </div>
             <Switch checked={inStock} onCheckedChange={setInStock} className="flex-shrink-0" />
           </div>
         </div>
         </div>
 
-        <div className="flex justify-between w-full border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="flex justify-between w-full border-t border-border px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex-shrink-0 min-w-0">
           {product && isMaster ? (
             <Button type="button" variant="ghost" size="icon" onClick={() => setShowDeleteConfirm(true)} disabled={saving} className="text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                <Trash2 className="h-5 w-5" />
@@ -2161,44 +2169,44 @@ function ProductForm({
       {showAddStockModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <ScrollLock />
-          <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black font-display flex items-center gap-2 text-primary">
-                <Package className="h-5 w-5 flex-shrink-0" /> Entrada de Estoque
+          <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words min-w-0">
+            <div className="flex items-center justify-between min-w-0">
+              <h3 className="text-lg font-black font-display flex items-center gap-2 text-primary truncate">
+                <Package className="h-5 w-5 flex-shrink-0" /> <span className="truncate">Entrada de Estoque</span>
               </h3>
-              <button type="button" onClick={() => setShowAddStockModal(false)} className="text-muted-foreground hover:text-foreground flex-shrink-0"><X className="h-4 w-4"/></button>
+              <button type="button" onClick={() => setShowAddStockModal(false)} className="text-muted-foreground hover:text-foreground flex-shrink-0 ml-2"><X className="h-4 w-4"/></button>
             </div>
-            <p className="text-sm text-muted-foreground font-medium -mt-2 leading-relaxed">
+            <p className="text-sm text-muted-foreground font-medium -mt-2 leading-relaxed break-words whitespace-normal">
                Adicione novas unidades e o sistema calculará o <strong>Custo Médio Ponderado</strong> automaticamente.
             </p>
             
-            <div className="space-y-3">
-               <div>
-                  <Label>Quantidade Recebida <span className="text-destructive">*</span></Label>
-                  <Input type="number" min="1" value={addStockQty} onChange={e => { if(e.target.value.length <= 15) setAddStockQty(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="Ex: 10" className="mt-1" autoFocus required />
+            <div className="space-y-3 min-w-0 max-w-full">
+               <div className="min-w-0">
+                  <Label className="truncate block">Quantidade Recebida <span className="text-destructive">*</span></Label>
+                  <Input type="number" min="1" value={addStockQty} onChange={e => { if(e.target.value.length <= 15) setAddStockQty(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="Ex: 10" className="mt-1 w-full min-w-0" autoFocus required />
                </div>
-               <div>
-                  <Label>Custo Unitário da Compra (R$) <span className="text-destructive">*</span></Label>
-                  <Input type="number" step="0.01" min="0" value={addStockCost} onChange={e => { if(e.target.value.length <= 15) setAddStockCost(e.target.value); }} onKeyDown={blockInvalidNumberChars} className="mt-1" required />
+               <div className="min-w-0">
+                  <Label className="truncate block">Custo Unitário da Compra (R$) <span className="text-destructive">*</span></Label>
+                  <Input type="number" step="0.01" min="0" value={addStockCost} onChange={e => { if(e.target.value.length <= 15) setAddStockCost(e.target.value); }} onKeyDown={blockInvalidNumberChars} className="mt-1 w-full min-w-0" required />
                </div>
             </div>
 
-            <div className="bg-secondary/30 p-3 rounded-lg border border-border mt-1 break-words">
-               <div className="flex justify-between text-xs font-semibold mb-1 gap-2">
-                  <span className="text-muted-foreground">Estoque atual:</span>
-                  <span className="text-foreground">{parseInt(stock || "0", 10)} un</span>
+            <div className="bg-secondary/30 p-3 rounded-lg border border-border mt-1 break-words min-w-0 max-w-full">
+               <div className="flex justify-between text-xs font-semibold mb-1 gap-2 min-w-0">
+                  <span className="text-muted-foreground truncate">Estoque atual:</span>
+                  <span className="text-foreground flex-shrink-0">{parseInt(stock || "0", 10)} un</span>
                </div>
-               <div className="flex justify-between text-xs font-semibold mb-2 pb-2 border-b border-border/50 gap-2">
-                  <span className="text-muted-foreground">Custo atual:</span>
-                  <span className="text-foreground">{brl(parseFloat(cost || "0"))}</span>
+               <div className="flex justify-between text-xs font-semibold mb-2 pb-2 border-b border-border/50 gap-2 min-w-0">
+                  <span className="text-muted-foreground truncate">Custo atual:</span>
+                  <span className="text-foreground flex-shrink-0">{brl(parseFloat(cost || "0"))}</span>
                </div>
-               <div className="flex justify-between text-sm font-bold mb-1 gap-2">
-                  <span className="text-muted-foreground">Novo Estoque:</span>
-                  <span className="text-foreground">{(parseInt(stock || "0", 10) || 0) + (parseInt(addStockQty || "0", 10) || 0)} un</span>
+               <div className="flex justify-between text-sm font-bold mb-1 gap-2 min-w-0">
+                  <span className="text-muted-foreground truncate">Novo Estoque:</span>
+                  <span className="text-foreground flex-shrink-0">{(parseInt(stock || "0", 10) || 0) + (parseInt(addStockQty || "0", 10) || 0)} un</span>
                </div>
-               <div className="flex justify-between text-sm font-bold gap-2">
-                  <span className="text-muted-foreground">Novo Custo Médio:</span>
-                  <span className="text-primary break-all text-right">
+               <div className="flex justify-between text-sm font-bold gap-2 min-w-0">
+                  <span className="text-muted-foreground truncate">Novo Custo Médio:</span>
+                  <span className="text-primary break-words whitespace-normal text-right min-w-0">
                      {(() => {
                         const cQ = parseInt(stock || "0", 10) || 0;
                         const cC = parseFloat(cost || "0") || 0;
@@ -2212,7 +2220,7 @@ function ProductForm({
                </div>
             </div>
 
-            <div className="flex justify-end gap-2 mt-2">
+            <div className="flex justify-end gap-2 mt-2 flex-shrink-0">
               <Button variant="outline" type="button" onClick={() => setShowAddStockModal(false)} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
               <Button type="button" onClick={confirmAddStock} disabled={!addStockQty || parseInt(addStockQty) <= 0} className="rounded-full shadow-sm bg-primary text-primary-foreground hover:opacity-90 flex-shrink-0">Aplicar Valores</Button>
             </div>
@@ -2275,33 +2283,33 @@ function AdminsPanel({ currentUserId }: { currentUserId: string }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <p className="text-sm font-medium text-muted-foreground break-words">
-          <ShieldAlert className="mr-1 inline h-4 w-4" />
+    <div className="space-y-4 min-w-0 max-w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        <p className="text-sm font-medium text-muted-foreground break-words whitespace-normal min-w-0 max-w-full">
+          <ShieldAlert className="mr-1 inline h-4 w-4 flex-shrink-0" />
           O usuário <code className="rounded bg-secondary px-1.5 py-0.5">admin</code> é fixo e não pode ser excluído nem renomeado.
         </p>
-        <Button onClick={() => setShowCreate(true)} className="rounded-full shadow-sm flex-shrink-0">
+        <Button onClick={() => setShowCreate(true)} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
           <UserPlus className="mr-1 h-4 w-4" /> Novo administrador
         </Button>
       </div>
 
-      <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
-        {loading && <li className="p-6 text-center text-muted-foreground font-semibold">Carregando…</li>}
-        {!loading && admins.length === 0 && <li className="p-6 text-center text-muted-foreground font-semibold">Nenhum administrador.</li>}
+      <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm min-w-0 max-w-full">
+        {loading && <li className="p-6 text-center text-muted-foreground font-semibold truncate">Carregando…</li>}
+        {!loading && admins.length === 0 && <li className="p-6 text-center text-muted-foreground font-semibold truncate">Nenhum administrador.</li>}
         {admins.map((a) => (
-          <li key={a.id} className="flex items-center justify-between gap-3 p-4 break-words">
+          <li key={a.id} className="flex items-center justify-between gap-3 p-4 break-words min-w-0 max-w-full">
             <div className="min-w-0 flex-1">
-              <div className="font-semibold flex flex-wrap items-center gap-2">
-                <span className="truncate break-words">{a.username}</span>
+              <div className="font-semibold flex flex-wrap items-center gap-2 min-w-0 max-w-full">
+                <span className="truncate block max-w-full">{a.username}</span>
                 {a.isMaster ? (
-                  <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">Master</span>
+                  <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary flex-shrink-0">Master</span>
                 ) : (
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">Operador</span>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground flex-shrink-0">Operador</span>
                 )}
-                {a.fixed && <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground border border-border shadow-sm">Fixo</span>}
+                {a.fixed && <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground border border-border shadow-sm flex-shrink-0">Fixo</span>}
               </div>
-              <div className="text-xs font-semibold text-muted-foreground break-all">{a.email}</div>
+              <div className="text-xs font-semibold text-muted-foreground truncate w-full">{a.email}</div>
             </div>
             <div className="flex gap-1 flex-shrink-0">
               <Button variant="ghost" size="icon" onClick={() => setEditing(a)} title="Editar"><Pencil className="h-4 w-4" /></Button>
@@ -2418,13 +2426,13 @@ function AdminFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
       <ScrollLock />
-      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto break-words">
-        <div className="flex items-center justify-between">
+      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto break-words min-w-0">
+        <div className="flex items-center justify-between min-w-0">
           <h3 className="font-display text-xl font-black truncate">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground flex-shrink-0 ml-2">Fechar</button>
         </div>
-        <div>
-          <Label htmlFor="au">Usuário <span className="text-destructive">*</span></Label>
+        <div className="min-w-0">
+          <Label htmlFor="au" className="truncate block">Usuário <span className="text-destructive">*</span></Label>
           <Input
             id="au"
             value={user}
@@ -2433,21 +2441,22 @@ function AdminFormModal({
             disabled={isEdit && editing?.fixed}
             required
             maxLength={30}
+            className="w-full min-w-0"
           />
           {isEdit && editing?.fixed && (
-            <p className="mt-1 text-xs font-semibold text-muted-foreground">Esse usuário é fixo — não pode renomear.</p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground truncate">Esse usuário é fixo — não pode renomear.</p>
           )}
         </div>
-        <div>
-          <Label htmlFor="ap">Senha {(!isEdit || isEdit) && <span className="text-destructive">*</span>}</Label>
-          <div className="relative">
+        <div className="min-w-0">
+          <Label htmlFor="ap" className="truncate block">Senha {(!isEdit || isEdit) && <span className="text-destructive">*</span>}</Label>
+          <div className="relative min-w-0">
             <Input
               id="ap"
               type={showPass ? "text" : "password"}
               value={pass}
               onChange={(e) => setPass(e.target.value)}
               placeholder={loadingPass ? "Carregando…" : "mínimo 6 caracteres"}
-              className="pr-16"
+              className="pr-16 w-full min-w-0"
               required={!isEdit}
               maxLength={50}
             />
@@ -2460,27 +2469,27 @@ function AdminFormModal({
             </button>
           </div>
           {isEdit && (
-            <p className="mt-1 text-xs font-semibold text-muted-foreground">
+            <p className="mt-1 text-xs font-semibold text-muted-foreground truncate">
               Senha atual exibida acima. Edite para alterar.
             </p>
           )}
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm gap-2 break-words">
-          <div className={(isEdit && editing?.fixed) ? "opacity-50 min-w-0" : "min-w-0"}>
-            <div className="font-semibold break-words">Administrador Master</div>
-            <div className="text-xs font-semibold text-muted-foreground break-words">Desative para limitar acesso.</div>
+        <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm gap-2 break-words min-w-0 max-w-full">
+          <div className={(isEdit && editing?.fixed) ? "opacity-50 min-w-0 flex-1" : "min-w-0 flex-1"}>
+            <div className="font-semibold truncate w-full">Administrador Master</div>
+            <div className="text-xs font-semibold text-muted-foreground break-words whitespace-normal mt-0.5">Desative para limitar acesso.</div>
           </div>
           <Switch checked={isMasterRole || (isEdit && editing?.fixed)} onCheckedChange={setIsMasterRole} disabled={isEdit && editing?.fixed} className="flex-shrink-0" />
         </div>
 
-        <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
+        <div className="flex items-center justify-between border-t border-border pt-4 mt-2 flex-shrink-0">
           {isEdit && !editing?.fixed && onDelete ? (
             <Button type="button" variant="ghost" size="icon" onClick={onDelete} disabled={loading} className="text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                <Trash2 className="h-5 w-5" />
             </Button>
           ) : <div />}
-          <div className="flex gap-2">
+          <div className="flex gap-2 min-w-0">
             <Button type="button" variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
             <Button type="submit" disabled={loading} className="rounded-full shadow-sm flex-shrink-0">
               {loading ? "Salvando…" : "Salvar"}
@@ -2775,57 +2784,57 @@ function SettingsPanel() {
   const hasLogoChanges = selectedLogoFile !== null || isRemovingLogo;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0 max-w-full">
       
       {/* Bloco de Loja Privada e Área Exclusiva */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-5 mb-5">
-          <div className="min-w-0">
-            <h3 className="font-display text-lg font-black flex items-center gap-2">
-              <Lock className="h-5 w-5 text-primary flex-shrink-0" /> Loja Privada (Bloqueio Total)
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-5 mb-5 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+              <Lock className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Loja Privada (Bloqueio Total)</span>
             </h3>
-            <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
+            <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
               Exija uma senha para os clientes visualizarem qualquer produto do site.
             </p>
           </div>
           <Switch checked={privateMode} onCheckedChange={togglePrivateMode} disabled={savingPrivate} className="flex-shrink-0" />
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-8 min-w-0 max-w-full">
            {/* Senhas da Loja */}
-           <div>
-              <h4 className="font-bold text-foreground mb-1">Senhas de Acesso à Loja</h4>
-              <p className="text-xs text-muted-foreground mb-4">Crie as senhas que os clientes usarão para entrar no site.</p>
+           <div className="min-w-0 max-w-full">
+              <h4 className="font-bold text-foreground mb-1 truncate">Senhas de Acesso à Loja</h4>
+              <p className="text-xs text-muted-foreground mb-4 break-words whitespace-normal">Crie as senhas que os clientes usarão para entrar no site.</p>
               
-              <form onSubmit={handleCreateStoreCode} className="flex flex-col gap-3 mb-4 max-w-lg">
-                <div className="flex gap-2">
+              <form onSubmit={handleCreateStoreCode} className="flex flex-col gap-3 mb-4 max-w-lg min-w-0">
+                <div className="flex gap-2 min-w-0 w-full">
                    <Input 
                      value={newStoreCode} 
                      onChange={e => setNewStoreCode(e.target.value)} 
                      placeholder="Ex: cliente123" 
-                     className="flex-1" 
+                     className="flex-1 min-w-0" 
                      required
                      maxLength={20}
                    />
                    <Button type="submit" className="flex-shrink-0"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
                 </div>
-                <div className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded-lg border border-border">
-                   <Switch checked={newStoreUnlocksVip} onCheckedChange={setNewStoreUnlocksVip} id="unlock-vip-switch" />
-                   <Label htmlFor="unlock-vip-switch" className="text-xs font-bold cursor-pointer flex items-center gap-1.5"><Crown className="h-3.5 w-3.5 text-yellow-600"/> Esta senha também libera a Área Exclusiva</Label>
+                <div className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded-lg border border-border min-w-0">
+                   <Switch checked={newStoreUnlocksVip} onCheckedChange={setNewStoreUnlocksVip} id="unlock-vip-switch" className="flex-shrink-0" />
+                   <Label htmlFor="unlock-vip-switch" className="text-xs font-bold cursor-pointer flex items-center gap-1.5 truncate min-w-0"><Crown className="h-3.5 w-3.5 text-yellow-600 flex-shrink-0"/> <span className="truncate">Esta senha também libera a Área Exclusiva</span></Label>
                 </div>
               </form>
 
               {loadingCodes ? (
-                <p className="text-sm text-muted-foreground">Carregando...</p>
+                <p className="text-sm text-muted-foreground truncate">Carregando...</p>
               ) : storeCodes.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Nenhuma senha da loja cadastrada.</p>
+                <p className="text-sm text-muted-foreground italic truncate">Nenhuma senha da loja cadastrada.</p>
               ) : (
-                <ul className="space-y-2 max-w-lg">
+                <ul className="space-y-2 max-w-lg min-w-0 w-full">
                   {storeCodes.map(c => (
-                    <li key={c.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-2 bg-secondary/30 gap-2">
-                      <div className="min-w-0">
-                         <span className="font-mono font-bold break-all block">{c.code}</span>
-                         {c.unlocks_vip && <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wide flex items-center gap-1 mt-0.5"><Crown className="h-3 w-3"/> Libera Área Exclusiva</span>}
+                    <li key={c.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-2 bg-secondary/30 gap-2 min-w-0 w-full">
+                      <div className="min-w-0 flex-1">
+                         <span className="font-mono font-bold truncate block w-full" title={c.code}>{c.code}</span>
+                         {c.unlocks_vip && <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wide flex items-center gap-1 mt-0.5 truncate"><Crown className="h-3 w-3 flex-shrink-0"/> Libera Área Exclusiva</span>}
                       </div>
                       <button onClick={() => handleDeleteCode(c.id)} className="text-muted-foreground hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition flex-shrink-0" title="Revogar">
                         <Trash2 className="h-4 w-4" />
@@ -2837,16 +2846,16 @@ function SettingsPanel() {
            </div>
 
            {/* Senhas da Área Exclusiva (VIP) */}
-           <div className="pt-6 border-t border-border/50">
-              <h4 className="font-bold text-foreground mb-1 flex items-center gap-2"><Crown className="h-4 w-4 text-yellow-600"/> Senhas de Acesso à Área Exclusiva</h4>
-              <p className="text-xs text-muted-foreground mb-4">Senhas criadas aqui liberam apenas as categorias marcadas como Área Exclusiva.</p>
+           <div className="pt-6 border-t border-border/50 min-w-0 max-w-full">
+              <h4 className="font-bold text-foreground mb-1 flex items-center gap-2 truncate"><Crown className="h-4 w-4 text-yellow-600 flex-shrink-0"/> <span className="truncate">Senhas de Acesso à Área Exclusiva</span></h4>
+              <p className="text-xs text-muted-foreground mb-4 break-words whitespace-normal">Senhas criadas aqui liberam apenas as categorias marcadas como Área Exclusiva.</p>
               
-              <form onSubmit={handleCreateVipCode} className="flex gap-2 mb-4 max-w-lg">
+              <form onSubmit={handleCreateVipCode} className="flex gap-2 mb-4 max-w-lg min-w-0 w-full">
                 <Input 
                   value={newVipCode} 
                   onChange={e => setNewVipCode(e.target.value)} 
                   placeholder="Ex: vip_premium" 
-                  className="flex-1" 
+                  className="flex-1 min-w-0" 
                   required
                   maxLength={20}
                 />
@@ -2854,14 +2863,14 @@ function SettingsPanel() {
               </form>
 
               {loadingCodes ? (
-                <p className="text-sm text-muted-foreground">Carregando...</p>
+                <p className="text-sm text-muted-foreground truncate">Carregando...</p>
               ) : vipCodes.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Nenhuma senha exclusiva cadastrada.</p>
+                <p className="text-sm text-muted-foreground italic truncate">Nenhuma senha exclusiva cadastrada.</p>
               ) : (
-                <ul className="space-y-2 max-w-lg">
+                <ul className="space-y-2 max-w-lg min-w-0 w-full">
                   {vipCodes.map(c => (
-                    <li key={c.id} className="flex items-center justify-between border border-yellow-500/30 rounded-lg px-4 py-2 bg-yellow-500/5 gap-2">
-                      <span className="font-mono font-bold text-yellow-700 break-all">{c.code}</span>
+                    <li key={c.id} className="flex items-center justify-between border border-yellow-500/30 rounded-lg px-4 py-2 bg-yellow-500/5 gap-2 min-w-0 w-full">
+                      <span className="font-mono font-bold text-yellow-700 truncate w-full flex-1" title={c.code}>{c.code}</span>
                       <button onClick={() => handleDeleteCode(c.id)} className="text-yellow-700 hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition flex-shrink-0" title="Revogar">
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -2873,48 +2882,48 @@ function SettingsPanel() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
-        <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <Palette className="h-5 w-5 text-primary flex-shrink-0" /> Cores do Sistema
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <Palette className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Cores do Sistema</span>
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Personalize a aparência do seu catálogo. As alterações são aplicadas instantaneamente após salvar.
         </p>
 
-        <form onSubmit={submitTheme} className="mt-4 space-y-6">
-          <div>
-            <div className="flex flex-wrap gap-3">
+        <form onSubmit={submitTheme} className="mt-4 space-y-6 min-w-0 max-w-full">
+          <div className="min-w-0 max-w-full">
+            <div className="flex flex-wrap gap-3 min-w-0">
               {SYSTEM_THEMES.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => { setTheme(t.id); applyTheme(t.id); }}
-                  className={`h-10 w-10 rounded-full border-4 transition-all hover:scale-110 ${theme === t.id ? "border-foreground scale-110 shadow-md" : "border-transparent shadow-sm"}`}
+                  className={`h-10 w-10 rounded-full border-4 transition-all hover:scale-110 flex-shrink-0 ${theme === t.id ? "border-foreground scale-110 shadow-md" : "border-transparent shadow-sm"}`}
                   style={{ backgroundColor: t.primary }}
                   title={t.name}
                 />
               ))}
             </div>
           </div>
-          <Button type="submit" disabled={savingTheme} className="rounded-full shadow-sm">
+          <Button type="submit" disabled={savingTheme} className="rounded-full shadow-sm w-full sm:w-auto">
             {savingTheme ? "Salvando…" : "Salvar Cores"}
           </Button>
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
-        <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-primary flex-shrink-0" /> Nome do Catálogo
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <ShoppingBag className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Nome do Catálogo</span>
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
         </p>
-        <form onSubmit={submitName} className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <form onSubmit={submitName} className="mt-4 flex flex-col gap-3 sm:flex-row min-w-0">
           <Input
             value={catalogName}
             onChange={(e) => setCatalogName(e.target.value)}
             placeholder="ex: Catálogo de Produtos"
-            className="flex-1"
+            className="flex-1 min-w-0"
             required
             maxLength={50}
           />
@@ -2924,15 +2933,15 @@ function SettingsPanel() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
-        <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <ImageIcon className="h-5 w-5 text-primary flex-shrink-0" /> Logo da Loja
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <ImageIcon className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Logo da Loja</span>
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Adicione a logomarca da sua empresa. Ela aparecerá no cabeçalho do catálogo.
         </p>
-        <form onSubmit={submitLogo} className="mt-4 flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <form onSubmit={submitLogo} className="mt-4 flex flex-col gap-4 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
             <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-secondary shadow-sm flex items-center justify-center flex-shrink-0">
               {previewLogo ? (
                 <img src={previewLogo} className="h-full w-full object-cover" alt="Logo preview" />
@@ -2940,11 +2949,11 @@ function SettingsPanel() {
                 <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
               )}
             </div>
-            <div className="flex flex-col gap-2 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words">
+            <div className="flex flex-col gap-2 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words min-w-0 max-w-full">
                   <Upload className="h-4 w-4 flex-shrink-0" />
-                  Escolher imagem
+                  <span className="truncate">Escolher imagem</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
                 </label>
                 {previewLogo && !isRemovingLogo && (
@@ -2954,13 +2963,13 @@ function SettingsPanel() {
                 )}
               </div>
               {hasLogoChanges && (
-                 <Button type="button" variant="ghost" onClick={undoLogoChanges} disabled={savingLogo} className="text-xs h-7 px-2 justify-start w-max text-muted-foreground break-words whitespace-normal text-left">
+                 <Button type="button" variant="ghost" onClick={undoLogoChanges} disabled={savingLogo} className="text-xs h-7 px-2 justify-start w-full sm:w-max text-muted-foreground break-words whitespace-normal text-left min-w-0">
                     Desfazer mudança de logo
                  </Button>
               )}
             </div>
           </div>
-          <div className="flex justify-start pt-2">
+          <div className="flex justify-start pt-2 flex-shrink-0">
             <Button type="submit" disabled={savingLogo || !hasLogoChanges} className="rounded-full shadow-sm w-full sm:w-auto">
               {savingLogo ? "Salvando…" : "Salvar Logo"}
             </Button>
@@ -2968,23 +2977,23 @@ function SettingsPanel() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
-        <h3 className="font-display text-lg font-black flex items-center gap-2">
-          <Phone className="h-5 w-5 text-primary flex-shrink-0" /> Número do WhatsApp
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <Phone className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Número do WhatsApp</span>
         </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Este é o número que receberá os pedidos do site e o botão flutuante.
         </p>
-        <form onSubmit={submitNumber} className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <form onSubmit={submitNumber} className="mt-4 flex flex-col gap-3 sm:flex-row min-w-0">
           <Input
             value={number}
             onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))}
             placeholder="ex: 5545912345678"
-            className="flex-1"
+            className="flex-1 min-w-0"
             required
             maxLength={20}
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <Button type="button" variant="secondary" onClick={() => {
                 const cleanNumber = number.replace(/\D/g, '');
                 if (cleanNumber.length < 10 || cleanNumber.length > 15) {
@@ -3000,7 +3009,7 @@ function SettingsPanel() {
             </Button>
           </div>
         </form>
-        <p className="mt-2 text-xs font-semibold text-muted-foreground break-words">
+        <p className="mt-2 text-xs font-semibold text-muted-foreground break-words whitespace-normal">
           Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545912345678</code>
         </p>
       </div>
