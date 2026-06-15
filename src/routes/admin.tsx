@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock, Image as ImageIcon, X, Crown } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock, Image as ImageIcon, X, Crown, ChevronUp, ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
@@ -1535,6 +1535,34 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     refresh();
   }
 
+  async function moveUp(index: number) {
+    if (index === 0) return;
+    const newCats = [...cats];
+    const item = newCats.splice(index, 1)[0];
+    newCats.splice(index - 1, 0, item);
+    
+    const updates = newCats.map((c, i) => ({ ...c, sort_order: i }));
+    setCats(updates);
+    
+    for (const c of updates) {
+        supabase.from("categories").update({ sort_order: c.sort_order }).eq("id", c.id).then();
+    }
+  }
+
+  async function moveDown(index: number) {
+    if (index === cats.length - 1) return;
+    const newCats = [...cats];
+    const item = newCats.splice(index, 1)[0];
+    newCats.splice(index + 1, 0, item);
+    
+    const updates = newCats.map((c, i) => ({ ...c, sort_order: i }));
+    setCats(updates);
+    
+    for (const c of updates) {
+        supabase.from("categories").update({ sort_order: c.sort_order }).eq("id", c.id).then();
+    }
+  }
+
   return (
     <div className="space-y-6">
       <form onSubmit={add} className="flex flex-col sm:flex-row gap-3 rounded-xl border border-border bg-card p-4 shadow-sm items-start sm:items-center">
@@ -1550,13 +1578,17 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
 
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
         {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium">Nenhuma categoria ainda.</li>}
-        {cats.map((c) => (
+        {cats.map((c, idx) => (
           <li key={c.id} className="flex items-center justify-between gap-3 p-4 break-words">
-            <span className="font-semibold break-words flex items-center gap-2">
+            <span className="font-semibold break-words flex items-center gap-2 min-w-0">
                {c.is_vip && <span title="Área Exclusiva" className="flex items-center flex-shrink-0"><Crown className="h-4 w-4 text-yellow-500" /></span>}
-               {c.name}
+               <span className="truncate">{c.name}</span>
             </span>
-            <Button variant="ghost" size="icon" onClick={() => openEdit(c)} className="flex-shrink-0"><Pencil className="h-4 w-4" /></Button>
+            <div className="flex gap-1 flex-shrink-0">
+              <Button variant="ghost" size="icon" onClick={() => moveUp(idx)} disabled={idx === 0}><ChevronUp className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => moveDown(idx)} disabled={idx === cats.length - 1}><ChevronDown className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => openEdit(c)} className="flex-shrink-0"><Pencil className="h-4 w-4" /></Button>
+            </div>
           </li>
         ))}
       </ul>
@@ -1722,7 +1754,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
                 </div>
                 <div className={"flex flex-1 flex-col min-w-0 break-words " + (hasIssue ? "opacity-60" : "")}>
                   <div className="font-bold line-clamp-2 break-words" title={p.name}>
-                     {isVipProd && <span title="Área Exclusiva"><Crown className="h-3.5 w-3.5 text-yellow-500 inline-block mr-1 align-text-bottom" /></span>}
+                     {isVipProd && <span title="Área Exclusiva" className="inline-block mr-1 align-text-bottom"><Crown className="h-3.5 w-3.5 text-yellow-500" /></span>}
                      {p.name}
                   </div>
                   <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>

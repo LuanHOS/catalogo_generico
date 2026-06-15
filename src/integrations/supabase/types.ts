@@ -232,6 +232,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_vip_status: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       checkout_order: {
         Args: {
           order_total: number

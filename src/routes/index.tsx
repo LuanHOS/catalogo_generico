@@ -237,6 +237,7 @@ function Index() {
   const [showVipModal, setShowVipModal] = useState(false);
   const [vipCodeInput, setVipCodeInput] = useState("");
   const [verifyingVip, setVerifyingVip] = useState(false);
+  const [showVipButton, setShowVipButton] = useState(false);
   
   // Estados para a Faixa do Admin
   const [isAdmin, setIsAdmin] = useState(false);
@@ -253,7 +254,7 @@ function Index() {
       const savedStoreCode = localStorage.getItem("store_code") || "";
       const savedExclusiveCode = localStorage.getItem("exclusive_code") || "";
       
-      const [sessionRes, c, p, s, vipCheckStore, vipCheckExclusive] = await Promise.all([
+      const [sessionRes, c, p, s, vipCheckStore, vipCheckExclusive, vipStatusRes] = await Promise.all([
         supabase.auth.getSession(),
         supabase.from("categories").select("*").order("sort_order"),
         // @ts-ignore
@@ -261,6 +262,7 @@ function Index() {
         supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode", "catalog_logo"]),
         savedStoreCode ? supabase.rpc("verify_exclusive_code", { p_code: savedStoreCode }) : Promise.resolve({ data: false }),
         savedExclusiveCode ? supabase.rpc("verify_exclusive_code", { p_code: savedExclusiveCode }) : Promise.resolve({ data: false }),
+        supabase.rpc("check_vip_status")
       ]);
       
       const settingsMap = new Map(s.data?.map(x => [x.key, x.value]) || []);
@@ -273,14 +275,24 @@ function Index() {
       const privateModeStatus = settingsMap.get("private_mode") === "true";
       setIsPrivateModeActive(privateModeStatus);
 
+      // Status do Botão Área Exclusiva
+      if (vipStatusRes.data) {
+          setShowVipButton(true);
+      }
+
       // Checa se usuário destravou VIP via senha da loja ou via senha exclusiva
       if (vipCheckStore.data || vipCheckExclusive.data) {
          setIsVipUnlocked(true);
       }
 
+      // Admin Bypass
       if (sessionRes.data.session?.user) {
         const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", sessionRes.data.session.user.id).eq("role", "admin").maybeSingle();
-        if (roleData) setIsAdmin(true);
+        if (roleData) {
+            setIsAdmin(true);
+            setIsVipUnlocked(true);
+            setShowVipButton(true);
+        }
       }
       
       if (c.error) {
@@ -390,6 +402,11 @@ function Index() {
 
   const visibleProducts = filtered.slice(0, visibleCount);
 
+  // Filtra as categorias para exibir somente as que possuem produtos cadastrados e ativos
+  const populatedCats = cats.filter(c => prods.some(p => p.category_id === c.id));
+  const vipCats = populatedCats.filter(c => c.is_vip);
+  const normalCats = populatedCats.filter(c => !c.is_vip);
+
   const observer = useRef<IntersectionObserver | null>(null);
   const lastProductElementRef = useCallback((node: HTMLDivElement) => {
     if (observer.current) observer.current.disconnect();
@@ -487,7 +504,7 @@ function Index() {
       };
     });
 
-    const usedCodeForTracking = isVipUnlocked ? (exclusiveCode || storeCode) : (isPrivateModeActive ? storeCode : null);
+    const usedCodeForTracking = isVipUnlocked && !isAdmin ? (exclusiveCode || storeCode) : (isPrivateModeActive && !isAdmin ? storeCode : null);
 
     const { data: orderId, error } = await supabase.rpc("checkout_order", {
       order_total: newTotal,
@@ -525,10 +542,6 @@ function Index() {
     const pr = await supabase.rpc("get_catalog_secure", { p_store_code: storeCode, p_vip_code: exclusiveCode });
     if (pr.data) setProds(pr.data as Product[]);
   }
-
-  const hasVipCategory = cats.some(c => c.is_vip);
-  const vipCats = cats.filter(c => c.is_vip);
-  const normalCats = cats.filter(c => !c.is_vip);
 
   return (
     <div className="min-h-screen relative flex flex-col bg-background w-full max-w-[100vw]">
@@ -595,7 +608,7 @@ function Index() {
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Área do Administrador</span>
             </Link>
-            {!accessDenied && hasVipCategory && (
+            {!accessDenied && showVipButton && (
               <button
                 onClick={() => { if (!isVipUnlocked) setShowVipModal(true); }}
                 disabled={isVipUnlocked}
@@ -722,14 +735,14 @@ function Index() {
                   Promoções
                 </CatChip>
                 
-                {/* Categorias VIP - Ocultadas para quem não tem acesso */}
+                {/* Categorias VIP - Ocultadas para quem não tem acesso e vazias */}
                 {isVipUnlocked && vipCats.map((c) => (
                   <CatChip key={c.id} active={activeCat === c.id} isVip={true} onClick={() => setActiveCat(c.id)}>
                     {c.name}
                   </CatChip>
                 ))}
 
-                {/* Categorias Normais */}
+                {/* Categorias Normais - Ocultadas as vazias */}
                 {normalCats.map((c) => (
                   <CatChip key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)}>
                     {c.name}
@@ -768,7 +781,7 @@ function Index() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {trendingProducts.map((p) => (
-                        <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} isVipUnlocked={isVipUnlocked} />
+                        <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
                       ))}
                     </div>
                     <div className="relative mt-12 mb-6 flex items-center py-5">
@@ -783,7 +796,7 @@ function Index() {
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {visibleProducts.map((p) => (
-                    <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} isVipUnlocked={isVipUnlocked} />
+                    <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
                   ))}
                 </div>
 
@@ -907,14 +920,14 @@ function CatChip({ active, isVip = false, onClick, children }: { active: boolean
   let styleClasses = "";
 
   if (isVip) {
-      styleClasses = "vip-chip text-[14.5px] " + (active ? "ring-2 ring-background ring-offset-2 ring-offset-primary" : "");
+      styleClasses = "vip-chip " + (active ? "ring-2 ring-background ring-offset-2 ring-offset-primary" : "");
   } else {
       styleClasses = active ? "bg-primary text-primary-foreground" : "bg-background text-secondary-foreground hover:bg-background/80 border border-border";
   }
 
   return (
     <button onClick={onClick} className={baseClasses + styleClasses}>
-      {isVip && <Crown className="h-4 w-4" />}
+      {isVip && <span title="Área Exclusiva"><Crown className="h-4 w-4" /></span>}
       {children}
     </button>
   );
@@ -946,7 +959,7 @@ function PriceBlock({ p, big = false }: { p: Product; big?: boolean }) {
   return <div className={(big ? "text-3xl" : "text-lg") + " font-black text-primary"}>{brl(eff)}</div>;
 }
 
-function ProductCard({ p, onOpen, isVipUnlocked }: { p: Product; onOpen: () => void; isVipUnlocked: boolean }) {
+function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
