@@ -1062,7 +1062,7 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-0 sm:items-center sm:p-6" role="dialog">
       <ScrollLock />
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl bg-background shadow-2xl sm:rounded-3xl flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+      <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-t-3xl bg-background shadow-2xl sm:rounded-3xl flex flex-col max-h-[90vh] sm:max-h-[85vh]">
         <button
           onClick={onClose}
           className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow hover:bg-secondary"
@@ -1070,64 +1070,62 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
         >
           <X className="h-5 w-5" />
         </button>
-        <div className="overflow-y-auto flex-1 w-full">
-          <div className="grid gap-0 sm:grid-cols-2">
-            <div className="relative aspect-square w-full bg-secondary border-b border-border/40 sm:border-b-0 sm:border-r">
-              {isPromo(p) && <PromoBadge />}
-              {p.image_url ? (
-                <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                  <ShoppingBag className="h-16 w-16 opacity-30" />
-                </div>
-              )}
-              {outOfStock && (
-                <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground shadow-sm">
-                  Sem estoque
-                </span>
-              )}
+        <div className="overflow-y-auto flex-1 w-full flex flex-col">
+          <div className="relative w-full bg-secondary border-b border-border/40 flex-shrink-0 aspect-square sm:aspect-video">
+            {isPromo(p) && <PromoBadge />}
+            {p.image_url ? (
+              <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                <ShoppingBag className="h-16 w-16 opacity-30" />
+              </div>
+            )}
+            {outOfStock && (
+              <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground shadow-sm">
+                Sem estoque
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col gap-4 p-6 min-w-0 w-full">
+            <div className="w-full overflow-hidden break-words">
+              <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl break-words whitespace-normal">{p.name}</h2>
+              <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                <Package className="h-4 w-4" /> {p.track_stock ? `${p.stock} unidades em estoque` : "Disponível"}
+              </div>
+              {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">{p.description}</p>}
             </div>
-            <div className="flex flex-col gap-4 p-6">
-              <div>
-                <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl break-words">{p.name}</h2>
-                <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                  <Package className="h-4 w-4" /> {p.track_stock ? `${p.stock} unidades em estoque` : "Disponível"}
-                </div>
-                {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">{p.description}</p>}
-              </div>
-              <PriceBlock p={p} big />
-              <div className="mt-auto pt-4">
-                {qty === 0 ? (
-                  <Button
-                    type="button"
-                    disabled={outOfStock}
+            <PriceBlock p={p} big />
+            <div className="mt-auto pt-4">
+              {qty === 0 ? (
+                <Button
+                  type="button"
+                  disabled={outOfStock}
+                  onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
+                  className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
+                </Button>
+              ) : (
+                <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
+                  <button onClick={() => cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="text-lg font-black">{qty} no carrinho</span>
+                  <button
+                    disabled={reachedMax}
                     onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                    className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-40"
+                    aria-label="Aumentar"
                   >
-                    {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
-                  </Button>
-                ) : (
-                  <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
-                    <button onClick={() => cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="text-lg font-black">{qty} no carrinho</span>
-                    <button
-                      disabled={reachedMax}
-                      onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-40"
-                      aria-label="Aumentar"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-                {reachedMax && !outOfStock && (
-                  <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
-                    Lembrete: Limite atingido para este produto.
-                  </p>
-                )}
-              </div>
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              {reachedMax && !outOfStock && (
+                <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
+                  Lembrete: Limite atingido para este produto.
+                </p>
+              )}
             </div>
           </div>
         </div>
