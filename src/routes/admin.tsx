@@ -243,11 +243,11 @@ function LoginForm() {
       </div>
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm min-w-0">
         <div className="min-w-0">
-          <Label htmlFor="u" className="truncate block">Usuário <span className="text-destructive">*</span></Label>
+          <Label htmlFor="u" className="truncate block">Usuário</Label>
           <Input id="u" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="" autoFocus required maxLength={30} className="w-full min-w-0" />
         </div>
         <div className="min-w-0">
-          <Label htmlFor="p" className="truncate block">Senha <span className="text-destructive">*</span></Label>
+          <Label htmlFor="p" className="truncate block">Senha</Label>
           <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required maxLength={50} className="w-full min-w-0" />
         </div>
         <Button type="submit" disabled={loading} className="w-full rounded-full py-6 text-base font-bold shadow-sm">
