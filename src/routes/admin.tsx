@@ -688,6 +688,11 @@ function OrderDetailsModal({
       if (orderToPrint.status === 'canceled' && orderToPrint.canceled_at) {
         doc.text(`Cancelado em: ${new Date(orderToPrint.canceled_at).toLocaleString('pt-BR')}`, marginLeft, y); y += lineHeight;
       }
+      if (orderToPrint.status === 'canceled' && orderToPrint.cancellation_reason) {
+        const reasonLines = doc.splitTextToSize(`Motivo do Cancelamento: ${orderToPrint.cancellation_reason}`, 180);
+        doc.text(reasonLines, marginLeft, y);
+        y += (reasonLines.length * lineHeight);
+      }
       if (orderToPrint.vip_code) {
         doc.text(`Acesso: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
       }
@@ -2106,7 +2111,7 @@ function ProductForm({
             <Input type="number" min={0} value={maxPerCart} onChange={(e) => { if(e.target.value.length <= 15) setMaxPerCart(e.target.value); }} onKeyDown={blockInvalidNumberChars} className="w-full min-w-0" />
             <p className="mt-1 text-xs font-semibold text-muted-foreground break-words whitespace-normal">Deixem em 0 caso queira deixar sem limite</p>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2 min-w-0 max-w-full">
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm sm:col-span-2 break-words gap-2 mt-2 min-w-0 max-w-full">
             <div className="min-w-0 flex-1">
               <div className="font-semibold truncate w-full">Exibir na Loja (Ativo)</div>
               <div className="text-xs font-semibold text-muted-foreground break-words whitespace-normal mt-0.5">Desative para ocultar o produto completamente sem excluí-lo.</div>

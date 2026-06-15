@@ -104,7 +104,7 @@ export function ConfirmActionModal({
   alertOnly?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
       <ScrollLock />
       <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
         <div>
@@ -243,6 +243,9 @@ function Index() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPrivateModeActive, setIsPrivateModeActive] = useState(false);
 
+  // Estado para Remoção de Item Unitário
+  const [itemToRemove, setItemToRemove] = useState<string | null>(null);
+
   // Estado de Conflito de Estoque
   const [stockConflictData, setStockConflictData] = useState<{
     outOfStock: { id: string; name: string }[];
@@ -369,6 +372,8 @@ function Index() {
        setTimeout(() => window.location.reload(), 500);
     }
   }
+
+  const vipCatsIds = useMemo(() => new Set(cats.filter(c => c.is_vip).map(c => c.id)), [cats]);
 
   const trendingProducts = useMemo(() => {
     const activeProds = prods.filter(p => p.in_stock);
@@ -781,7 +786,7 @@ function Index() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {trendingProducts.map((p) => (
-                        <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
+                        <ProductCard key={p.id} p={p} isVip={p.category_id ? vipCatsIds.has(p.category_id) : false} onOpen={() => setDetail(p)} onRemoveRequested={setItemToRemove} />
                       ))}
                     </div>
                     <div className="relative mt-12 mb-6 flex items-center py-5">
@@ -796,7 +801,7 @@ function Index() {
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {visibleProducts.map((p) => (
-                    <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
+                    <ProductCard key={p.id} p={p} isVip={p.category_id ? vipCatsIds.has(p.category_id) : false} onOpen={() => setDetail(p)} onRemoveRequested={setItemToRemove} />
                   ))}
                 </div>
 
@@ -890,9 +895,10 @@ function Index() {
           onFinalize={finalizar} 
           checkoutLoading={checkoutLoading}
           prods={prods}
+          onRemoveRequested={setItemToRemove}
         />
       )}
-      {!accessDenied && detail && <ProductDetail p={detail} onClose={() => setDetail(null)} />}
+      {!accessDenied && detail && <ProductDetail p={detail} isVip={detail.category_id ? vipCatsIds.has(detail.category_id) : false} onClose={() => setDetail(null)} onRemoveRequested={setItemToRemove} />}
       
       {!accessDenied && showLogoModal && catalogLogo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setShowLogoModal(false)}>
@@ -908,6 +914,20 @@ function Index() {
             <img src={catalogLogo} alt={catalogName} className="max-h-[85vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl" />
           </div>
         </div>
+      )}
+
+      {!accessDenied && itemToRemove && (
+        <ConfirmActionModal
+          title="Remover Produto"
+          description="Tem certeza que deseja remover este item do carrinho?"
+          onClose={() => setItemToRemove(null)}
+          onConfirm={() => {
+            cart.remove(itemToRemove);
+            setItemToRemove(null);
+          }}
+          destructive={true}
+          confirmText="Sim, remover"
+        />
       )}
 
       {!accessDenied && <WhatsAppFloat />}
@@ -959,7 +979,7 @@ function PriceBlock({ p, big = false }: { p: Product; big?: boolean }) {
   return <div className={(big ? "text-3xl" : "text-lg") + " font-black text-primary"}>{brl(eff)}</div>;
 }
 
-function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
+function ProductCard({ p, isVip, onOpen, onRemoveRequested }: { p: Product; isVip: boolean; onOpen: () => void; onRemoveRequested: (id: string) => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
@@ -1013,20 +1033,20 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
               type="button"
               disabled={outOfStock}
               onClick={addToCart}
-              className="h-10 text-xs w-full rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 shadow-sm"
+              className={`h-10 text-xs w-full rounded-full font-bold shadow-sm disabled:opacity-50 ${isVip && !outOfStock ? 'vip-chip' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
             >
               {outOfStock ? "Esgotado" : "Adicionar"}
             </Button>
           ) : (
             <div className="flex items-center justify-between gap-1 rounded-full bg-secondary p-1">
-              <button onClick={() => cart.setQty(p.id, qty - 1)} className="h-8 w-8 flex items-center justify-center rounded-full bg-background text-foreground hover:bg-background/70 shadow-sm" aria-label="Diminuir">
+              <button onClick={() => qty === 1 ? onRemoveRequested(p.id) : cart.setQty(p.id, qty - 1)} className="h-8 w-8 flex items-center justify-center rounded-full bg-background text-foreground hover:bg-background/70 shadow-sm" aria-label="Diminuir">
                 <Minus className="h-4 w-4" />
               </button>
               <span className="font-black">{qty}</span>
               <button
                 disabled={reachedMax}
                 onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 shadow-sm"
+                className={`h-8 w-8 flex items-center justify-center rounded-full shadow-sm disabled:opacity-40 ${isVip && !reachedMax ? 'vip-chip' : 'bg-primary text-primary-foreground hover:opacity-90'}`}
                 aria-label="Aumentar"
               >
                 <Plus className="h-4 w-4" />
@@ -1039,7 +1059,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
   );
 }
 
-function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
+function ProductDetail({ p, isVip, onClose, onRemoveRequested }: { p: Product; isVip: boolean; onClose: () => void; onRemoveRequested: (id: string) => void }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;
@@ -1101,20 +1121,20 @@ function ProductDetail({ p, onClose }: { p: Product; onClose: () => void }) {
                   type="button"
                   disabled={outOfStock}
                   onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                  className="w-full rounded-full bg-primary py-6 text-base font-black text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
+                  className={`w-full rounded-full py-6 text-base font-black shadow-sm disabled:opacity-50 ${isVip && !outOfStock ? 'vip-chip' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
                 >
                   {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
                 </Button>
               ) : (
                 <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
-                  <button onClick={() => cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
+                  <button onClick={() => qty === 1 ? onRemoveRequested(p.id) : cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
                     <Minus className="h-4 w-4" />
                   </button>
                   <span className="text-lg font-black">{qty} no carrinho</span>
                   <button
                     disabled={reachedMax}
                     onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-40"
+                    className={`flex h-10 w-10 items-center justify-center rounded-full shadow-sm disabled:opacity-40 ${isVip && !reachedMax ? 'vip-chip' : 'bg-primary text-primary-foreground hover:opacity-90'}`}
                     aria-label="Aumentar"
                   >
                     <Plus className="h-4 w-4" />
@@ -1139,13 +1159,15 @@ function CartDrawer({
   total, 
   onFinalize, 
   checkoutLoading, 
-  prods 
+  prods,
+  onRemoveRequested
 }: { 
   onClose: () => void; 
   total: number; 
   onFinalize: () => void; 
   checkoutLoading: boolean; 
-  prods: Product[] 
+  prods: Product[];
+  onRemoveRequested: (id: string) => void;
 }) {
   const items = useCart();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -1202,7 +1224,7 @@ function CartDrawer({
                         <div className="text-sm font-semibold text-muted-foreground">{brl(i.price)} cada</div>
                       </div>
                       <div className="flex items-center gap-1 rounded-full bg-secondary px-1 border border-border/50 flex-shrink-0">
-                        <button onClick={() => cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
+                        <button onClick={() => i.qty === 1 ? onRemoveRequested(i.id) : cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
                           <Minus className="h-3 w-3" />
                         </button>
                         <span className="w-6 text-center font-bold">{i.qty}</span>
@@ -1214,7 +1236,7 @@ function CartDrawer({
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <button onClick={() => cart.remove(i.id)} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
+                      <button onClick={() => onRemoveRequested(i.id)} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </li>
