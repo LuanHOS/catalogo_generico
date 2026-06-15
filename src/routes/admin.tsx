@@ -683,7 +683,7 @@ function OrderDetailsModal({
         doc.text(`Cancelado em: ${new Date(orderToPrint.canceled_at).toLocaleString('pt-BR')}`, marginLeft, y); y += lineHeight;
       }
       if (orderToPrint.vip_code) {
-        doc.text(`Acesso: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
+        doc.text(`Acesso VIP: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
       }
       
       y += 10;
@@ -1003,7 +1003,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                              </div>
                              <div className="min-w-0 flex-1 overflow-hidden">
                                 <div 
-                                    className="font-semibold text-sm line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors block w-full" 
+                                    className="font-semibold text-sm line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full" 
                                     onClick={() => setProductDetailsToShow(p)} 
                                     title="Clique para ver os detalhes"
                                 >
@@ -1028,7 +1028,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          return (
                          <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0 overflow-hidden">
                              <div 
-                                className="font-semibold line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors block w-full" 
+                                className="font-semibold line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full" 
                                 onClick={() => setProductDetailsToShow(c.product)}
                                 title="Clique para ver os detalhes"
                              >
@@ -1579,10 +1579,10 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
         {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium">Nenhuma categoria ainda.</li>}
         {cats.map((c, idx) => (
-          <li key={c.id} className="flex items-center justify-between gap-3 p-4 break-words">
-            <span className="font-semibold break-words flex items-center gap-2 min-w-0">
-               {c.is_vip && <span title="Área Exclusiva" className="flex items-center flex-shrink-0"><Crown className="h-4 w-4 text-yellow-500" /></span>}
-               <span className="truncate">{c.name}</span>
+          <li key={c.id} className="flex items-center justify-between gap-3 p-4">
+            <span className="font-semibold flex items-center gap-2 min-w-0 flex-1">
+               {c.is_vip && <span title="Área Exclusiva" className="inline-block flex-shrink-0 align-text-bottom"><Crown className="h-4 w-4 text-yellow-500" /></span>}
+               <span className="truncate block" title={c.name}>{c.name}</span>
             </span>
             <div className="flex gap-1 flex-shrink-0">
               <Button variant="ghost" size="icon" onClick={() => moveUp(idx)} disabled={idx === 0}><ChevronUp className="h-4 w-4" /></Button>
