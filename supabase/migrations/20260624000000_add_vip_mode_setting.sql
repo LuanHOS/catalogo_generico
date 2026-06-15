@@ -1,0 +1,1 @@
+INSERT INTO app_settings (key, value) VALUES ('vip_mode', 'true') ON CONFLICT (key) DO NOTHING;

@@ -323,6 +323,21 @@ export const updatePrivateMode = createServerFn({ method: "POST" })
     return { enabled: data.enabled };
   });
 
+const vipModeSchema = z.object({ enabled: z.boolean() });
+
+export const updateVipMode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => vipModeSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerIsMaster(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .upsert({ key: "vip_mode", value: data.enabled ? "true" : "false" }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { enabled: data.enabled };
+  });
+
 const catalogLogoSchema = z.object({ logoUrl: z.string().trim() });
 
 export const updateCatalogLogo = createServerFn({ method: "POST" })
