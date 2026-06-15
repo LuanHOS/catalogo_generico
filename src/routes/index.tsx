@@ -571,7 +571,7 @@ function Index() {
       {/* FAIXA DO ADMIN */}
       {isAdmin && (
         <div className="bg-yellow-500 text-yellow-950 px-4 py-1.5 text-center text-xs font-black uppercase tracking-wide flex items-center justify-center gap-2 relative z-50">
-          <span>👁️ Visualizando como Admin</span>
+          <span>Vizando como Admin</span>
           {isPrivateModeActive && (
             <span className="hidden sm:inline opacity-80">- O Modo Privado está ATIVO para clientes.</span>
           )}
@@ -1020,6 +1020,7 @@ function ProductCard({ p, isVip, onOpen, onRemoveRequested }: { p: Product; isVi
       </div>
       <div className="p-3 flex flex-1 flex-col">
         <h3 className="text-sm line-clamp-2 font-display font-bold leading-tight text-card-foreground break-words" title={p.name}>
+          {isVip && <span title="Área Exclusiva" className="inline-block mr-1 align-text-bottom"><Crown className="h-3.5 w-3.5 text-yellow-500" /></span>}
           {p.name}
         </h3>
         <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
@@ -1108,7 +1109,10 @@ function ProductDetail({ p, isVip, onClose, onRemoveRequested }: { p: Product; i
           </div>
           <div className="flex flex-col gap-4 p-6 min-w-0 w-full">
             <div className="w-full overflow-hidden break-words">
-              <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl break-words whitespace-normal">{p.name}</h2>
+              <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl break-words whitespace-normal">
+                {isVip && <span title="Área Exclusiva" className="inline-block mr-2 align-text-bottom"><Crown className="h-6 w-6 text-yellow-500" /></span>}
+                {p.name}
+              </h2>
               <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
                 <Package className="h-4 w-4" /> {p.track_stock ? `${p.stock} unidades em estoque` : "Disponível"}
               </div>
