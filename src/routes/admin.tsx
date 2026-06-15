@@ -1473,6 +1473,9 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
   const [name, setName] = useState("");
   const [isVip, setIsVip] = useState(false);
   
+  const [catSearch, setCatSearch] = useState("");
+  const [showAddCatModal, setShowAddCatModal] = useState(false);
+
   // Estado para Edição da Categoria no Modal
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editCatName, setEditCatName] = useState("");
@@ -1500,8 +1503,15 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
     if (error) return toast.error(error.message);
     setName("");
     setIsVip(false);
+    setShowAddCatModal(false);
     toast.success("Categoria criada");
     refresh();
+  }
+
+  function openNewCat() {
+    setName("");
+    setIsVip(false);
+    setShowAddCatModal(true);
   }
 
   function openEdit(c: Category) {
@@ -1578,33 +1588,74 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
 
   return (
     <div className="space-y-6 min-w-0 max-w-full">
-      <form onSubmit={add} className="flex flex-col sm:flex-row gap-3 rounded-xl border border-border bg-card p-4 shadow-sm items-start sm:items-center min-w-0 max-w-full">
-        <div className="flex-1 w-full min-w-0">
-           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required maxLength={50} className="w-full min-w-0" />
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between min-w-0 max-w-full">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            value={catSearch} 
+            onChange={(e) => setCatSearch(e.target.value)} 
+            placeholder="Buscar categoria..." 
+            className="pl-9 w-full shadow-sm" 
+            maxLength={100} 
+          />
         </div>
-        <div className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded-lg border border-border flex-shrink-0 w-full sm:w-auto overflow-hidden">
-           <Switch checked={isVip} onCheckedChange={setIsVip} id="new-vip-switch" className="flex-shrink-0" />
-           <Label htmlFor="new-vip-switch" className="text-xs font-bold cursor-pointer truncate flex items-center gap-1.5 min-w-0"><Crown className="h-3.5 w-3.5 text-yellow-600 flex-shrink-0"/> <span className="truncate">Área Exclusiva</span></Label>
-        </div>
-        <Button type="submit" className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
-      </form>
+        <Button onClick={openNewCat} className="rounded-full shadow-sm w-full sm:w-auto flex-shrink-0">
+          <Plus className="mr-1 h-4 w-4" /> Nova Categoria
+        </Button>
+      </div>
 
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm min-w-0 max-w-full">
         {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium truncate">Nenhuma categoria ainda.</li>}
-        {cats.map((c, idx) => (
+        {cats.length > 0 && cats.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase().trim())).length === 0 && (
+          <li className="p-6 text-center text-muted-foreground font-medium truncate">Nenhuma categoria encontrada.</li>
+        )}
+        {cats.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase().trim())).map((c) => {
+          const originalIdx = cats.findIndex(x => x.id === c.id);
+          return (
           <li key={c.id} className="flex items-center justify-between gap-3 p-4 min-w-0 w-full">
             <span className="font-semibold flex items-center gap-2 min-w-0 flex-1">
                {c.is_vip && <span title="Área Exclusiva" className="inline-block flex-shrink-0 align-text-bottom"><Crown className="h-4 w-4 text-yellow-500" /></span>}
                <span className="truncate block" title={c.name}>{c.name}</span>
             </span>
             <div className="flex gap-1 flex-shrink-0">
-              <Button variant="ghost" size="icon" onClick={() => moveUp(idx)} disabled={idx === 0}><ChevronUp className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => moveDown(idx)} disabled={idx === cats.length - 1}><ChevronDown className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => moveUp(originalIdx)} disabled={originalIdx === 0}><ChevronUp className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => moveDown(originalIdx)} disabled={originalIdx === cats.length - 1}><ChevronDown className="h-4 w-4" /></Button>
               <Button variant="ghost" size="icon" onClick={() => openEdit(c)} className="flex-shrink-0"><Pencil className="h-4 w-4" /></Button>
             </div>
           </li>
-        ))}
+        )})}
       </ul>
+
+      {showAddCatModal && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
+            <ScrollLock />
+            <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto break-words min-w-0">
+               <div className="flex items-center justify-between min-w-0">
+                  <h3 className="text-lg font-black font-display truncate">Nova Categoria</h3>
+                  <button type="button" onClick={() => setShowAddCatModal(false)} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0 ml-2"><X className="h-4 w-4"/></button>
+               </div>
+               <form onSubmit={add} className="flex flex-col gap-4 min-w-0 max-w-full">
+                  <div className="min-w-0">
+                     <Label className="truncate block">Nome da categoria <span className="text-destructive">*</span></Label>
+                     <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Doces" className="mt-1 w-full min-w-0" autoFocus required maxLength={50} />
+                  </div>
+                  <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border min-w-0 gap-3">
+                     <div className="min-w-0">
+                        <Label className="font-bold flex items-center gap-1.5 truncate"><Crown className="h-4 w-4 text-yellow-600 flex-shrink-0"/> <span className="truncate">Área Exclusiva</span></Label>
+                        <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 truncate">Exige senha VIP para acessar.</p>
+                     </div>
+                     <Switch checked={isVip} onCheckedChange={setIsVip} className="flex-shrink-0" />
+                  </div>
+                  <div className="flex justify-end border-t border-border pt-4 mt-2 flex-shrink-0">
+                     <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => setShowAddCatModal(false)} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
+                        <Button type="submit" className="rounded-full shadow-sm flex-shrink-0">Adicionar</Button>
+                     </div>
+                  </div>
+               </form>
+            </div>
+         </div>
+      )}
 
       {editingCat && !deletingCat && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">
@@ -1700,22 +1751,22 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
 
   return (
     <div className="space-y-4 min-w-0 max-w-full">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between min-w-0 max-w-full">
-        <div className="relative flex-1 sm:max-w-xl flex flex-col sm:flex-row gap-2 min-w-0">
-          <div className="relative flex-1 min-w-0">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-1">
+          <div className="relative w-full sm:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou código de barras..."
-              className="pl-9 shadow-sm w-full min-w-0"
+              className="pl-9 shadow-sm w-full"
               maxLength={100}
             />
           </div>
           <select
             value={filterOption}
             onChange={(e) => setFilterOption(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input flex-shrink-0 min-w-0 max-w-full truncate"
+            className="h-10 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
           >
             <option value="all">Todos os produtos</option>
             <option value="none">Sem categoria</option>
@@ -1729,7 +1780,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
             ))}
           </select>
         </div>
-        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
+        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="rounded-full shadow-sm w-full sm:w-auto flex-shrink-0">
           <Plus className="mr-1 h-4 w-4" /> Novo produto
         </Button>
       </div>
