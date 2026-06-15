@@ -980,7 +980,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const q = exactSearch.toLowerCase();
   const filteredProducts = products.filter(p => {
      if (!p.in_stock) return false;
-     if (!exactSearch) return true;
+     if (!exactSearch) return false;
      if (p.barcode && p.barcode === exactSearch) return true;
      return p.name.toLowerCase().includes(q);
   });
@@ -1002,32 +1002,42 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-full min-w-0" maxLength={100} />
                      </div>
                      <div className="grid gap-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 min-w-0 max-w-full">
-                     {filteredProducts.map(p => {
-                         const outOfStock = p.track_stock && p.stock <= 0;
-                         const isLowStock = !outOfStock && p.track_stock && p.stock <= (p.min_stock || 0);
-                         return (
-                         <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 min-w-0 max-w-full " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
-                             <div className="flex items-center flex-shrink-0">
-                                <Button size="sm" onClick={() => addToCart(p)} disabled={outOfStock} className="rounded-full h-8 px-3 shadow-sm flex-shrink-0">
-                                    <Plus className="h-3 w-3" />
-                                </Button>
-                             </div>
-                             <div className="min-w-0 flex-1 overflow-hidden">
-                                <div 
-                                    className="font-semibold text-sm line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full min-w-0" 
-                                    onClick={() => setProductDetailsToShow(p)} 
-                                    title="Clique para ver os detalhes"
-                                >
-                                    {p.name}
-                                </div>
-                                <div className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
-                             </div>
-                             <div className="flex items-center flex-shrink-0">
-                                <span className="font-bold text-primary truncate">{brl(Number(p.sale_price) || Number(p.price))}</span>
-                             </div>
+                     {!exactSearch ? (
+                         <div className="flex flex-col items-center justify-center py-10 text-center px-4 h-full min-h-[150px]">
+                             <Search className="h-8 w-8 text-muted-foreground/30 mb-3" />
+                             <p className="text-sm font-semibold text-muted-foreground break-words whitespace-normal">
+                                 Digite o nome ou código de barras acima para buscar os produtos.
+                             </p>
                          </div>
-                     )})}
-                     {filteredProducts.length === 0 && <p className="text-sm font-semibold text-muted-foreground text-center py-4 truncate">Nenhum produto encontrado.</p>}
+                     ) : filteredProducts.length === 0 ? (
+                         <p className="text-sm font-semibold text-muted-foreground text-center py-8 truncate">Nenhum produto encontrado.</p>
+                     ) : (
+                         filteredProducts.map(p => {
+                             const outOfStock = p.track_stock && p.stock <= 0;
+                             const isLowStock = !outOfStock && p.track_stock && p.stock <= (p.min_stock || 0);
+                             return (
+                             <div key={p.id} className={"flex justify-between border p-3 rounded-xl items-center shadow-sm transition gap-3 min-w-0 max-w-full " + (outOfStock ? "opacity-50 bg-secondary border-border" : isLowStock ? "border-yellow-600 ring-1 ring-yellow-600/50 bg-yellow-500/5" : "bg-card border-border")}>
+                                 <div className="flex items-center flex-shrink-0">
+                                    <Button size="sm" onClick={() => addToCart(p)} disabled={outOfStock} className="rounded-full h-8 px-3 shadow-sm flex-shrink-0">
+                                        <Plus className="h-3 w-3" />
+                                    </Button>
+                                 </div>
+                                 <div className="min-w-0 flex-1 overflow-hidden">
+                                    <div 
+                                        className="font-semibold text-sm line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors w-full min-w-0" 
+                                        onClick={() => setProductDetailsToShow(p)} 
+                                        title="Clique para ver os detalhes"
+                                    >
+                                        {p.name}
+                                    </div>
+                                    <div className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
+                                 </div>
+                                 <div className="flex items-center flex-shrink-0">
+                                    <span className="font-bold text-primary truncate">{brl(Number(p.sale_price) || Number(p.price))}</span>
+                                 </div>
+                             </div>
+                         )})
+                     )}
                      </div>
                  </div>
                  <div className="w-full sm:w-2/5 p-6 bg-secondary/20 flex flex-col min-w-0">
@@ -1766,7 +1776,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
           <select
             value={filterOption}
             onChange={(e) => setFilterOption(e.target.value)}
-            className="h-10 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
+            className="h-10 w-full sm:max-w-xs md:max-w-sm truncate rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
           >
             <option value="all">Todos os produtos</option>
             <option value="none">Sem categoria</option>
