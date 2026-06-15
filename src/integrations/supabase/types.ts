@@ -17,16 +17,22 @@ export type Database = {
           id: string
           code: string
           created_at: string
+          code_type: string | null
+          unlocks_vip: boolean | null
         }
         Insert: {
           id?: string
           code: string
           created_at?: string
+          code_type?: string | null
+          unlocks_vip?: boolean | null
         }
         Update: {
           id?: string
           code?: string
           created_at?: string
+          code_type?: string | null
+          unlocks_vip?: boolean | null
         }
         Relationships: []
       }
@@ -57,6 +63,7 @@ export type Database = {
           deleted_at: string | null
           created_by_name: string | null
           deleted_by_name: string | null
+          is_vip: boolean | null
         }
         Insert: {
           created_at?: string
@@ -66,6 +73,7 @@ export type Database = {
           deleted_at?: string | null
           created_by_name?: string | null
           deleted_by_name?: string | null
+          is_vip?: boolean | null
         }
         Update: {
           created_at?: string
@@ -75,6 +83,7 @@ export type Database = {
           deleted_at?: string | null
           created_by_name?: string | null
           deleted_by_name?: string | null
+          is_vip?: boolean | null
         }
         Relationships: []
       }
@@ -240,7 +249,8 @@ export type Database = {
       }
       get_catalog_secure: {
         Args: {
-          p_code?: string
+          p_store_code?: string
+          p_vip_code?: string
         }
         Returns: {
           id: string
@@ -261,6 +271,16 @@ export type Database = {
           sales_count: number
           track_stock: boolean
         }[]
+      }
+      has_vip_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      verify_exclusive_code: {
+        Args: {
+          p_code: string
+        }
+        Returns: boolean
       }
       has_role: {
         Args: {

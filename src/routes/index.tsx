@@ -7,7 +7,7 @@ import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "sonner";
-import { ShoppingBag, ShoppingCart, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp, AlertTriangle, Package } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp, AlertTriangle, Package, Crown } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,7 +35,7 @@ type Product = {
   max_per_cart: number;
   track_stock: boolean;
 };
-type Category = { id: string; name: string; sort_order: number };
+type Category = { id: string; name: string; sort_order: number; is_vip: boolean | null };
 
 export const SYSTEM_THEMES = [
   { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
@@ -228,10 +228,15 @@ function Index() {
   // Paginação (Infinite Scroll)
   const [visibleCount, setVisibleCount] = useState(24);
 
-  // Estados do Modo Privado
+  // Estados do Modo Privado (Loja Inteira) e Área Exclusiva (VIP)
   const [accessDenied, setAccessDenied] = useState(false);
+  const [storeCodeInput, setStoreCodeInput] = useState("");
+  const [verifyingStoreCode, setVerifyingStoreCode] = useState(false);
+  
+  const [isVipUnlocked, setIsVipUnlocked] = useState(false);
+  const [showVipModal, setShowVipModal] = useState(false);
   const [vipCodeInput, setVipCodeInput] = useState("");
-  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [verifyingVip, setVerifyingVip] = useState(false);
   
   // Estados para a Faixa do Admin
   const [isAdmin, setIsAdmin] = useState(false);
@@ -245,14 +250,17 @@ function Index() {
 
   useEffect(() => {
     (async () => {
-      const savedCode = localStorage.getItem("vip_code") || "";
+      const savedStoreCode = localStorage.getItem("store_code") || "";
+      const savedExclusiveCode = localStorage.getItem("exclusive_code") || "";
       
-      const [sessionRes, c, p, s] = await Promise.all([
+      const [sessionRes, c, p, s, vipCheckStore, vipCheckExclusive] = await Promise.all([
         supabase.auth.getSession(),
         supabase.from("categories").select("*").order("sort_order"),
         // @ts-ignore
-        supabase.rpc("get_catalog_secure", { p_code: savedCode }),
+        supabase.rpc("get_catalog_secure", { p_store_code: savedStoreCode, p_vip_code: savedExclusiveCode }),
         supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode", "catalog_logo"]),
+        savedStoreCode ? supabase.rpc("verify_exclusive_code", { p_code: savedStoreCode }) : Promise.resolve({ data: false }),
+        savedExclusiveCode ? supabase.rpc("verify_exclusive_code", { p_code: savedExclusiveCode }) : Promise.resolve({ data: false }),
       ]);
       
       const settingsMap = new Map(s.data?.map(x => [x.key, x.value]) || []);
@@ -265,7 +273,11 @@ function Index() {
       const privateModeStatus = settingsMap.get("private_mode") === "true";
       setIsPrivateModeActive(privateModeStatus);
 
-      // Checa se o usuário atual é admin para podermos mostrar a faixa de aviso
+      // Checa se usuário destravou VIP via senha da loja ou via senha exclusiva
+      if (vipCheckStore.data || vipCheckExclusive.data) {
+         setIsVipUnlocked(true);
+      }
+
       if (sessionRes.data.session?.user) {
         const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", sessionRes.data.session.user.id).eq("role", "admin").maybeSingle();
         if (roleData) setIsAdmin(true);
@@ -278,8 +290,7 @@ function Index() {
       if (p.error) {
          if (p.error.message.includes("ACCESS_DENIED")) {
              setAccessDenied(true);
-             // Limpa a senha inválida do navegador imediatamente
-             localStorage.removeItem("vip_code");
+             localStorage.removeItem("store_code"); // Limpa imediatamente se revogado
          } else {
              setLoadError(p.error.message ?? "Erro ao carregar catálogo");
          }
@@ -288,7 +299,7 @@ function Index() {
          setAccessDenied(false);
       }
 
-      setCats(c.data ?? []);
+      setCats((c.data as Category[]) ?? []);
       setLoading(false);
     })();
   }, []);
@@ -309,27 +320,41 @@ function Index() {
     setVisibleCount(24);
   }, [searchTerm, activeCat]);
 
-  async function handleVerifyCode(e: React.FormEvent) {
+  async function handleVerifyStoreCode(e: React.FormEvent) {
     e.preventDefault();
-    setVerifyingCode(true);
-    const code = vipCodeInput.trim();
+    setVerifyingStoreCode(true);
+    const code = storeCodeInput.trim();
     // @ts-ignore
-    const p = await supabase.rpc("get_catalog_secure", { p_code: code });
-    setVerifyingCode(false);
+    const p = await supabase.rpc("get_catalog_secure", { p_store_code: code, p_vip_code: localStorage.getItem("exclusive_code") || "" });
+    setVerifyingStoreCode(false);
     
     if (p.error) {
       if (p.error.message.includes("ACCESS_DENIED")) {
-        toast.error("Senha inválida ou revogada.", { description: "Peça uma senha válida ao proprietário." });
-        localStorage.removeItem("vip_code"); // Garante que não salve senha errada
+        toast.error("Senha de loja inválida ou revogada.", { description: "Peça uma senha válida ao proprietário." });
+        localStorage.removeItem("store_code");
       } else {
         toast.error("Erro ao verificar senha.");
       }
     } else {
-      localStorage.setItem("vip_code", code);
-      setProds((p.data ?? []) as Product[]);
-      setAccessDenied(false);
-      setVipCodeInput(""); // Limpa o campo para o futuro
-      toast.success("Acesso liberado com sucesso!");
+      localStorage.setItem("store_code", code);
+      toast.success("Loja liberada com sucesso!");
+      setTimeout(() => window.location.reload(), 500); // Recarrega para limpar as validações perfeitamente
+    }
+  }
+
+  async function handleVerifyVipCode(e: React.FormEvent) {
+    e.preventDefault();
+    setVerifyingVip(true);
+    const code = vipCodeInput.trim();
+    const { data, error } = await supabase.rpc("verify_exclusive_code", { p_code: code });
+    setVerifyingVip(false);
+    
+    if (error || !data) {
+       toast.error("Senha inválida ou revogada.", { description: "Verifique a senha informada e tente novamente." });
+    } else {
+       localStorage.setItem("exclusive_code", code);
+       toast.success("Área Exclusiva Desbloqueada!");
+       setTimeout(() => window.location.reload(), 500);
     }
   }
 
@@ -365,7 +390,6 @@ function Index() {
 
   const visibleProducts = filtered.slice(0, visibleCount);
 
-  // Intersection Observer para o Infinite Scroll
   const observer = useRef<IntersectionObserver | null>(null);
   const lastProductElementRef = useCallback((node: HTMLDivElement) => {
     if (observer.current) observer.current.disconnect();
@@ -389,26 +413,27 @@ function Index() {
       cart.setQty(item.id, item.available);
     });
     setStockConflictData(null);
-    window.location.reload(); // Recarrega a página inteira para atualizar os cards de estoque
+    window.location.reload(); 
   }
 
   async function finalizar() {
     if (!items.length) return;
     setCheckoutLoading(true);
 
-    const vipCode = localStorage.getItem("vip_code");
+    const storeCode = localStorage.getItem("store_code") || "";
+    const exclusiveCode = localStorage.getItem("exclusive_code") || "";
 
     // Puxa os produtos atualizados do banco na exata fração de segundo da compra
     // @ts-ignore
-    const { data: currentProducts, error: checkError } = await supabase.rpc("get_catalog_secure", { p_code: vipCode || "" });
+    const { data: currentProducts, error: checkError } = await supabase.rpc("get_catalog_secure", { p_store_code: storeCode, p_vip_code: exclusiveCode });
 
-    // Se der erro aqui, a senha expirou/foi revogada no meio da compra
+    // Se der erro aqui, a senha da loja expirou/foi revogada no meio da compra
     if (checkError || !currentProducts) {
       toast.error("Sua sessão expirou ou a senha foi revogada.", { description: "Solicite uma nova senha para continuar comprando." });
       setCheckoutLoading(false);
-      setCartOpen(false); // Fecha o carrinho
-      setAccessDenied(true); // Joga a tela de bloqueio
-      localStorage.removeItem("vip_code"); // Limpa a senha revogada
+      setCartOpen(false); 
+      setAccessDenied(true); 
+      localStorage.removeItem("store_code"); 
       return;
     }
 
@@ -424,36 +449,31 @@ function Index() {
     for (const i of items) {
       const p = currentProductMap.get(i.id);
       
-      // Produto foi apagado, inativado ou esgotou (se for pra controlar o estoque)
       if (!p || !p.in_stock || (p.track_stock && p.stock <= 0)) {
+        // Produto foi apagado, inativado ou esgotou
         outOfStockItems.push({ id: i.id, name: i.name });
         hasConflict = true;
       } else {
-        // Produto existe, vamos checar o limite e o estoque
         const currentMax = p.max_per_cart > 0 
           ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) 
           : (p.track_stock ? p.stock : 999999);
 
         if (i.qty > currentMax) {
-          // Cliente tem mais no carrinho do que o disponível ou permitido agora
           reducedStockItems.push({ id: i.id, name: i.name, requested: i.qty, available: currentMax });
           hasConflict = true;
-          validItems.push({ ...i, qty: currentMax }); // Guardamos o novo valor, mas o pedido será bloqueado
+          validItems.push({ ...i, qty: currentMax }); 
         } else {
-          // Tudo certo com o produto
           validItems.push(i);
         }
       }
     }
 
-    // Se houve concorrência e alguém comprou antes, bloqueia e avisa
     if (hasConflict) {
       setCheckoutLoading(false);
       setStockConflictData({ outOfStock: outOfStockItems, reduced: reducedStockItems });
       return;
     }
 
-    // Se chegou aqui, não há conflitos de estoque. Calcular total final seguro.
     const newTotal = validItems.reduce((s, i) => s + i.price * i.qty, 0);
 
     const itemsJson = validItems.map((i) => {
@@ -467,10 +487,12 @@ function Index() {
       };
     });
 
+    const usedCodeForTracking = isVipUnlocked ? (exclusiveCode || storeCode) : (isPrivateModeActive ? storeCode : null);
+
     const { data: orderId, error } = await supabase.rpc("checkout_order", {
       order_total: newTotal,
       order_items: itemsJson,
-      p_vip_code: vipCode || null
+      p_vip_code: usedCodeForTracking || null
     });
 
     setCheckoutLoading(false);
@@ -481,9 +503,7 @@ function Index() {
     }
 
     const orderHash = String(orderId).split("-")[0];
-
-    const isVip = isPrivateModeActive && vipCode;
-    const vipString = isVip ? ` (VIP: ${vipCode})` : "";
+    const vipString = usedCodeForTracking ? ` (Acesso: ${usedCodeForTracking})` : "";
 
     const lines = [
       `*Pedido #${orderHash}${vipString} — Catálogo*`,
@@ -497,55 +517,76 @@ function Index() {
     ];
     window.open(whatsappLink(lines.join("\n"), whatsNumber), "_blank");
     
-    // Limpa o carrinho e fecha a gaveta lateral
     cart.clear();
     setCartOpen(false);
 
-    // Recarrega os produtos para atualizar o estoque visualmente na tela
+    // Recarrega visualmente na tela
     // @ts-ignore
-    const p = await supabase.rpc("get_catalog_secure", { p_code: localStorage.getItem("vip_code") || "" });
-    if (p.data) setProds(p.data as Product[]);
+    const pr = await supabase.rpc("get_catalog_secure", { p_store_code: storeCode, p_vip_code: exclusiveCode });
+    if (pr.data) setProds(pr.data as Product[]);
   }
+
+  const hasVipCategory = cats.some(c => c.is_vip);
+  const vipCats = cats.filter(c => c.is_vip);
+  const normalCats = cats.filter(c => !c.is_vip);
 
   return (
     <div className="min-h-screen relative flex flex-col bg-background w-full max-w-[100vw]">
       <Toaster position="top-center" richColors />
       
+      {/* Efeito Visual Premium para as Categorias VIP (injetado via estilo local) */}
+      <style>{`
+        @keyframes shimmer-vip {
+          0% { background-position: 200% center; }
+          100% { background-position: -200% center; }
+        }
+        .vip-chip {
+          background-image: linear-gradient(110deg, var(--primary) 20%, color-mix(in srgb, var(--primary) 50%, white) 50%, var(--primary) 80%);
+          background-size: 200% auto;
+          animation: shimmer-vip 3.5s linear infinite;
+          color: var(--primary-foreground) !important;
+          border-color: transparent !important;
+        }
+        .vip-chip:hover { filter: brightness(1.1); }
+      `}</style>
+
       {/* FAIXA DO ADMIN */}
-      {isAdmin && isPrivateModeActive && (
+      {isAdmin && (
         <div className="bg-yellow-500 text-yellow-950 px-4 py-1.5 text-center text-xs font-black uppercase tracking-wide flex items-center justify-center gap-2 relative z-50">
           <span>👁️ Visualizando como Admin</span>
-          <span className="hidden sm:inline opacity-80">- O Modo Privado está ATIVO para clientes.</span>
+          {isPrivateModeActive && (
+            <span className="hidden sm:inline opacity-80">- O Modo Privado está ATIVO para clientes.</span>
+          )}
         </div>
       )}
 
-      {/* Header - Totalmente opaco e com a cor do sistema. Grudado no topo. */}
       <header className="sticky top-0 z-40 bg-primary shadow-md w-full">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 py-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {catalogLogo ? (
                <img 
                  src={catalogLogo} 
                  alt={catalogName} 
-                 className="h-10 w-10 rounded-full object-cover shadow-sm bg-background cursor-pointer transition hover:scale-105 border-2 border-primary-foreground/20" 
+                 className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover shadow-sm bg-background cursor-pointer transition hover:scale-105 border-2 border-primary-foreground/20 flex-shrink-0" 
                  onClick={() => setShowLogoModal(true)}
                />
             ) : (
-               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background text-primary text-lg font-black uppercase shadow-sm">
+               <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-background text-primary text-lg font-black uppercase shadow-sm flex-shrink-0">
                  {catalogName.charAt(0)}
                </div>
             )}
-            <div className="leading-tight">
+            <div className="leading-tight truncate">
               <div 
-                className="font-display text-xl font-black text-primary-foreground sm:text-2xl cursor-pointer transition hover:opacity-80"
+                className="font-display text-lg font-black text-primary-foreground sm:text-2xl cursor-pointer transition hover:opacity-80 truncate"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
                 {catalogName}
               </div>
-              <div className="text-xs text-primary-foreground/80 font-semibold">Catálogo de produtos</div>
+              <div className="text-[10px] sm:text-xs text-primary-foreground/80 font-semibold truncate">Catálogo de produtos</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <Link
               to="/admin"
               aria-label="Área do Administrador"
@@ -554,16 +595,31 @@ function Index() {
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Área do Administrador</span>
             </Link>
+            {!accessDenied && hasVipCategory && (
+              <button
+                onClick={() => { if (!isVipUnlocked) setShowVipModal(true); }}
+                disabled={isVipUnlocked}
+                className={`inline-flex items-center justify-center h-10 px-3 sm:px-4 rounded-full text-sm font-bold shadow-md transition whitespace-nowrap ${
+                  isVipUnlocked 
+                    ? "bg-yellow-500/20 text-yellow-400 cursor-default border border-yellow-500/30" 
+                    : "bg-yellow-500 text-yellow-950 hover:bg-yellow-400 border border-yellow-400"
+                }`}
+                title={isVipUnlocked ? "Área Exclusiva Liberada" : "Acessar Área Exclusiva"}
+              >
+                <Crown className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{isVipUnlocked ? "VIP Liberado" : "Área Exclusiva"}</span>
+              </button>
+            )}
             <button
               onClick={() => setCartOpen(true)}
               disabled={accessDenied}
-              className={`relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-md transition ${
+              className={`relative inline-flex items-center justify-center h-10 px-3 sm:px-4 rounded-full text-sm font-bold shadow-md transition whitespace-nowrap ${
                 accessDenied
                   ? "bg-primary-foreground/20 text-primary-foreground/50 cursor-not-allowed"
                   : "bg-background text-primary hover:bg-background/90"
               }`}
             >
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingCart className="h-4 w-4 sm:mr-1.5" />
               <span className="hidden sm:inline">Carrinho</span>
               {!accessDenied && itemCount > 0 && (
                 <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-black text-accent-foreground">
@@ -575,7 +631,7 @@ function Index() {
         </div>
       </header>
 
-      {/* TELA DE BLOQUEIO */}
+      {/* TELA DE BLOQUEIO DA LOJA */}
       {accessDenied ? (
         <main className="relative mx-auto max-w-7xl px-4 py-20 flex flex-col items-center justify-center min-h-[70vh] z-10 flex-1 w-full">
            <div className="bg-card w-full max-w-md p-8 rounded-3xl shadow-2xl border border-border text-center relative z-20">
@@ -586,26 +642,24 @@ function Index() {
               <p className="text-muted-foreground font-medium mb-6">
                 Este catálogo é exclusivo para clientes autorizados. Por favor, insira sua senha de acesso para visualizar os produtos.
               </p>
-              <form onSubmit={handleVerifyCode} className="space-y-4">
+              <form onSubmit={handleVerifyStoreCode} className="space-y-4">
                  <Input 
                    type="password" 
-                   placeholder="Sua senha VIP" 
-                   value={vipCodeInput} 
-                   onChange={e => setVipCodeInput(e.target.value)}
+                   placeholder="Sua senha da loja" 
+                   value={storeCodeInput} 
+                   onChange={e => setStoreCodeInput(e.target.value)}
                    className="h-12 text-center text-lg font-bold"
                    maxLength={20}
                  />
-                 <Button type="submit" disabled={verifyingCode || !vipCodeInput.trim()} className="w-full h-12 rounded-full text-base font-black shadow-sm">
-                   {verifyingCode ? "Verificando..." : "Acessar Catálogo"}
+                 <Button type="submit" disabled={verifyingStoreCode || !storeCodeInput.trim()} className="w-full h-12 rounded-full text-base font-black shadow-sm">
+                   {verifyingStoreCode ? "Verificando..." : "Acessar Catálogo"}
                  </Button>
               </form>
            </div>
-           
            <div className="fixed inset-0 z-0 top-[64px] bg-background/50 backdrop-blur-xl pointer-events-none" />
         </main>
       ) : (
         <div className="flex-1 w-full flex flex-col relative bg-[#EAEAEA]">
-          {/* Hero */}
           <div className="bg-background">
             <section className="border-b border-border/60 bg-gradient-to-br from-secondary via-background to-secondary/40">
               <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14 w-full">
@@ -626,7 +680,6 @@ function Index() {
             </section>
           </div>
 
-          {/* Search Bar - Cor branca sólida e colada perfeitamente abaixo do header (64px) no scroll */}
           <div className="sticky top-[64px] z-30 border-b border-border/60 bg-card w-full shadow-sm transition-all">
             <div className="mx-auto max-w-7xl px-4 py-3">
               <form
@@ -659,17 +712,25 @@ function Index() {
             </div>
           </div>
 
-          {/* Categories - Cor branca sólida e desaparece naturalmente no scroll */}
           <div className="bg-card border-b border-border/60 w-full relative z-20">
             <div className="mx-auto max-w-7xl px-4 py-2">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 px-1">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 px-1 custom-scrollbar">
                 <CatChip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
                   Todos
                 </CatChip>
                 <CatChip active={activeCat === "promocoes"} onClick={() => setActiveCat("promocoes")}>
                   Promoções
                 </CatChip>
-                {cats.map((c) => (
+                
+                {/* Categorias VIP - Ocultadas para quem não tem acesso */}
+                {isVipUnlocked && vipCats.map((c) => (
+                  <CatChip key={c.id} active={activeCat === c.id} isVip={true} onClick={() => setActiveCat(c.id)}>
+                    {c.name}
+                  </CatChip>
+                ))}
+
+                {/* Categorias Normais */}
+                {normalCats.map((c) => (
                   <CatChip key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)}>
                     {c.name}
                   </CatChip>
@@ -678,7 +739,6 @@ function Index() {
             </div>
           </div>
 
-          {/* Products */}
           <main className="mx-auto max-w-7xl px-4 py-8 w-full flex-1">
             {loading ? (
               <p className="text-muted-foreground font-semibold">Carregando catálogo…</p>
@@ -700,7 +760,6 @@ function Index() {
               </div>
             ) : (
               <>
-                {/* Produtos em Alta (Mostra apenas na visão geral "Todos" e sem filtro de pesquisa) */}
                 {!loading && !loadError && activeCat === "all" && !searchTerm && trendingProducts.length > 0 && (
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-4 px-1">
@@ -709,11 +768,9 @@ function Index() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {trendingProducts.map((p) => (
-                        <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
+                        <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} isVipUnlocked={isVipUnlocked} />
                       ))}
                     </div>
-
-                    {/* Separador UI/UX Elegante para fundo EAEAEA */}
                     <div className="relative mt-12 mb-6 flex items-center py-5">
                       <div className="flex-grow border-t border-black/15"></div>
                       <span className="mx-4 flex-shrink-0 text-xs font-bold uppercase tracking-widest text-black/50">
@@ -726,11 +783,10 @@ function Index() {
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {visibleProducts.map((p) => (
-                    <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} />
+                    <ProductCard key={p.id} p={p} onOpen={() => setDetail(p)} isVipUnlocked={isVipUnlocked} />
                   ))}
                 </div>
 
-                {/* Loader do Infinite Scroll e Mensagem Final */}
                 {visibleCount < filtered.length ? (
                   <div ref={lastProductElementRef} className="h-16 w-full flex items-center justify-center mt-6">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
@@ -752,14 +808,47 @@ function Index() {
         </div>
       )}
 
-      {/* Footer Branco Forçado no Fundo */}
+      {/* MODAL DE DESBLOQUEIO VIP */}
+      {showVipModal && !accessDenied && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <ScrollLock />
+            <div className="bg-background w-full max-w-sm rounded-3xl p-8 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 relative border border-border">
+               <button onClick={() => setShowVipModal(false)} className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-foreground bg-secondary/50 rounded-full transition-colors">
+                  <X className="h-4 w-4" />
+               </button>
+               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10 mb-2 border border-yellow-500/20">
+                  <Crown className="h-8 w-8 text-yellow-600" />
+               </div>
+               <div className="text-center">
+                  <h3 className="text-2xl font-black font-display text-foreground leading-tight">Área Exclusiva</h3>
+                  <p className="text-sm text-muted-foreground mt-3 font-medium leading-relaxed">
+                     Categorias exclusivas devido à quantidade limitada de produtos. Insira sua senha para acessar.
+                  </p>
+               </div>
+               <form onSubmit={handleVerifyVipCode} className="mt-4 space-y-4">
+                  <Input 
+                     type="password" 
+                     placeholder="Sua senha secreta..." 
+                     value={vipCodeInput} 
+                     onChange={e => setVipCodeInput(e.target.value)}
+                     className="h-12 text-center text-lg font-bold border-yellow-500/30 focus-visible:ring-yellow-500"
+                     maxLength={20}
+                     autoFocus
+                  />
+                  <Button type="submit" disabled={verifyingVip || !vipCodeInput.trim()} className="w-full h-12 rounded-full text-base font-black shadow-md bg-yellow-500 hover:bg-yellow-600 text-yellow-950 transition-all">
+                     {verifyingVip ? "Verificando..." : "Desbloquear Acesso"}
+                  </Button>
+               </form>
+            </div>
+         </div>
+      )}
+
       <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full">
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
           © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
         </div>
       </footer>
 
-      {/* Floating Cart Icon (Canto direito) */}
       {!accessDenied && items.length > 0 && (
         <button
           onClick={() => setCartOpen(true)}
@@ -773,7 +862,6 @@ function Index() {
         </button>
       )}
 
-      {/* Modal de Conflito de Estoque */}
       {stockConflictData && (
         <StockConflictModal
           data={stockConflictData}
@@ -782,7 +870,6 @@ function Index() {
         />
       )}
 
-      {/* Componentes removidos do DOM quando o acesso é negado */}
       {!accessDenied && cartOpen && (
         <CartDrawer 
           onClose={() => setCartOpen(false)} 
@@ -794,7 +881,6 @@ function Index() {
       )}
       {!accessDenied && detail && <ProductDetail p={detail} onClose={() => setDetail(null)} />}
       
-      {/* Modal de Logo Expandida */}
       {!accessDenied && showLogoModal && catalogLogo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setShowLogoModal(false)}>
           <ScrollLock />
@@ -816,15 +902,19 @@ function Index() {
   );
 }
 
-function CatChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function CatChip({ active, isVip = false, onClick, children }: { active: boolean; isVip?: boolean; onClick: () => void; children: React.ReactNode }) {
+  const baseClasses = "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition shadow-sm flex items-center gap-1.5 flex-shrink-0 ";
+  let styleClasses = "";
+
+  if (isVip) {
+      styleClasses = "vip-chip text-[14.5px] " + (active ? "ring-2 ring-background ring-offset-2 ring-offset-primary" : "");
+  } else {
+      styleClasses = active ? "bg-primary text-primary-foreground" : "bg-background text-secondary-foreground hover:bg-background/80 border border-border";
+  }
+
   return (
-    <button
-      onClick={onClick}
-      className={
-        "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition shadow-sm " +
-        (active ? "bg-primary text-primary-foreground" : "bg-background text-secondary-foreground hover:bg-background/80 border border-border")
-      }
-    >
+    <button onClick={onClick} className={baseClasses + styleClasses}>
+      {isVip && <Crown className="h-4 w-4" />}
       {children}
     </button>
   );
@@ -856,7 +946,7 @@ function PriceBlock({ p, big = false }: { p: Product; big?: boolean }) {
   return <div className={(big ? "text-3xl" : "text-lg") + " font-black text-primary"}>{brl(eff)}</div>;
 }
 
-function ProductCard({ p, onOpen }: { p: Product; onOpen: () => void }) {
+function ProductCard({ p, onOpen, isVipUnlocked }: { p: Product; onOpen: () => void; isVipUnlocked: boolean }) {
   const items = useCart();
   const inCart = items.find((i) => i.id === p.id);
   const qty = inCart?.qty ?? 0;

@@ -26,14 +26,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast, Toaster } from "sonner";
-import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock, Image as ImageIcon, X } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Pencil, Trash2, Upload, UserPlus, Phone, ShieldAlert, Search, CheckCircle, XCircle, TrendingUp, ShoppingBag, DollarSign, Package, Layers, Palette, Lock, Share2, AlertTriangle, Clock, Image as ImageIcon, X, Crown } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administração — Catálogo" }] }),
   component: AdminPage,
 });
 
-type Category = { id: string; name: string; sort_order: number };
+type Category = { id: string; name: string; sort_order: number; is_vip: boolean | null };
 type Product = {
   id: string;
   category_id: string | null;
@@ -683,7 +683,7 @@ function OrderDetailsModal({
         doc.text(`Cancelado em: ${new Date(orderToPrint.canceled_at).toLocaleString('pt-BR')}`, marginLeft, y); y += lineHeight;
       }
       if (orderToPrint.vip_code) {
-        doc.text(`Acesso VIP: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
+        doc.text(`Acesso: ${orderToPrint.vip_code}`, marginLeft, y); y += lineHeight;
       }
       
       y += 10;
@@ -1003,7 +1003,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                              </div>
                              <div className="min-w-0 flex-1 overflow-hidden">
                                 <div 
-                                    className="font-semibold text-sm truncate cursor-pointer hover:text-primary transition-colors block w-full" 
+                                    className="font-semibold text-sm line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors block w-full" 
                                     onClick={() => setProductDetailsToShow(p)} 
                                     title="Clique para ver os detalhes"
                                 >
@@ -1028,7 +1028,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                          return (
                          <div key={c.product.id} className="flex flex-col text-sm border-b border-border/50 pb-3 min-w-0 overflow-hidden">
                              <div 
-                                className="font-semibold truncate cursor-pointer hover:text-primary transition-colors block w-full" 
+                                className="font-semibold line-clamp-2 break-words cursor-pointer hover:text-primary transition-colors block w-full" 
                                 onClick={() => setProductDetailsToShow(c.product)}
                                 title="Clique para ver os detalhes"
                              >
@@ -1458,10 +1458,12 @@ function FinancesPanel() {
 function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, currentUserName: string }) {
   const [cats, setCats] = useState<Category[]>([]);
   const [name, setName] = useState("");
+  const [isVip, setIsVip] = useState(false);
   
   // Estado para Edição da Categoria no Modal
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editCatName, setEditCatName] = useState("");
+  const [editCatVip, setEditCatVip] = useState(false);
 
   // Estado para Modal de Confirmação de Exclusão (sobreposto)
   const [deletingCat, setDeletingCat] = useState<{ cat: Category, warning?: string } | null>(null);
@@ -1469,16 +1471,22 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
 
   const refresh = useCallback(async () => {
     const { data } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
-    setCats(data ?? []);
+    setCats((data as Category[]) ?? []);
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    const { error } = await supabase.from("categories").insert({ name: name.trim(), sort_order: cats.length, created_by_name: currentUserName });
+    const { error } = await supabase.from("categories").insert({ 
+       name: name.trim(), 
+       sort_order: cats.length, 
+       created_by_name: currentUserName,
+       is_vip: isVip
+    });
     if (error) return toast.error(error.message);
     setName("");
+    setIsVip(false);
     toast.success("Categoria criada");
     refresh();
   }
@@ -1486,12 +1494,13 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
   function openEdit(c: Category) {
     setEditingCat(c);
     setEditCatName(c.name);
+    setEditCatVip(c.is_vip || false);
   }
 
   async function handleRenameCat(e: React.FormEvent) {
     e.preventDefault();
     if (!editingCat || !editCatName.trim()) return;
-    const { error } = await supabase.from("categories").update({ name: editCatName.trim() }).eq("id", editingCat.id);
+    const { error } = await supabase.from("categories").update({ name: editCatName.trim(), is_vip: editCatVip }).eq("id", editingCat.id);
     if (error) return toast.error(error.message);
     setEditingCat(null);
     refresh();
@@ -1528,17 +1537,25 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
 
   return (
     <div className="space-y-6">
-      <form onSubmit={add} className="flex gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex-1">
+      <form onSubmit={add} className="flex flex-col sm:flex-row gap-3 rounded-xl border border-border bg-card p-4 shadow-sm items-start sm:items-center">
+        <div className="flex-1 w-full">
            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da categoria (ex: Doces)" required maxLength={50} />
         </div>
-        <Button type="submit" className="rounded-full shadow-sm flex-shrink-0"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
+        <div className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded-lg border border-border flex-shrink-0 w-full sm:w-auto">
+           <Switch checked={isVip} onCheckedChange={setIsVip} id="new-vip-switch" />
+           <Label htmlFor="new-vip-switch" className="text-xs font-bold cursor-pointer whitespace-nowrap flex items-center gap-1.5"><Crown className="h-3.5 w-3.5 text-yellow-600"/> Área Exclusiva</Label>
+        </div>
+        <Button type="submit" className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto"><Plus className="mr-1 h-4 w-4" />Adicionar</Button>
       </form>
+
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm">
         {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium">Nenhuma categoria ainda.</li>}
         {cats.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-3 p-4 break-words">
-            <span className="font-semibold break-words">{c.name}</span>
+            <span className="font-semibold break-words flex items-center gap-2">
+               {c.is_vip && <span title="Área Exclusiva" className="flex items-center flex-shrink-0"><Crown className="h-4 w-4 text-yellow-500" /></span>}
+               {c.name}
+            </span>
             <Button variant="ghost" size="icon" onClick={() => openEdit(c)} className="flex-shrink-0"><Pencil className="h-4 w-4" /></Button>
           </li>
         ))}
@@ -1556,6 +1573,13 @@ function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, cur
                   <div>
                      <Label>Nome da categoria <span className="text-destructive">*</span></Label>
                      <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1" autoFocus required maxLength={50} />
+                  </div>
+                  <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border">
+                     <div>
+                        <Label className="font-bold flex items-center gap-1.5"><Crown className="h-4 w-4 text-yellow-600"/> Área Exclusiva</Label>
+                        <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">Exige senha VIP para acessar.</p>
+                     </div>
+                     <Switch checked={editCatVip} onCheckedChange={setEditCatVip} />
                   </div>
                   <div className="flex justify-between border-t border-border pt-4 mt-2">
                      {isMaster ? (
@@ -1602,7 +1626,7 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
       supabase.from("categories").select("*").is("deleted_at", null).order("sort_order"),
     ]);
     setProds((p.data ?? []) as Product[]);
-    setCats(c.data ?? []);
+    setCats((c.data as Category[]) ?? []);
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -1679,8 +1703,12 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
             const isInactive = !p.in_stock;
             const outOfStock = p.in_stock && p.track_stock && p.stock <= 0;
             const hasIssue = isInactive || outOfStock;
-            const isLowStock = !hasIssue && p.track_stock && p.stock <= (p.min_stock || 0);
+            const isLowStock = !hasIssue && p.track_stock && p.stock > 0 && p.stock <= (p.min_stock || 0);
             const promo = p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price);
+            
+            const catInfo = cats.find(c => c.id === p.category_id);
+            const isVipProd = catInfo?.is_vip;
+
             return (
               <div
                 key={p.id}
@@ -1693,7 +1721,10 @@ function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, curre
                   {p.image_url && <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />}
                 </div>
                 <div className={"flex flex-1 flex-col min-w-0 break-words " + (hasIssue ? "opacity-60" : "")}>
-                  <div className="font-bold line-clamp-2 break-words" title={p.name}>{p.name}</div>
+                  <div className="font-bold line-clamp-2 break-words" title={p.name}>
+                     {isVipProd && <span title="Área Exclusiva"><Crown className="h-3.5 w-3.5 text-yellow-500 inline-block mr-1 align-text-bottom" /></span>}
+                     {p.name}
+                  </div>
                   <div className="text-xs font-semibold text-muted-foreground mt-0.5">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
                   {(isInactive || outOfStock) && (
                     <div className="mt-0.5">
@@ -1985,7 +2016,11 @@ function ProductForm({
               onChange={(e) => setCategoryId(e.target.value)}
             >
               <option value="">(sem categoria)</option>
-              {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {cats.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.is_vip ? `👑 ${c.name}` : c.name}
+                </option>
+              ))}
             </select>
           </div>
           
@@ -2438,10 +2473,18 @@ function SettingsPanel() {
   const [isRemovingLogo, setIsRemovingLogo] = useState(false);
   const [showRemoveLogoConfirm, setShowRemoveLogoConfirm] = useState(false);
   
-  // Novos estados do Modo Privado
+  // Novos estados do Modo Privado e Área Exclusiva
   const [privateMode, setPrivateMode] = useState(false);
-  const [accessCodes, setAccessCodes] = useState<{id: string, code: string, created_at: string}[]>([]);
-  const [newCode, setNewCode] = useState("");
+  
+  // Array com todas as senhas (buscadas direto do banco para ter acesso aos novos campos)
+  const [accessCodes, setAccessCodes] = useState<{id: string, code: string, code_type: string, unlocks_vip: boolean}[]>([]);
+  
+  // Formulário: Senha da Loja
+  const [newStoreCode, setNewStoreCode] = useState("");
+  const [newStoreUnlocksVip, setNewStoreUnlocksVip] = useState(false);
+
+  // Formulário: Senha da Área Exclusiva
+  const [newVipCode, setNewVipCode] = useState("");
   
   const [loading, setLoading] = useState(true);
   const [savingNumber, setSavingNumber] = useState(false);
@@ -2461,9 +2504,6 @@ function SettingsPanel() {
   const saveLogoFn = useServerFn(updateCatalogLogo);
   const saveThemeFn = useServerFn(updateSystemTheme);
   const savePrivateModeFn = useServerFn(updatePrivateMode);
-  const listCodesFn = useServerFn(listAccessCodes);
-  const createCodeFn = useServerFn(createAccessCode);
-  const deleteCodeFn = useServerFn(deleteAccessCode);
 
   useEffect(() => {
     Promise.all([
@@ -2489,22 +2529,22 @@ function SettingsPanel() {
   const fetchCodes = useCallback(async () => {
     setLoadingCodes(true);
     try {
-      const res = await listCodesFn();
-      setAccessCodes(res.codes);
+      const { data, error } = await supabase.from("access_codes").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      setAccessCodes(data as any);
     } catch(e) {
       toast.error("Erro ao carregar senhas VIP.");
     }
     setLoadingCodes(false);
-  }, [listCodesFn]);
+  }, []);
 
   useEffect(() => {
-    if (privateMode) fetchCodes();
-  }, [privateMode, fetchCodes]);
+    fetchCodes();
+  }, [fetchCodes]);
 
   async function submitNumber(e: React.FormEvent) {
     e.preventDefault();
     
-    // Validação rígida: Só números, mínimo 10, máximo 15 (padrão de celular internacional)
     const cleanNumber = number.replace(/\D/g, '');
     if (cleanNumber.length < 10 || cleanNumber.length > 15) {
       setShowInvalidWhatsApp(true);
@@ -2631,23 +2671,47 @@ function SettingsPanel() {
     try {
        await savePrivateModeFn({ data: { enabled: checked } });
        setPrivateMode(checked);
-       toast.success(checked ? "Modo Privado ativado." : "Modo Privado desativado.");
+       toast.success(checked ? "Loja Privada ativada." : "Loja Privada desativada.");
     } catch(err) {
        toast.error("Erro ao alterar modo.");
     }
     setSavingPrivate(false);
   }
 
-  async function handleCreateCode(e: React.FormEvent) {
+  async function handleCreateStoreCode(e: React.FormEvent) {
     e.preventDefault();
-    if (!newCode.trim()) return;
+    if (!newStoreCode.trim()) return;
     try {
-      await createCodeFn({ data: { code: newCode } });
-      setNewCode("");
-      toast.success("Senha criada com sucesso.");
+      const { error } = await supabase.from("access_codes").insert({
+        code: newStoreCode.trim(),
+        code_type: 'store',
+        unlocks_vip: newStoreUnlocksVip
+      });
+      if (error) throw error;
+      setNewStoreCode("");
+      setNewStoreUnlocksVip(false);
+      toast.success("Senha da loja criada com sucesso.");
       fetchCodes();
-    } catch(err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao criar senha");
+    } catch(err: any) {
+      toast.error(err.message || "Erro ao criar senha");
+    }
+  }
+
+  async function handleCreateVipCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newVipCode.trim()) return;
+    try {
+      const { error } = await supabase.from("access_codes").insert({
+        code: newVipCode.trim(),
+        code_type: 'vip',
+        unlocks_vip: true
+      });
+      if (error) throw error;
+      setNewVipCode("");
+      toast.success("Senha da Área Exclusiva criada com sucesso.");
+      fetchCodes();
+    } catch(err: any) {
+      toast.error(err.message || "Erro ao criar senha");
     }
   }
 
@@ -2659,7 +2723,8 @@ function SettingsPanel() {
     if (!codeToDelete) return;
     setIsDeletingCode(true);
     try {
-      await deleteCodeFn({ data: { id: codeToDelete } });
+      const { error } = await supabase.from("access_codes").delete().eq("id", codeToDelete);
+      if (error) throw error;
       toast.success("Senha revogada.");
       fetchCodes();
     } catch(err) {
@@ -2670,6 +2735,9 @@ function SettingsPanel() {
     }
   }
 
+  const storeCodes = accessCodes.filter(c => c.code_type === 'store');
+  const vipCodes = accessCodes.filter(c => c.code_type === 'vip');
+
   if (loading) return <p className="text-muted-foreground font-semibold">Carregando…</p>;
 
   const hasLogoChanges = selectedLogoFile !== null || isRemovingLogo;
@@ -2677,56 +2745,100 @@ function SettingsPanel() {
   return (
     <div className="space-y-4">
       
+      {/* Bloco de Loja Privada e Área Exclusiva */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-5 mb-5">
           <div className="min-w-0">
             <h3 className="font-display text-lg font-black flex items-center gap-2">
-              <Lock className="h-5 w-5 text-primary flex-shrink-0" /> Catálogo Exclusivo (Modo Privado)
+              <Lock className="h-5 w-5 text-primary flex-shrink-0" /> Loja Privada (Bloqueio Total)
             </h3>
             <p className="mt-1 text-sm font-medium text-muted-foreground break-words">
-              Exija uma senha para os clientes visualizarem os produtos. Você continua tendo acesso livre.
+              Exija uma senha para os clientes visualizarem qualquer produto do site.
             </p>
           </div>
           <Switch checked={privateMode} onCheckedChange={togglePrivateMode} disabled={savingPrivate} className="flex-shrink-0" />
         </div>
 
-        {privateMode && (
-          <div className="mt-6 border-t border-border pt-6">
-            <h4 className="font-bold mb-3">Senhas de Acesso Ativas</h4>
-            <form onSubmit={handleCreateCode} className="flex gap-2 mb-4">
-              <Input 
-                value={newCode} 
-                onChange={e => setNewCode(e.target.value)} 
-                placeholder="Nova senha (ex: cliente123)" 
-                className="max-w-xs" 
-                required
-                maxLength={20}
-              />
-              <Button type="submit" className="flex-shrink-0"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
-            </form>
+        <div className="space-y-8">
+           {/* Senhas da Loja */}
+           <div>
+              <h4 className="font-bold text-foreground mb-1">Senhas de Acesso à Loja</h4>
+              <p className="text-xs text-muted-foreground mb-4">Crie as senhas que os clientes usarão para entrar no site.</p>
+              
+              <form onSubmit={handleCreateStoreCode} className="flex flex-col gap-3 mb-4 max-w-lg">
+                <div className="flex gap-2">
+                   <Input 
+                     value={newStoreCode} 
+                     onChange={e => setNewStoreCode(e.target.value)} 
+                     placeholder="Ex: cliente123" 
+                     className="flex-1" 
+                     required
+                     maxLength={20}
+                   />
+                   <Button type="submit" className="flex-shrink-0"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+                </div>
+                <div className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded-lg border border-border">
+                   <Switch checked={newStoreUnlocksVip} onCheckedChange={setNewStoreUnlocksVip} id="unlock-vip-switch" />
+                   <Label htmlFor="unlock-vip-switch" className="text-xs font-bold cursor-pointer flex items-center gap-1.5"><Crown className="h-3.5 w-3.5 text-yellow-600"/> Esta senha também libera a Área Exclusiva</Label>
+                </div>
+              </form>
 
-            {loadingCodes ? (
-              <p className="text-sm text-muted-foreground">Carregando senhas...</p>
-            ) : accessCodes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma senha cadastrada. Crie uma acima.</p>
-            ) : (
-              <ul className="space-y-2">
-                {accessCodes.map(c => (
-                  <li key={c.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-2 bg-secondary/30 max-w-md break-words gap-2">
-                    <span className="font-mono font-bold break-all">{c.code}</span>
-                    <button 
-                      onClick={() => handleDeleteCode(c.id)} 
-                      className="text-muted-foreground hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition flex-shrink-0"
-                      title="Revogar Acesso"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+              {loadingCodes ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : storeCodes.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">Nenhuma senha da loja cadastrada.</p>
+              ) : (
+                <ul className="space-y-2 max-w-lg">
+                  {storeCodes.map(c => (
+                    <li key={c.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-2 bg-secondary/30 gap-2">
+                      <div className="min-w-0">
+                         <span className="font-mono font-bold break-all block">{c.code}</span>
+                         {c.unlocks_vip && <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wide flex items-center gap-1 mt-0.5"><Crown className="h-3 w-3"/> Libera Área Exclusiva</span>}
+                      </div>
+                      <button onClick={() => handleDeleteCode(c.id)} className="text-muted-foreground hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition flex-shrink-0" title="Revogar">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+           </div>
+
+           {/* Senhas da Área Exclusiva (VIP) */}
+           <div className="pt-6 border-t border-border/50">
+              <h4 className="font-bold text-foreground mb-1 flex items-center gap-2"><Crown className="h-4 w-4 text-yellow-600"/> Senhas de Acesso à Área Exclusiva</h4>
+              <p className="text-xs text-muted-foreground mb-4">Senhas criadas aqui liberam apenas as categorias marcadas como Área Exclusiva.</p>
+              
+              <form onSubmit={handleCreateVipCode} className="flex gap-2 mb-4 max-w-lg">
+                <Input 
+                  value={newVipCode} 
+                  onChange={e => setNewVipCode(e.target.value)} 
+                  placeholder="Ex: vip_premium" 
+                  className="flex-1" 
+                  required
+                  maxLength={20}
+                />
+                <Button type="submit" variant="secondary" className="flex-shrink-0 bg-yellow-500/10 text-yellow-700 hover:bg-yellow-500/20 border border-yellow-500/30 font-bold"><Plus className="h-4 w-4 mr-1" /> Adicionar VIP</Button>
+              </form>
+
+              {loadingCodes ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : vipCodes.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">Nenhuma senha exclusiva cadastrada.</p>
+              ) : (
+                <ul className="space-y-2 max-w-lg">
+                  {vipCodes.map(c => (
+                    <li key={c.id} className="flex items-center justify-between border border-yellow-500/30 rounded-lg px-4 py-2 bg-yellow-500/5 gap-2">
+                      <span className="font-mono font-bold text-yellow-700 break-all">{c.code}</span>
+                      <button onClick={() => handleDeleteCode(c.id)} className="text-yellow-700 hover:text-destructive p-2 rounded-full hover:bg-destructive/10 transition flex-shrink-0" title="Revogar">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+           </div>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words">
@@ -2885,7 +2997,7 @@ function SettingsPanel() {
 
       {codeToDelete && (
         <ConfirmActionModal
-          title="Revogar Senha VIP"
+          title="Revogar Senha"
           description="Tem certeza que deseja remover esta senha? Quem estiver usando perderá o acesso na mesma hora."
           onClose={() => setCodeToDelete(null)}
           onConfirm={confirmDeleteCode}
