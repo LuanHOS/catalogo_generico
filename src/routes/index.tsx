@@ -571,7 +571,7 @@ function Index() {
       {/* FAIXA DO ADMIN */}
       {isAdmin && (
         <div className="bg-yellow-500 text-yellow-950 px-4 py-1.5 text-center text-xs font-black uppercase tracking-wide flex items-center justify-center gap-2 relative z-50">
-          <span>Vizando como Admin</span>
+          <span>👁️ Visualizando como Admin</span>
           {isPrivateModeActive && (
             <span className="hidden sm:inline opacity-80">- O Modo Privado está ATIVO para clientes.</span>
           )}
