@@ -212,7 +212,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground flex-shrink-0">
             <ArrowLeft className="h-4 w-4" /> Voltar ao catálogo
           </Link>
-          <div className="font-display text-lg font-black truncate">Painel Admin</div>
+          <div className="font-display text-lg font-black truncate ml-2">Painel Admin</div>
         </div>
       </header>
       {children}
@@ -833,12 +833,12 @@ function OrderDetailsModal({
                   </div>
                 </div>
                 {discountVal > 0 && (
-                  <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center break-words whitespace-normal min-w-0">
+                  <div className="text-sm font-bold text-green-600 bg-green-500/10 px-3 py-2 rounded-lg text-center break-words whitespace-normal min-w-0 max-w-full">
                     Desconto aplicado: {brl(discountVal)} ({discountPerc.toFixed(1)}%)
                   </div>
                 )}
                 {discountVal < 0 && (
-                  <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center break-words whitespace-normal min-w-0">
+                  <div className="text-sm font-bold text-yellow-600 bg-yellow-500/10 px-3 py-2 rounded-lg text-center break-words whitespace-normal min-w-0 max-w-full">
                     Acréscimo aplicado: {brl(Math.abs(discountVal))}
                   </div>
                 )}
@@ -1094,8 +1094,8 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      </div>
                  </div>
              </div>
-             <div className="flex justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0 min-w-0">
-                 <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0">Cancelar</Button>
+             <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0 min-w-0">
+                 <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">Cancelar</Button>
                  <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
                     {saving ? "Processando..." : "Concluir Venda"}
                  </Button>
