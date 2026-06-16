@@ -35,17 +35,6 @@ async function assertCallerIsMaster(context: { supabase: any; userId: string }) 
   if (!data?.is_master) throw new Error("Apenas o Administrador Master pode fazer isso.");
 }
 
-function pwdKey(userId: string) {
-  return `admin_pwd:${userId}`;
-}
-
-async function storePassword(userId: string, password: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await supabaseAdmin
-    .from("app_settings")
-    .upsert({ key: pwdKey(userId), value: password }, { onConflict: "key" });
-}
-
 /* ---------- Seed do admin fixo (idempotente, sem auth) ---------- */
 export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -87,8 +76,6 @@ export const ensureSeedAdmin = createServerFn({ method: "POST" }).handler(async 
   await supabaseAdmin
     .from("app_settings")
     .upsert({ key: "admin_seeded_v4", value: "true" }, { onConflict: "key" });
-
-  await storePassword(userId, FIXED_ADMIN_PASSWORD);
 
   return { ok: true };
 });
@@ -154,8 +141,6 @@ export const createAdminUser = createServerFn({ method: "POST" })
       .insert({ user_id: created.user.id, role: "admin", is_master: data.isMaster ?? false });
     if (roleErr) throw new Error(roleErr.message);
 
-    await storePassword(created.user.id, data.password);
-
     return { id: created.user.id, email };
   });
 
@@ -191,7 +176,6 @@ export const updateAdminUser = createServerFn({ method: "POST" })
     if (Object.keys(patch).length > 0) {
       const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, patch);
       if (error) throw new Error(error.message);
-      if (patch.password) await storePassword(data.userId, patch.password);
     }
 
     if (data.isMaster !== undefined && !isFixed) {
@@ -236,26 +220,7 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
 
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
     await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    await supabaseAdmin.from("app_settings").delete().eq("key", pwdKey(data.userId));
     return { ok: true };
-  });
-
-/* ---------- Obter senha de um administrador ---------- */
-const getPasswordSchema = z.object({ userId: z.string().uuid() });
-
-export const getAdminPassword = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) => getPasswordSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    await assertCallerIsMaster(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row } = await supabaseAdmin
-      .from("app_settings")
-      .select("value")
-      .eq("key", pwdKey(data.userId))
-      .maybeSingle();
-    if (!row) throw new Error("Senha não encontrada.");
-    return { password: row.value };
   });
 
 /* ---------- Configurações Globais ---------- */

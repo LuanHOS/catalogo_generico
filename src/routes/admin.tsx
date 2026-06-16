@@ -7,7 +7,6 @@ import {
   createAdminUser,
   deleteAdminUser,
   ensureSeedAdmin,
-  getAdminPassword,
   listAdmins,
   updateAdminUser,
   updateWhatsAppNumber,
@@ -2432,23 +2431,12 @@ function AdminFormModal({
   const isEdit = !!editing;
   const [user, setUser] = useState(editing?.username ?? "");
   const [pass, setPass] = useState("");
-  const [originalPass, setOriginalPass] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [isMasterRole, setIsMasterRole] = useState(editing?.isMaster ?? false);
-  const [loadingPass, setLoadingPass] = useState(isEdit);
   const [loading, setLoading] = useState(false);
   
   const create = useServerFn(createAdminUser);
   const update = useServerFn(updateAdminUser);
-  const getPwd = useServerFn(getAdminPassword);
-
-  useEffect(() => {
-    if (!isEdit || !editing) return;
-    getPwd({ data: { userId: editing.id } })
-      .then((r) => { setPass(r.password ?? ""); setOriginalPass(r.password ?? ""); })
-      .catch(() => {})
-      .finally(() => setLoadingPass(false));
-  }, [isEdit, editing, getPwd]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -2457,13 +2445,15 @@ function AdminFormModal({
       if (isEdit && editing) {
         const payload: { userId: string; user?: string; password?: string; isMaster?: boolean } = { userId: editing.id };
         if (!editing.fixed && user.trim() && user.trim() !== editing.username) payload.user = user.trim();
-        if (pass !== originalPass) {
+        
+        if (pass.trim() !== "") {
           if (pass.length < 6) {
             setLoading(false);
             return toast.error("Senha precisa ter no mínimo 6 caracteres.");
           }
           payload.password = pass;
         }
+
         if (!editing.fixed && isMasterRole !== editing.isMaster) {
           payload.isMaster = isMasterRole;
         }
@@ -2515,14 +2505,14 @@ function AdminFormModal({
           )}
         </div>
         <div className="min-w-0">
-          <Label htmlFor="ap" className="truncate block">Senha {(!isEdit || isEdit) && <span className="text-destructive">*</span>}</Label>
+          <Label htmlFor="ap" className="truncate block">Senha {!isEdit && <span className="text-destructive">*</span>}</Label>
           <div className="relative min-w-0">
             <Input
               id="ap"
               type={showPass ? "text" : "password"}
               value={pass}
               onChange={(e) => setPass(e.target.value)}
-              placeholder={loadingPass ? "Carregando…" : "mínimo 6 caracteres"}
+              placeholder={isEdit ? "Deixe em branco para não alterar" : "mínimo 6 caracteres"}
               className="pr-16 w-full min-w-0"
               required={!isEdit}
               maxLength={50}
@@ -2537,7 +2527,7 @@ function AdminFormModal({
           </div>
           {isEdit && (
             <p className="mt-1 text-xs font-semibold text-muted-foreground truncate">
-              Senha atual exibida acima. Edite para alterar.
+              Digite uma nova senha apenas se quiser alterar a atual.
             </p>
           )}
         </div>
