@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
+import { jsPDF } from "jspdf";
 import {
   createAdminUser,
   deleteAdminUser,
@@ -649,17 +650,6 @@ function OrderDetailsModal({
   async function generatePDF(orderToPrint: OrderRow) {
     const toastId = toast.loading("Gerando PDF para download...");
     try {
-      if (!(window as any).jspdf) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
-
-      const { jsPDF } = (window as any).jspdf;
       const doc = new jsPDF();
       
       const printItems = Array.isArray(orderToPrint.items) ? orderToPrint.items : [];
