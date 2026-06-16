@@ -2025,6 +2025,16 @@ function ProductForm({
     const { error } = product
       ? await supabase.from("products").update(payload).eq("id", product.id)
       : await supabase.from("products").insert(payload);
+      
+    if (!error && product && (isRemovingImage || (imageUrl !== originalImageUrl))) {
+      if (originalImageUrl) {
+        const oldPath = originalImageUrl.split('/public/product-images/')[1];
+        if (oldPath) {
+          await supabase.storage.from("product-images").remove([oldPath]);
+        }
+      }
+    }
+
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(product ? "Produto atualizado" : "Produto criado");
@@ -2734,6 +2744,14 @@ function SettingsPanel() {
       }
 
       if (finalUrl !== catalogLogo || isRemovingLogo) {
+        // EXCLUSÃO DA IMAGEM ANTIGA DA LOGO NO STORAGE
+        if (catalogLogo) {
+          const oldPath = catalogLogo.split('/public/product-images/')[1];
+          if (oldPath) {
+            await supabase.storage.from("product-images").remove([oldPath]);
+          }
+        }
+
         await saveLogoFn({ data: { logoUrl: finalUrl } });
         setCatalogLogo(finalUrl);
         setPreviewLogo(finalUrl);
