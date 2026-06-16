@@ -512,7 +512,6 @@ function Index() {
     const usedCodeForTracking = isVipUnlocked && !isAdmin ? (exclusiveCode || storeCode) : (isPrivateModeActive && !isAdmin ? storeCode : null);
 
     const { data: orderId, error } = await supabase.rpc("checkout_order", {
-      order_total: newTotal,
       order_items: itemsJson,
       p_vip_code: usedCodeForTracking || null
     });

@@ -452,11 +452,11 @@ function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () 
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  async function updateStatus(id: string, newStatus: string, newTotal?: number, reason?: string) {
+  async function updateStatus(id: string, newStatus: string, discountAmount?: number, reason?: string) {
     const { error } = await supabase.rpc("update_order_status", { 
        order_id: id, 
        new_status: newStatus, 
-       new_total: newTotal, 
+       p_discount_amount: discountAmount, 
        p_reason: reason, 
        p_canceled_by: currentUserName 
     });
@@ -609,7 +609,7 @@ function OrderDetailsModal({
 }: {
   order: OrderRow;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: string, total?: number, reason?: string) => Promise<void>;
+  onUpdateStatus: (id: string, status: string, discountAmount?: number, reason?: string) => Promise<void>;
 }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const originalTotal = items.reduce((acc, i) => acc + (Number(i.price || 0) * Number(i.quantity || 0)), 0);
@@ -634,7 +634,7 @@ function OrderDetailsModal({
        return;
     }
     setSaving(true);
-    await onUpdateStatus(order.id, 'completed', parsedTotal);
+    await onUpdateStatus(order.id, 'completed', discountVal);
     setSaving(false);
     onClose();
   }
@@ -958,7 +958,6 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
       }
 
       setSaving(true);
-      const finalParsedTotal = Number(rawTotal) || 0;
 
       const itemsJson = cart.map(c => ({
           id: c.product.id,
@@ -968,7 +967,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
           category_id: c.product.category_id
       }));
       
-      const { error } = await supabase.rpc("checkout_presential_order", { order_total: finalParsedTotal, order_items: itemsJson });
+      const { error } = await supabase.rpc("checkout_presential_order", { discount_amount: discountVal, order_items: itemsJson });
       setSaving(false);
       if (error) { toast.error("Erro ao finalizar venda: " + error.message); return; }
       toast.success("Venda presencial concluída com sucesso!");
@@ -2869,7 +2868,7 @@ function SettingsPanel() {
   return (
     <div className="space-y-4 min-w-0 max-w-full">
       
-      {/* Bloco de Loja Privada */}
+      /* Bloco de Loja Privada */
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-5 mb-5 min-w-0">
           <div className="min-w-0 flex-1">

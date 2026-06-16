@@ -238,7 +238,6 @@ export type Database = {
       }
       checkout_order: {
         Args: {
-          order_total: number
           order_items: Json
           p_vip_code?: string | null
         }
@@ -246,8 +245,8 @@ export type Database = {
       }
       checkout_presential_order: {
         Args: {
-          order_total: number
           order_items: Json
+          discount_amount?: number
         }
         Returns: undefined
       }
@@ -297,7 +296,7 @@ export type Database = {
         Args: {
           order_id: string
           new_status: string
-          new_total?: number
+          p_discount_amount?: number | null
           p_reason?: string | null
           p_canceled_by?: string | null
         }
