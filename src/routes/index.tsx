@@ -7,7 +7,12 @@ import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "sonner";
-import { ShoppingBag, ShoppingCart, Plus, Minus, Trash2, ChevronDown, Search, X, Tag, ShieldCheck, Lock, TrendingUp, AlertTriangle, Package, Crown } from "lucide-react";
+import { ShoppingCart, Search, X, ShieldCheck, Lock, TrendingUp, AlertTriangle, Crown } from "lucide-react";
+
+// Importações dos novos componentes da loja modularizada
+import { ProductCard } from "@/components/store/ProductCard";
+import { ProductDetail } from "@/components/store/ProductDetail";
+import { CartDrawer } from "@/components/store/CartDrawer";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,7 +24,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Product = {
+export type Product = {
   id: string;
   category_id: string | null;
   name: string;
@@ -35,7 +40,8 @@ type Product = {
   max_per_cart: number;
   track_stock: boolean;
 };
-type Category = { id: string; name: string; sort_order: number; is_vip: boolean | null };
+
+export type Category = { id: string; name: string; sort_order: number; is_vip: boolean | null };
 
 export const SYSTEM_THEMES = [
   { id: "strong-gray", name: "Cinza Forte", group: "strong", primary: "#374151", primaryFg: "#FFFFFF", secondary: "#F3F4F6", accent: "#E5E7EB" },
@@ -60,19 +66,19 @@ export function applyTheme(themeId: string) {
   root.style.setProperty('--ring', t.primary);
 }
 
-function effectivePrice(p: Pick<Product, "price" | "sale_price">) {
+export function effectivePrice(p: Pick<Product, "price" | "sale_price">) {
   const sale = p.sale_price != null ? Number(p.sale_price) : null;
   const price = Number(p.price);
   return sale != null && sale > 0 && sale < price ? sale : price;
 }
 
-function isPromo(p: Pick<Product, "price" | "sale_price">) {
+export function isPromo(p: Pick<Product, "price" | "sale_price">) {
   const sale = p.sale_price != null ? Number(p.sale_price) : null;
   return sale != null && sale > 0 && sale < Number(p.price);
 }
 
 /* ---------- Bloqueio de Scroll Global ---------- */
-function ScrollLock() {
+export function ScrollLock() {
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
     document.body.style.overflow = "hidden";
@@ -949,331 +955,5 @@ function CatChip({ active, isVip = false, onClick, children }: { active: boolean
       {isVip && <span title="Área Exclusiva"><Crown className="h-4 w-4" /></span>}
       {children}
     </button>
-  );
-}
-
-function PromoBadge() {
-  return (
-    <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-black uppercase tracking-wide text-accent-foreground shadow-md border border-background">
-      <Tag className="h-4 w-4" /> Promoção
-    </span>
-  );
-}
-
-function PriceBlock({ p, big = false }: { p: Product; big?: boolean }) {
-  const promo = isPromo(p);
-  const eff = effectivePrice(p);
-  if (promo) {
-    return (
-      <div className="flex flex-wrap items-baseline gap-2">
-        <span className={(big ? "text-base" : "text-xs") + " text-muted-foreground line-through font-semibold"}>
-          {brl(Number(p.price))}
-        </span>
-        <span className={(big ? "text-3xl" : "text-xl") + " font-black text-primary"}>
-          {brl(eff)}
-        </span>
-      </div>
-    );
-  }
-  return <div className={(big ? "text-3xl" : "text-lg") + " font-black text-primary"}>{brl(eff)}</div>;
-}
-
-function ProductCard({ p, isVip, onOpen, onRemoveRequested }: { p: Product; isVip: boolean; onOpen: () => void; onRemoveRequested: (id: string) => void }) {
-  const items = useCart();
-  const inCart = items.find((i) => i.id === p.id);
-  const qty = inCart?.qty ?? 0;
-  
-  const outOfStock = p.track_stock && (!p.in_stock || p.stock <= 0);
-  
-  const currentMax = p.max_per_cart > 0 
-    ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) 
-    : (p.track_stock ? p.stock : 999999);
-    
-  const reachedMax = qty >= currentMax;
-  const eff = effectivePrice(p);
-
-  function addToCart(e: React.MouseEvent) {
-    e.stopPropagation();
-    cart.add({ id: p.id, name: p.name, price: eff, max: currentMax });
-  }
-
-  return (
-    <article
-      onClick={onOpen}
-      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-background shadow-sm transition hover:shadow-md"
-    >
-      {isPromo(p) && <PromoBadge />}
-      <div className="aspect-[4/3] relative overflow-hidden bg-secondary border-b border-border/40">
-        {p.image_url ? (
-          <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <ShoppingBag className="h-12 w-12 opacity-30" />
-          </div>
-        )}
-        {outOfStock && (
-          <span className="absolute left-3 bottom-3 rounded-full bg-destructive px-3 py-1 text-xs font-black text-destructive-foreground z-10 shadow-sm">
-            Sem estoque
-          </span>
-        )}
-      </div>
-      <div className="p-3 flex flex-1 flex-col">
-        <h3 className="text-sm line-clamp-2 font-display font-bold leading-tight text-card-foreground break-words" title={p.name}>
-          {isVip && <span title="Área Exclusiva" className="inline-block mr-1 align-text-bottom"><Crown className="h-3.5 w-3.5 text-yellow-500" /></span>}
-          {p.name}
-        </h3>
-        <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-          <Package className="h-3 w-3" /> {p.track_stock ? `${p.stock} em estoque` : "Disponível"}
-        </p>
-        <div className="mt-2"><PriceBlock p={p} /></div>
-
-        <div className="pt-3 mt-auto" onClick={(e) => e.stopPropagation()}>
-          {qty === 0 ? (
-            <Button
-              type="button"
-              disabled={outOfStock}
-              onClick={addToCart}
-              className={`h-10 text-xs w-full rounded-full font-bold shadow-sm disabled:opacity-50 ${isVip && !outOfStock ? 'vip-chip' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
-            >
-              {outOfStock ? "Esgotado" : "Adicionar"}
-            </Button>
-          ) : (
-            <div className="flex items-center justify-between gap-1 rounded-full bg-secondary p-1">
-              <button onClick={() => qty === 1 ? onRemoveRequested(p.id) : cart.setQty(p.id, qty - 1)} className="h-8 w-8 flex items-center justify-center rounded-full bg-background text-foreground hover:bg-background/70 shadow-sm" aria-label="Diminuir">
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="font-black">{qty}</span>
-              <button
-                disabled={reachedMax}
-                onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                className={`h-8 w-8 flex items-center justify-center rounded-full shadow-sm disabled:opacity-40 ${isVip && !reachedMax ? 'vip-chip' : 'bg-primary text-primary-foreground hover:opacity-90'}`}
-                aria-label="Aumentar"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function ProductDetail({ p, isVip, onClose, onRemoveRequested }: { p: Product; isVip: boolean; onClose: () => void; onRemoveRequested: (id: string) => void }) {
-  const items = useCart();
-  const inCart = items.find((i) => i.id === p.id);
-  const qty = inCart?.qty ?? 0;
-  
-  const outOfStock = p.track_stock && (!p.in_stock || p.stock <= 0);
-  const currentMax = p.max_per_cart > 0 
-    ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) 
-    : (p.track_stock ? p.stock : 999999);
-    
-  const reachedMax = qty >= currentMax;
-  const eff = effectivePrice(p);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-0 sm:items-center sm:p-6" role="dialog">
-      <ScrollLock />
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-t-3xl bg-background shadow-2xl sm:rounded-3xl flex flex-col max-h-[90vh] sm:max-h-[85vh]">
-        <button
-          onClick={onClose}
-          className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow hover:bg-secondary"
-          aria-label="Fechar"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <div className="overflow-y-auto flex-1 w-full flex flex-col">
-          <div className="relative w-full bg-secondary border-b border-border/40 flex-shrink-0 aspect-square sm:aspect-video">
-            {isPromo(p) && <PromoBadge />}
-            {p.image_url ? (
-              <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                <ShoppingBag className="h-16 w-16 opacity-30" />
-              </div>
-            )}
-            {outOfStock && (
-              <span className="absolute left-4 bottom-4 rounded-full bg-destructive px-4 py-2 text-sm font-black text-destructive-foreground shadow-sm">
-                Sem estoque
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col gap-4 p-6 min-w-0 w-full">
-            <div className="w-full overflow-hidden break-words">
-              <h2 className="font-display text-2xl font-black leading-tight sm:text-3xl break-words whitespace-normal">
-                {isVip && <span title="Área Exclusiva" className="inline-block mr-2 align-text-bottom"><Crown className="h-6 w-6 text-yellow-500" /></span>}
-                {p.name}
-              </h2>
-              <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                <Package className="h-4 w-4" /> {p.track_stock ? `${p.stock} unidades em estoque` : "Disponível"}
-              </div>
-              {p.description && <p className="mt-2 text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">{p.description}</p>}
-            </div>
-            <PriceBlock p={p} big />
-            <div className="mt-auto pt-4">
-              {qty === 0 ? (
-                <Button
-                  type="button"
-                  disabled={outOfStock}
-                  onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                  className={`w-full rounded-full py-6 text-base font-black shadow-sm disabled:opacity-50 ${isVip && !outOfStock ? 'vip-chip' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
-                >
-                  {outOfStock ? "Produto Esgotado" : "Adicionar ao carrinho"}
-                </Button>
-              ) : (
-                <div className="flex items-center justify-between gap-2 rounded-full bg-secondary p-2">
-                  <button onClick={() => qty === 1 ? onRemoveRequested(p.id) : cart.setQty(p.id, qty - 1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-background shadow-sm hover:bg-background/70" aria-label="Diminuir">
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="text-lg font-black">{qty} no carrinho</span>
-                  <button
-                    disabled={reachedMax}
-                    onClick={() => cart.add({ id: p.id, name: p.name, price: eff, max: currentMax })}
-                    className={`flex h-10 w-10 items-center justify-center rounded-full shadow-sm disabled:opacity-40 ${isVip && !reachedMax ? 'vip-chip' : 'bg-primary text-primary-foreground hover:opacity-90'}`}
-                    aria-label="Aumentar"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              {reachedMax && !outOfStock && (
-                <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
-                  Lembrete: Limite atingido para este produto.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CartDrawer({ 
-  onClose, 
-  total, 
-  onFinalize, 
-  checkoutLoading, 
-  prods,
-  onRemoveRequested
-}: { 
-  onClose: () => void; 
-  total: number; 
-  onFinalize: () => void; 
-  checkoutLoading: boolean; 
-  prods: Product[];
-  onRemoveRequested: (id: string) => void;
-}) {
-  const items = useCart();
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  
-  function limpar() {
-    if (!items.length) return;
-    setShowClearConfirm(true);
-  }
-
-  function confirmLimpar() {
-    cart.clear();
-    setShowClearConfirm(false);
-  }
-  
-  return (
-    <>
-      <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
-        <ScrollLock />
-        <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <aside className="relative flex h-full w-full max-w-md flex-col bg-background shadow-2xl">
-          <header className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="font-display text-xl font-black">Seu Carrinho</h2>
-            <div className="flex items-center gap-1">
-              {items.length > 0 && (
-                <button
-                  onClick={limpar}
-                  className="rounded-full px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/10"
-                >
-                  Limpar
-                </button>
-              )}
-              <Button variant="secondary" size="sm" onClick={onClose} className="rounded-full px-4 font-bold ml-2 shadow-sm hover:bg-secondary/80 flex items-center gap-1.5" aria-label="Minimizar">
-                Minimizar <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
-              </Button>
-            </div>
-          </header>
-          <div className="flex-1 overflow-y-auto px-5 py-4 bg-secondary/10">
-            {items.length === 0 ? (
-              <p className="mt-10 text-center text-muted-foreground font-medium">
-                Seu carrinho está vazio. Adicione produtos no catálogo!
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {items.map((i) => {
-                  const p = prods.find((prod) => prod.id === i.id);
-                  const currentMax = p 
-                    ? (p.max_per_cart > 0 ? (p.track_stock ? Math.min(p.max_per_cart, p.stock) : p.max_per_cart) : (p.track_stock ? p.stock : 999999)) 
-                    : i.max;
-
-                  return (
-                    <li key={i.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold leading-tight line-clamp-2 break-words" title={i.name}>{i.name}</div>
-                        <div className="text-sm font-semibold text-muted-foreground">{brl(i.price)} cada</div>
-                      </div>
-                      <div className="flex items-center gap-1 rounded-full bg-secondary px-1 border border-border/50 flex-shrink-0">
-                        <button onClick={() => i.qty === 1 ? onRemoveRequested(i.id) : cart.setQty(i.id, i.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background">
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <span className="w-6 text-center font-bold">{i.qty}</span>
-                        <button
-                          onClick={() => cart.setQty(i.id, Math.min(i.qty + 1, currentMax))}
-                          disabled={i.qty >= currentMax}
-                          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-background disabled:opacity-40"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <button onClick={() => onRemoveRequested(i.id)} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex-shrink-0">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-          <footer className="border-t border-border p-5 bg-card">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Total</span>
-              <span className="font-display text-2xl font-black text-primary">{brl(total)}</span>
-            </div>
-            <Button
-              disabled={!items.length || checkoutLoading}
-              onClick={onFinalize}
-              className="w-full rounded-full bg-whatsapp py-6 text-base font-black text-whatsapp-foreground shadow-sm hover:opacity-90 disabled:opacity-70"
-            >
-              {checkoutLoading ? "Processando..." : "Finalizar pelo WhatsApp"}
-            </Button>
-          </footer>
-        </aside>
-      </div>
-
-      {showClearConfirm && (
-        <ConfirmActionModal
-          title="Limpar Carrinho"
-          description="Tem certeza que deseja remover todos os produtos do seu carrinho?"
-          onClose={() => setShowClearConfirm(false)}
-          onConfirm={confirmLimpar}
-          destructive={true}
-          confirmText="Sim, limpar"
-        />
-      )}
-    </>
   );
 }
