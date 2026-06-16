@@ -2483,7 +2483,7 @@ function AdminFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 sm:items-center sm:p-6 backdrop-blur-sm">
       <ScrollLock />
-      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto break-words min-w-0">
+      <form autoComplete="off" onSubmit={submit} className="w-full max-w-md space-y-4 rounded-t-2xl bg-background p-6 shadow-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto break-words min-w-0">
         <div className="flex items-center justify-between min-w-0">
           <h3 className="font-display text-xl font-black truncate">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm font-semibold text-muted-foreground flex-shrink-0 ml-2">Fechar</button>
@@ -2492,6 +2492,8 @@ function AdminFormModal({
           <Label htmlFor="au" className="truncate block">Usuário <span className="text-destructive">*</span></Label>
           <Input
             id="au"
+            autoComplete="off"
+            data-lpignore="true"
             value={user}
             onChange={(e) => setUser(e.target.value)}
             placeholder="ex: nome"
@@ -2509,6 +2511,8 @@ function AdminFormModal({
           <div className="relative min-w-0">
             <Input
               id="ap"
+              autoComplete="new-password"
+              data-lpignore="true"
               type={showPass ? "text" : "password"}
               value={pass}
               onChange={(e) => setPass(e.target.value)}
