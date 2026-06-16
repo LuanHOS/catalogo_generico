@@ -103,7 +103,7 @@ export function SettingsPanel() {
       toast.error("Erro ao carregar senhas VIP.");
     }
     setLoadingCodes(false);
-  }, [fetchCodes]);
+  }, []);
 
   useEffect(() => {
     fetchCodes();
