@@ -51,6 +51,12 @@ export function SettingsPanel() {
   });
   const [savingDesc, setSavingDesc] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
+
+  // Estados dos Modais de Nome e WhatsApp
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [tempName, setTempName] = useState("");
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [tempNumber, setTempNumber] = useState("");
   
   // Array com todas as senhas (buscadas direto do banco para ter acesso aos novos campos)
   const [accessCodes, setAccessCodes] = useState<{id: string, code: string, code_type: string, unlocks_vip: boolean}[]>([]);
@@ -129,7 +135,7 @@ export function SettingsPanel() {
   async function submitNumber(e: React.FormEvent) {
     e.preventDefault();
     
-    const cleanNumber = number.replace(/\D/g, '');
+    const cleanNumber = tempNumber.replace(/\D/g, '');
     if (cleanNumber.length < 10 || cleanNumber.length > 15) {
       setShowInvalidWhatsApp(true);
       return;
@@ -140,6 +146,7 @@ export function SettingsPanel() {
       const res = await saveNumberFn({ data: { number: cleanNumber } });
       setNumber(res.number);
       toast.success("Número do WhatsApp atualizado");
+      setShowWhatsAppModal(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
     } finally {
@@ -149,12 +156,13 @@ export function SettingsPanel() {
 
   async function submitName(e: React.FormEvent) {
     e.preventDefault();
-    if (!catalogName.trim()) return toast.error("O nome não pode ser vazio.");
+    if (!tempName.trim()) return toast.error("O nome não pode ser vazio.");
     setSavingName(true);
     try {
-      const res = await saveNameFn({ data: { name: catalogName } });
+      const res = await saveNameFn({ data: { name: tempName } });
       setCatalogName(res.name);
       toast.success("Nome do catálogo atualizado");
+      setShowNameModal(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
     } finally {
@@ -521,19 +529,14 @@ export function SettingsPanel() {
         <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
         </p>
-        <form onSubmit={submitName} className="mt-4 flex flex-col gap-3 sm:flex-row min-w-0">
-          <Input
-            value={catalogName}
-            onChange={(e) => setCatalogName(e.target.value)}
-            placeholder="ex: Catálogo de Produtos"
-            className="flex-1 min-w-0"
-            required
-            maxLength={50}
-          />
-          <Button type="submit" disabled={savingName} className="rounded-full shadow-sm flex-shrink-0">
-            {savingName ? "Salvando…" : "Salvar"}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
+          <div className="min-w-0">
+            <h4 className="font-bold text-foreground truncate">{catalogName || "Não definido"}</h4>
+          </div>
+          <Button variant="outline" onClick={() => { setTempName(catalogName); setShowNameModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
+            Editar
           </Button>
-        </form>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
@@ -587,34 +590,14 @@ export function SettingsPanel() {
         <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Este é o número que receberá os pedidos do site e o botão flutuante.
         </p>
-        <form onSubmit={submitNumber} className="mt-4 flex flex-col gap-3 sm:flex-row min-w-0">
-          <Input
-            value={number}
-            onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))}
-            placeholder="ex: 5545912345678"
-            className="flex-1 min-w-0"
-            required
-            maxLength={20}
-          />
-          <div className="flex gap-2 flex-shrink-0">
-            <Button type="button" variant="secondary" onClick={() => {
-                const cleanNumber = number.replace(/\D/g, '');
-                if (cleanNumber.length < 10 || cleanNumber.length > 15) {
-                  setShowInvalidWhatsApp(true);
-                  return;
-                }
-                window.open(whatsappLink("Teste de número válido - Catálogo", cleanNumber), "_blank");
-              }} className="rounded-full shadow-sm flex-1 sm:flex-auto">
-              Testar número
-            </Button>
-            <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm flex-1 sm:flex-auto">
-              {savingNumber ? "Salvando…" : "Salvar"}
-            </Button>
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
+          <div className="min-w-0">
+            <h4 className="font-bold text-foreground truncate">{number || "Não definido"}</h4>
           </div>
-        </form>
-        <p className="mt-2 text-xs font-semibold text-muted-foreground break-words whitespace-normal">
-          Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545912345678</code>
-        </p>
+          <Button variant="outline" onClick={() => { setTempNumber(number); setShowWhatsAppModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
+            Editar
+          </Button>
+        </div>
       </div>
 
       {showInvalidWhatsApp && (
@@ -804,6 +787,79 @@ export function SettingsPanel() {
               <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
                  <Button type="button" variant="outline" onClick={() => setShowAddressModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
                  <Button type="submit" disabled={savingAddress} className="rounded-full shadow-sm">{savingAddress ? "Salvando..." : "Salvar"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE NOME DO CATÁLOGO */}
+      {showNameModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <ScrollLock />
+          <div className="bg-background w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black font-display truncate text-foreground flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-primary"/> Nome do Catálogo
+              </h3>
+              <button onClick={() => setShowNameModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+            </div>
+            <form onSubmit={submitName} className="flex flex-col gap-4">
+              <div>
+                <Label>Nome da sua loja</Label>
+                <Input 
+                  value={tempName} 
+                  onChange={(e) => setTempName(e.target.value)} 
+                  placeholder="ex: Catálogo de Produtos" 
+                  required 
+                  maxLength={50} 
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
+                 <Button type="button" variant="outline" onClick={() => setShowNameModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
+                 <Button type="submit" disabled={savingName} className="rounded-full shadow-sm">{savingName ? "Salvando..." : "Salvar"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE NÚMERO DO WHATSAPP */}
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <ScrollLock />
+          <div className="bg-background w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black font-display truncate text-foreground flex items-center gap-2">
+                <Phone className="h-5 w-5 text-primary"/> Número do WhatsApp
+              </h3>
+              <button onClick={() => setShowWhatsAppModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545912345678</code>
+            </p>
+            <form onSubmit={submitNumber} className="flex flex-col gap-4">
+              <Input
+                value={tempNumber}
+                onChange={(e) => setTempNumber(e.target.value.replace(/\D/g, ''))}
+                placeholder="ex: 5545912345678"
+                required
+                maxLength={20}
+              />
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 border-t border-border mt-2">
+                 <Button type="button" variant="secondary" onClick={() => {
+                    const cleanNumber = tempNumber.replace(/\D/g, '');
+                    if (cleanNumber.length < 10 || cleanNumber.length > 15) {
+                      setShowInvalidWhatsApp(true);
+                      return;
+                    }
+                    window.open(whatsappLink("Teste de número válido - Catálogo", cleanNumber), "_blank");
+                  }} className="rounded-full shadow-sm sm:mr-auto">
+                  Testar número
+                 </Button>
+                 <Button type="button" variant="outline" onClick={() => setShowWhatsAppModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
+                 <Button type="submit" disabled={savingNumber} className="rounded-full shadow-sm">{savingNumber ? "Salvando..." : "Salvar"}</Button>
               </div>
             </form>
           </div>
