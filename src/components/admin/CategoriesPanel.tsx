@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Search, Plus, Pencil, Trash2, Crown, X, ChevronUp, ChevronDown } from "
 import { Category, ScrollLock, ConfirmActionModal } from "@/routes/admin";
 
 export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boolean, currentUserName: string }) {
-  const [cats, setCats] = useState<Category[]>([]);
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [isVip, setIsVip] = useState(false);
   
@@ -27,11 +28,18 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
   const [deletingCat, setDeletingCat] = useState<{ cat: Category, warning?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const refresh = useCallback(async () => {
-    const { data } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
-    setCats((data as Category[]) ?? []);
-  }, []);
-  useEffect(() => { refresh(); }, [refresh]);
+  const { data: cats = [] } = useQuery({
+    queryKey: ['admin-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
+      if (error) throw error;
+      return data as Category[];
+    }
+  });
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+  };
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -107,7 +115,7 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
     newCats.splice(index - 1, 0, item);
     
     const updates = newCats.map((c, i) => ({ ...c, sort_order: i }));
-    setCats(updates);
+    queryClient.setQueryData(['admin-categories'], updates);
     
     for (const c of updates) {
         supabase.from("categories").update({ sort_order: c.sort_order }).eq("id", c.id).then();
@@ -121,7 +129,7 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
     newCats.splice(index + 1, 0, item);
     
     const updates = newCats.map((c, i) => ({ ...c, sort_order: i }));
-    setCats(updates);
+    queryClient.setQueryData(['admin-categories'], updates);
     
     for (const c of updates) {
         supabase.from("categories").update({ sort_order: c.sort_order }).eq("id", c.id).then();

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
 import { Button } from "@/components/ui/button";
@@ -14,22 +15,34 @@ import { brl } from "@/lib/whatsapp";
 import { Product, Category, ScrollLock, ConfirmActionModal, blockInvalidNumberChars } from "@/routes/admin";
 
 export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean, currentUserName: string }) {
-  const [prods, setProds] = useState<Product[]>([]);
-  const [cats, setCats] = useState<Category[]>([]);
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [filterOption, setFilterOption] = useState("all");
 
-  const refresh = useCallback(async () => {
-    const [p, c] = await Promise.all([
-      supabase.from("products").select("*").is("deleted_at", null).order("sort_order"),
-      supabase.from("categories").select("*").is("deleted_at", null).order("sort_order"),
-    ]);
-    setProds((p.data ?? []) as Product[]);
-    setCats((c.data as Category[]) ?? []);
-  }, []);
-  useEffect(() => { refresh(); }, [refresh]);
+  const { data: prods = [] } = useQuery({
+    queryKey: ['admin-products'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("products").select("*").is("deleted_at", null).order("sort_order");
+      if (error) throw error;
+      return data as Product[];
+    }
+  });
+
+  const { data: cats = [] } = useQuery({
+    queryKey: ['admin-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
+      if (error) throw error;
+      return data as Category[];
+    }
+  });
+
+  const refresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+  }, [queryClient]);
 
   const activeCatIds = useMemo(() => new Set(prods.map(p => p.category_id).filter(Boolean)), [prods]);
   const activeCats = useMemo(() => cats.filter(c => activeCatIds.has(c.id)), [cats, activeCatIds]);

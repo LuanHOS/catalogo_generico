@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { jsPDF } from "jspdf";
 import { brl, whatsappLink } from "@/lib/whatsapp";
@@ -371,7 +372,6 @@ function OrderDetailsModal({
 
 /* ---------- Manual Order Modal ---------- */
 function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: () => void }) {
-  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -386,9 +386,14 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const discountVal = originalTotal - parsedTotal;
   const discountPerc = originalTotal > 0 ? (discountVal / originalTotal) * 100 : 0;
 
-  useEffect(() => {
-      supabase.from("products").select("*").is("deleted_at", null).order("name").then(({data}) => setProducts(data as Product[] || []));
-  }, []);
+  const { data: products = [] } = useQuery({
+    queryKey: ['admin-products-alphabetical'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("products").select("*").is("deleted_at", null).order("name");
+      if (error) throw error;
+      return (data as Product[]) || [];
+    }
+  });
 
   useEffect(() => {
      if (cart.length === 0) {
@@ -635,7 +640,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
 
 /* ---------- Orders Panel Base ---------- */
 export function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChange?: () => void, currentUserName: string }) {
-  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("pending");
   const [showManual, setShowManual] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
@@ -648,17 +653,26 @@ export function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChang
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const fetchOrders = useCallback(async () => {
-    let q = supabase.from("orders").select("*").order("created_at", { ascending: false });
-    
-    if (startDate) q = q.gte("created_at", `${startDate}T00:00:00Z`);
-    if (endDate) q = q.lte("created_at", `${endDate}T23:59:59Z`);
+  const { data: orders = [] } = useQuery({
+    queryKey: ['admin-orders', startDate, endDate],
+    queryFn: async () => {
+      let q = supabase.from("orders").select("*").order("created_at", { ascending: false });
 
-    const { data } = await q;
-    setOrders((data as OrderRow[]) || []);
-  }, [startDate, endDate]);
+      if (startDate) q = q.gte("created_at", `${startDate}T00:00:00Z`);
+      if (endDate) q = q.lte("created_at", `${endDate}T23:59:59Z`);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data as OrderRow[]) || [];
+    }
+  });
+
+  const fetchOrders = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+    // Invalida os produtos também para que o estoque na aba Produtos sempre fique atualizado após a criação/cancelamento de um pedido
+    queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-products-alphabetical'] });
+  }, [queryClient]);
 
   async function updateStatus(id: string, newStatus: string, discountAmount?: number, reason?: string) {
     const { error } = await supabase.rpc("update_order_status", { 
