@@ -586,7 +586,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      </div>
                  </div>
              </div>
-             <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0 min-w-0">
+             <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0 min-w-0">
                  <Button variant="outline" onClick={handleAttemptClose} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">Cancelar</Button>
                  <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
                     {saving ? "Processando..." : "Concluir Venda"}
