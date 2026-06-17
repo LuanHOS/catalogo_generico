@@ -713,7 +713,7 @@ function Index() {
                   )}
                 </h1>
                 <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-                  Consulte nosso estoque, monte seu carrinho e finalize a compra diretamente pelo WhatsApp.
+                  Navegue pelos nossos produtos, monte seu carrinho e clique em "Finalizar pelo WhatsApp".
                 </p>
               </div>
             </section>
