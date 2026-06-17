@@ -703,7 +703,7 @@ function Index() {
             <section className="border-b border-border/60 bg-gradient-to-br from-secondary via-background to-secondary/40">
               <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14 w-full">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Bem-vindo(a)</p>
-                <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl">
+                <h1 className="mt-2 text-4xl font-black leading-tight text-foreground sm:text-5xl md:text-6xl break-words">
                   {catalogName === "Catálogo de Produtos" ? (
                     "Catálogo de Produtos."
                   ) : (
@@ -848,19 +848,19 @@ function Index() {
           {/* NOVO RODAPÉ DE 3 COLUNAS */}
           <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full">
             <div className="mx-auto max-w-7xl px-4 py-12">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-sm text-muted-foreground mb-8 text-center sm:text-left">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-sm text-muted-foreground mb-8 text-center sm:text-left min-w-0">
                 {/* Coluna 1: Sobre */}
-                <div className="flex flex-col gap-3">
-                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">{catalogName}</h3>
-                  <p className="leading-relaxed font-medium">
+                <div className="flex flex-col gap-3 min-w-0">
+                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide break-words">{catalogName}</h3>
+                  <p className="leading-relaxed font-medium break-words whitespace-pre-wrap">
                     {catalogDesc || "Este site funciona apenas como um catálogo para vendas online e para consulta de nossos produtos. Faça seu pedido diretamente pelo WhatsApp."}
                   </p>
                 </div>
                 
                 {/* Coluna 2: Endereço */}
-                <div className="flex flex-col gap-3">
-                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">Endereço</h3>
-                  <div className="leading-relaxed font-medium whitespace-pre-wrap">
+                <div className="flex flex-col gap-3 min-w-0">
+                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide break-words">Endereço</h3>
+                  <div className="leading-relaxed font-medium whitespace-pre-wrap break-words">
                     {!catalogAddress && "Para saber o endereço, pergunte diretamente através do WhatsApp."}
                     {isLegacyAddress && catalogAddress}
                     {addressObj && (
@@ -875,18 +875,18 @@ function Index() {
                     )}
                   </div>
                   {addressObj?.mapsLink && (
-                    <a href={addressObj.mapsLink} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-sm transition-colors flex items-center justify-center sm:justify-start gap-1 mt-1">
+                    <a href={addressObj.mapsLink} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-sm transition-colors flex items-center justify-center sm:justify-start gap-1 mt-1 break-words">
                       📍 Ver no mapa
                     </a>
                   )}
                 </div>
 
                 {/* Coluna 3: Contato */}
-                <div className="flex flex-col gap-3">
-                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">Contato</h3>
-                  <p className="leading-relaxed font-medium">
+                <div className="flex flex-col gap-3 min-w-0">
+                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide break-words">Contato</h3>
+                  <p className="leading-relaxed font-medium break-words">
                     WhatsApp:<br/>
-                    <a href={whatsappLink("Olá! Vim pelo catálogo.", whatsNumber)} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-base transition-colors">
+                    <a href={whatsappLink("Olá! Vim pelo catálogo.", whatsNumber)} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-base transition-colors break-words">
                       +{whatsNumber}
                     </a>
                   </p>

@@ -306,7 +306,11 @@ export function SettingsPanel() {
       toast.success("Senha da loja criada com sucesso.");
       fetchCodes();
     } catch(err: any) {
-      toast.error(err.message || "Erro ao criar senha");
+      if (err?.code === '23505' || err?.message?.includes('duplicate key') || err?.message?.includes('unique constraint')) {
+        toast.error("Esta senha já está cadastrada. Escolha uma senha diferente.");
+      } else {
+        toast.error(err?.message || "Erro ao criar senha da loja.");
+      }
     }
   }
 
@@ -325,7 +329,11 @@ export function SettingsPanel() {
       toast.success("Senha da Área Exclusiva criada com sucesso.");
       fetchCodes();
     } catch(err: any) {
-      toast.error(err.message || "Erro ao criar senha");
+      if (err?.code === '23505' || err?.message?.includes('duplicate key') || err?.message?.includes('unique constraint')) {
+        toast.error("Esta senha já está cadastrada. Escolha uma senha diferente.");
+      } else {
+        toast.error(err?.message || "Erro ao criar senha VIP.");
+      }
     }
   }
 
@@ -455,11 +463,11 @@ export function SettingsPanel() {
           Personalize as informações que aparecem no final da página da sua loja.
         </p>
 
-        <div className="mt-4 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
-            <div>
+        <div className="mt-4 space-y-4 min-w-0 max-w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
+            <div className="min-w-0 flex-1">
               <h4 className="font-bold text-foreground">Descrição do Catálogo</h4>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words whitespace-pre-wrap">
                 {catalogDesc || "Padrão: Este site funciona apenas como um catálogo para vendas online..."}
               </p>
             </div>
@@ -468,10 +476,10 @@ export function SettingsPanel() {
             </Button>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
+            <div className="min-w-0 flex-1">
               <h4 className="font-bold text-foreground">Endereço Físico</h4>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words whitespace-pre-wrap">
                 {catalogAddress && catalogAddress.startsWith("{") ? "Estruturado no formato completo." : catalogAddress || "Padrão: Para saber o endereço, pergunte diretamente através do WhatsApp."}
               </p>
             </div>
@@ -529,9 +537,9 @@ export function SettingsPanel() {
         <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
         </p>
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
-          <div className="min-w-0">
-            <h4 className="font-bold text-foreground truncate">{catalogName || "Não definido"}</h4>
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-foreground break-words whitespace-normal">{catalogName || "Não definido"}</h4>
           </div>
           <Button variant="outline" onClick={() => { setTempName(catalogName); setShowNameModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
             Editar
@@ -590,8 +598,8 @@ export function SettingsPanel() {
         <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
           Este é o número que receberá os pedidos do site e o botão flutuante.
         </p>
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
-          <div className="min-w-0">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
+          <div className="min-w-0 flex-1">
             <h4 className="font-bold text-foreground truncate">{number || "Não definido"}</h4>
           </div>
           <Button variant="outline" onClick={() => { setTempNumber(number); setShowWhatsAppModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
@@ -692,6 +700,19 @@ export function SettingsPanel() {
             </p>
             <form onSubmit={async (e) => {
               e.preventDefault();
+              
+              if (tempAddressObj.mapsLink) {
+                try {
+                  const url = new URL(tempAddressObj.mapsLink);
+                  if (!['http:', 'https:'].includes(url.protocol)) {
+                    throw new Error("Protocolo inválido");
+                  }
+                } catch (err) {
+                  toast.error("O link do Google Maps deve ser uma URL válida (ex: https://maps.app.goo.gl/...).");
+                  return;
+                }
+              }
+
               setSavingAddress(true);
               try {
                 const finalString = JSON.stringify(tempAddressObj);
@@ -781,6 +802,7 @@ export function SettingsPanel() {
                     value={tempAddressObj.mapsLink} 
                     onChange={e => setTempAddressObj({...tempAddressObj, mapsLink: e.target.value})} 
                     placeholder="https://maps.app.goo.gl/..." 
+                    maxLength={500}
                   />
                 </div>
               </div>
