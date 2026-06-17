@@ -848,7 +848,7 @@ export function SettingsPanel() {
             </div>
             <form onSubmit={submitName} className="flex flex-col gap-4">
               <div>
-                <Label>Nome da sua loja</Label>
+                <Label>Nome da sua loja <span className="text-destructive">*</span></Label>
                 <Input 
                   value={tempName} 
                   onChange={(e) => setTempName(e.target.value)} 
@@ -882,13 +882,17 @@ export function SettingsPanel() {
               Use o formato internacional sem espaços (DDI + DDD + número). Ex: <code>5545912345678</code>
             </p>
             <form onSubmit={submitNumber} className="flex flex-col gap-4">
-              <Input
-                value={tempNumber}
-                onChange={(e) => setTempNumber(e.target.value.replace(/\D/g, ''))}
-                placeholder="ex: 5545912345678"
-                required
-                maxLength={20}
-              />
+              <div>
+                <Label>Número <span className="text-destructive">*</span></Label>
+                <Input
+                  value={tempNumber}
+                  onChange={(e) => setTempNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder="ex: 5545912345678"
+                  required
+                  maxLength={20}
+                  className="mt-1"
+                />
+              </div>
               <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 border-t border-border mt-2">
                  <Button type="button" variant="secondary" onClick={() => {
                     const cleanNumber = tempNumber.replace(/\D/g, '');
@@ -921,7 +925,7 @@ export function SettingsPanel() {
             </div>
             <form onSubmit={handleCreateStoreCode} className="flex flex-col gap-4">
               <div>
-                <Label>Senha</Label>
+                <Label>Senha <span className="text-destructive">*</span></Label>
                 <Input value={newStoreCode} onChange={e => setNewStoreCode(e.target.value)} required maxLength={20} placeholder="Ex: cliente123" className="mt-1" />
               </div>
               <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border min-w-0 gap-3">
@@ -952,7 +956,7 @@ export function SettingsPanel() {
             </div>
             <form onSubmit={handleCreateVipCode} className="flex flex-col gap-4">
               <div>
-                <Label>Senha</Label>
+                <Label>Senha <span className="text-destructive">*</span></Label>
                 <Input value={newVipCode} onChange={e => setNewVipCode(e.target.value)} required maxLength={20} placeholder="Ex: vip_premium" className="mt-1" />
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
