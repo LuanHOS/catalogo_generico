@@ -216,6 +216,9 @@ function StockConflictModal({
 function Index() {
   const [catalogName, setCatalogName] = useState("Catálogo de Produtos");
   const [catalogLogo, setCatalogLogo] = useState("");
+  const [catalogDesc, setCatalogDesc] = useState("");
+  const [catalogAddress, setCatalogAddress] = useState("");
+  
   const [cats, setCats] = useState<Category[]>([]);
   const [prods, setProds] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,7 +271,7 @@ function Index() {
         supabase.from("categories").select("*").order("sort_order"),
         // @ts-ignore
         supabase.rpc("get_catalog_secure", { p_store_code: savedStoreCode, p_vip_code: savedExclusiveCode }),
-        supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode", "catalog_logo"]),
+        supabase.from("app_settings").select("key, value").in("key", ["catalog_name", "system_theme", "private_mode", "catalog_logo", "catalog_description", "catalog_address"]),
         savedStoreCode ? supabase.rpc("verify_exclusive_code", { p_code: savedStoreCode }) : Promise.resolve({ data: false }),
         savedExclusiveCode ? supabase.rpc("verify_exclusive_code", { p_code: savedExclusiveCode }) : Promise.resolve({ data: false }),
         supabase.rpc("check_vip_status")
@@ -277,6 +280,8 @@ function Index() {
       const settingsMap = new Map(s.data?.map(x => [x.key, x.value]) || []);
       if (settingsMap.has("catalog_name")) setCatalogName(settingsMap.get("catalog_name")!);
       if (settingsMap.has("catalog_logo")) setCatalogLogo(settingsMap.get("catalog_logo") || "");
+      if (settingsMap.has("catalog_description")) setCatalogDesc(settingsMap.get("catalog_description") || "");
+      if (settingsMap.has("catalog_address")) setCatalogAddress(settingsMap.get("catalog_address") || "");
       
       const themeId = settingsMap.get("system_theme") || "strong-gray";
       applyTheme(themeId);
@@ -828,6 +833,45 @@ function Index() {
               </>
             )}
           </main>
+
+          {/* NOVO RODAPÉ DE 3 COLUNAS */}
+          <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full">
+            <div className="mx-auto max-w-7xl px-4 py-12">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-sm text-muted-foreground mb-8 text-center sm:text-left">
+                {/* Coluna 1: Sobre */}
+                <div className="flex flex-col gap-3">
+                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">{catalogName}</h3>
+                  <p className="leading-relaxed font-medium">
+                    {catalogDesc || "Este site funciona apenas como um catálogo para vendas online e para consulta de nossos produtos. Faça seu pedido diretamente pelo WhatsApp."}
+                  </p>
+                </div>
+                
+                {/* Coluna 2: Endereço */}
+                <div className="flex flex-col gap-3">
+                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">Endereço</h3>
+                  <p className="leading-relaxed font-medium whitespace-pre-wrap">
+                    {catalogAddress || "Para saber o endereço, pergunte diretamente através do WhatsApp."}
+                  </p>
+                </div>
+
+                {/* Coluna 3: Contato */}
+                <div className="flex flex-col gap-3">
+                  <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">Contato</h3>
+                  <p className="leading-relaxed font-medium">
+                    WhatsApp:<br/>
+                    <a href={whatsappLink("Olá! Vim através do Catálogo de Produtos.", whatsNumber)} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-base transition-colors">
+                      +{whatsNumber}
+                    </a>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="text-center text-xs sm:text-sm font-semibold text-muted-foreground border-t border-border/60 pt-8">
+                © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
+              </div>
+            </div>
+          </footer>
+
         </div>
       )}
 
@@ -864,12 +908,6 @@ function Index() {
             </div>
          </div>
       )}
-
-      <footer className="mt-auto border-t border-border/60 bg-background relative z-10 w-full">
-        <div className="mx-auto max-w-7xl px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
-          © {new Date().getFullYear()} Catálogo de Produtos. Todos os direitos reservados.
-        </div>
-      </footer>
 
       {!accessDenied && items.length > 0 && (
         <button

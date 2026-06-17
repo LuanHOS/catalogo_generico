@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Lock, Plus, Crown, Trash2, Palette, ShoppingBag, Phone, X, Upload, Image as ImageIcon } from "lucide-react";
+import { Lock, Plus, Crown, Trash2, Palette, ShoppingBag, Phone, X, Upload, Image as ImageIcon, PanelBottom } from "lucide-react";
 import { brl, DEFAULT_WHATSAPP_NUMBER, whatsappLink } from "@/lib/whatsapp";
 import {
   updateWhatsAppNumber,
@@ -38,6 +39,16 @@ export function SettingsPanel() {
   
   const [showStoreCodeModal, setShowStoreCodeModal] = useState(false);
   const [showVipCodeModal, setShowVipCodeModal] = useState(false);
+
+  // Novos estados do Rodapé
+  const [catalogDesc, setCatalogDesc] = useState("");
+  const [catalogAddress, setCatalogAddress] = useState("");
+  const [showDescModal, setShowDescModal] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [tempDesc, setTempDesc] = useState("");
+  const [tempAddress, setTempAddress] = useState("");
+  const [savingDesc, setSavingDesc] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
   
   // Array com todas as senhas (buscadas direto do banco para ter acesso aos novos campos)
   const [accessCodes, setAccessCodes] = useState<{id: string, code: string, code_type: string, unlocks_vip: boolean}[]>([]);
@@ -77,13 +88,17 @@ export function SettingsPanel() {
       supabase.from("app_settings").select("value").eq("key", "system_theme").maybeSingle(),
       supabase.from("app_settings").select("value").eq("key", "private_mode").maybeSingle(),
       supabase.from("app_settings").select("value").eq("key", "catalog_logo").maybeSingle(),
-      supabase.from("app_settings").select("value").eq("key", "vip_mode").maybeSingle()
-    ]).then(([waRes, catRes, themeRes, privRes, logoRes, vipRes]) => {
+      supabase.from("app_settings").select("value").eq("key", "vip_mode").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "catalog_description").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "catalog_address").maybeSingle()
+    ]).then(([waRes, catRes, themeRes, privRes, logoRes, vipRes, descRes, addRes]) => {
       setNumber(waRes.data?.value ?? DEFAULT_WHATSAPP_NUMBER);
       setCatalogName(catRes.data?.value ?? "Catálogo de Produtos");
       setTheme(themeRes.data?.value ?? "strong-gray");
       setPrivateMode(privRes.data?.value === "true");
       setVipMode(vipRes.data?.value !== "false"); // Default true
+      setCatalogDesc(descRes.data?.value ?? "");
+      setCatalogAddress(addRes.data?.value ?? "");
       
       const logoVal = logoRes.data?.value ?? "";
       setCatalogLogo(logoVal);
@@ -421,6 +436,42 @@ export function SettingsPanel() {
         </div>
       </div>
 
+      {/* Bloco de Rodapé */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <PanelBottom className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Rodapé da Loja</span>
+        </h3>
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
+          Personalize as informações que aparecem no final da página da sua loja.
+        </p>
+
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
+            <div>
+              <h4 className="font-bold text-foreground">Descrição do Catálogo</h4>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                {catalogDesc || "Padrão: Este site funciona apenas como um catálogo para vendas online..."}
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => { setTempDesc(catalogDesc); setShowDescModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
+              Editar
+            </Button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4">
+            <div>
+              <h4 className="font-bold text-foreground">Endereço Físico</h4>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                {catalogAddress || "Padrão: Para saber o endereço, pergunte diretamente através do WhatsApp."}
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => { setTempAddress(catalogAddress); setShowAddressModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
+              Editar
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
         <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
           <Palette className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Cores do Sistema</span>
@@ -586,6 +637,94 @@ export function SettingsPanel() {
         />
       )}
 
+      {/* MODAIS DO RODAPÉ */}
+      {showDescModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <ScrollLock />
+          <div className="bg-background w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black font-display truncate text-foreground flex items-center gap-2">
+                <PanelBottom className="h-5 w-5 text-primary"/> Descrição do Rodapé
+              </h3>
+              <button onClick={() => setShowDescModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Este texto aparecerá na primeira coluna do rodapé da loja, logo abaixo do nome do catálogo. Serve para explicar o funcionamento da sua loja. Se deixar em branco, um texto padrão será exibido.
+            </p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSavingDesc(true);
+              try {
+                const { error } = await supabase.from("app_settings").upsert({ key: "catalog_description", value: tempDesc.trim(), updated_at: new Date().toISOString() });
+                if (error) throw error;
+                setCatalogDesc(tempDesc.trim());
+                toast.success("Descrição atualizada!");
+                setShowDescModal(false);
+              } catch (err) {
+                toast.error("Erro ao salvar descrição.");
+              }
+              setSavingDesc(false);
+            }} className="flex flex-col gap-4">
+              <Textarea 
+                value={tempDesc} 
+                onChange={e => setTempDesc(e.target.value)} 
+                maxLength={255} 
+                placeholder="Ex: Somos uma loja online especializada em..." 
+                className="resize-y min-h-[100px]" 
+              />
+              <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
+                 <Button type="button" variant="outline" onClick={() => setShowDescModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
+                 <Button type="submit" disabled={savingDesc} className="rounded-full shadow-sm">{savingDesc ? "Salvando..." : "Salvar"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showAddressModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <ScrollLock />
+          <div className="bg-background w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black font-display truncate text-foreground flex items-center gap-2">
+                <PanelBottom className="h-5 w-5 text-primary"/> Endereço da Loja
+              </h3>
+              <button onClick={() => setShowAddressModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Este texto aparecerá na coluna central do rodapé da loja. Ideal para informar sua localização física ou de retirada. Se deixar em branco, indicará para perguntar no WhatsApp.
+            </p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSavingAddress(true);
+              try {
+                const { error } = await supabase.from("app_settings").upsert({ key: "catalog_address", value: tempAddress.trim(), updated_at: new Date().toISOString() });
+                if (error) throw error;
+                setCatalogAddress(tempAddress.trim());
+                toast.success("Endereço atualizado!");
+                setShowAddressModal(false);
+              } catch (err) {
+                toast.error("Erro ao salvar endereço.");
+              }
+              setSavingAddress(false);
+            }} className="flex flex-col gap-4">
+              <Textarea 
+                value={tempAddress} 
+                onChange={e => setTempAddress(e.target.value)} 
+                maxLength={255} 
+                placeholder="Ex: Rua das Flores, 123 - Centro..." 
+                className="resize-y min-h-[80px]" 
+              />
+              <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
+                 <Button type="button" variant="outline" onClick={() => setShowAddressModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
+                 <Button type="submit" disabled={savingAddress} className="rounded-full shadow-sm">{savingAddress ? "Salvando..." : "Salvar"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAIS DE SENHAS */}
       {showStoreCodeModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <ScrollLock />
