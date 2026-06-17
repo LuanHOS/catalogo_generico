@@ -205,7 +205,7 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
                <form onSubmit={add} className="flex flex-col gap-4 min-w-0 max-w-full">
                   <div className="min-w-0">
                      <Label className="truncate block">Nome da categoria <span className="text-destructive">*</span></Label>
-                     <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Doces" className="mt-1 w-full min-w-0" autoFocus required maxLength={50} />
+                     <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Doces" className="mt-1 w-full min-w-0" required maxLength={50} />
                   </div>
                   <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border min-w-0 gap-3">
                      <div className="min-w-0">
@@ -236,7 +236,7 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
                <form onSubmit={handleRenameCat} className="flex flex-col gap-4 min-w-0 max-w-full">
                   <div className="min-w-0">
                      <Label className="truncate block">Nome da categoria <span className="text-destructive">*</span></Label>
-                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1 w-full min-w-0" autoFocus required maxLength={50} />
+                     <Input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="mt-1 w-full min-w-0" required maxLength={50} />
                   </div>
                   <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border min-w-0 gap-3">
                      <div className="min-w-0">

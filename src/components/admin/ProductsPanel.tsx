@@ -583,7 +583,7 @@ function ProductForm({
             <div className="space-y-3 min-w-0 max-w-full">
                <div className="min-w-0">
                   <Label className="truncate block">Quantidade Recebida <span className="text-destructive">*</span></Label>
-                  <Input type="number" min="1" value={addStockQty} onChange={e => { if(e.target.value.length <= 15) setAddStockQty(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="Ex: 10" className="mt-1 w-full min-w-0" autoFocus required />
+                  <Input type="number" min="1" value={addStockQty} onChange={e => { if(e.target.value.length <= 15) setAddStockQty(e.target.value); }} onKeyDown={blockInvalidNumberChars} placeholder="Ex: 10" className="mt-1 w-full min-w-0" required />
                </div>
                <div className="min-w-0">
                   <Label className="truncate block">Custo Unitário da Compra (R$) <span className="text-destructive">*</span></Label>

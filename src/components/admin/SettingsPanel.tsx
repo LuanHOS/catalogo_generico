@@ -599,7 +599,7 @@ export function SettingsPanel() {
             <form onSubmit={handleCreateStoreCode} className="flex flex-col gap-4">
               <div>
                 <Label>Senha</Label>
-                <Input value={newStoreCode} onChange={e => setNewStoreCode(e.target.value)} required maxLength={20} autoFocus placeholder="Ex: cliente123" className="mt-1" />
+                <Input value={newStoreCode} onChange={e => setNewStoreCode(e.target.value)} required maxLength={20} placeholder="Ex: cliente123" className="mt-1" />
               </div>
               <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border min-w-0 gap-3">
                  <div className="min-w-0">
@@ -630,7 +630,7 @@ export function SettingsPanel() {
             <form onSubmit={handleCreateVipCode} className="flex flex-col gap-4">
               <div>
                 <Label>Senha</Label>
-                <Input value={newVipCode} onChange={e => setNewVipCode(e.target.value)} required maxLength={20} autoFocus placeholder="Ex: vip_premium" className="mt-1" />
+                <Input value={newVipCode} onChange={e => setNewVipCode(e.target.value)} required maxLength={20} placeholder="Ex: vip_premium" className="mt-1" />
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
                  <Button type="button" variant="outline" onClick={() => setShowVipCodeModal(false)} className="rounded-full shadow-sm">Cancelar</Button>

@@ -856,7 +856,6 @@ function Index() {
                      onChange={e => setVipCodeInput(e.target.value)}
                      className="h-12 text-center text-lg font-bold border-yellow-500/30 focus-visible:ring-yellow-500"
                      maxLength={20}
-                     autoFocus
                   />
                   <Button type="submit" disabled={verifyingVip || !vipCodeInput.trim()} className="w-full h-12 rounded-full text-base font-black shadow-md bg-yellow-500 hover:bg-yellow-600 text-yellow-950 transition-all">
                      {verifyingVip ? "Verificando..." : "Desbloquear Acesso"}

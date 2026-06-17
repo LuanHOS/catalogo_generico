@@ -375,6 +375,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   
   const [productDetailsToShow, setProductDetailsToShow] = useState<Product | null>(null);
 
@@ -422,6 +423,14 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
       setCart(c => c.map(x => x.product.id === p.id ? { ...x, quantity: x.quantity - 1 } : x).filter(x => x.quantity > 0));
   };
 
+  function handleAttemptClose() {
+      if (cart.length > 0) {
+          setShowCancelConfirm(true);
+      } else {
+          onClose();
+      }
+  }
+
   const save = async () => {
       if (cart.length === 0) return;
 
@@ -464,7 +473,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
          <div className="bg-background w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden min-w-0">
              <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0 min-w-0">
                 <h2 className="text-xl font-display font-black truncate">Nova Venda Presencial</h2>
-                <button onClick={onClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0 ml-2">Fechar</button>
+                <button onClick={handleAttemptClose} className="text-sm font-semibold text-muted-foreground hover:text-foreground flex-shrink-0 ml-2">Fechar</button>
              </div>
              
              <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col sm:flex-row min-h-0">
@@ -578,7 +587,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                  </div>
              </div>
              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0 min-w-0">
-                 <Button variant="outline" onClick={onClose} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">Cancelar</Button>
+                 <Button variant="outline" onClick={handleAttemptClose} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">Cancelar</Button>
                  <Button onClick={save} disabled={cart.length === 0 || saving} className="rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto">
                     {saving ? "Processando..." : "Concluir Venda"}
                  </Button>
@@ -633,6 +642,20 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                     </div>
                 </div>
             </div>
+         )}
+         
+         {showCancelConfirm && (
+            <ConfirmActionModal
+                title="Cancelar Venda Presencial?"
+                description="Você já adicionou itens ao carrinho. Se fechar agora, a venda será descartada e os itens perdidos."
+                onClose={() => setShowCancelConfirm(false)}
+                onConfirm={() => {
+                    setShowCancelConfirm(false);
+                    onClose();
+                }}
+                destructive={true}
+                confirmText="Sim, fechar e descartar"
+            />
          )}
       </div>
   );
