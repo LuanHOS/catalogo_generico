@@ -558,6 +558,17 @@ function Index() {
     if (pr.data) setProds(pr.data as Product[]);
   }
 
+  // Prepara o Objeto de Endereço do JSON salvo
+  let addressObj: any = null;
+  let isLegacyAddress = false;
+  if (catalogAddress) {
+    if (catalogAddress.startsWith("{")) {
+      try { addressObj = JSON.parse(catalogAddress); } catch (e) { isLegacyAddress = true; }
+    } else {
+      isLegacyAddress = true;
+    }
+  }
+
   return (
     <div className="min-h-screen relative flex flex-col bg-background w-full max-w-[100vw]">
       <Toaster position="top-center" richColors />
@@ -849,9 +860,25 @@ function Index() {
                 {/* Coluna 2: Endereço */}
                 <div className="flex flex-col gap-3">
                   <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">Endereço</h3>
-                  <p className="leading-relaxed font-medium whitespace-pre-wrap">
-                    {catalogAddress || "Para saber o endereço, pergunte diretamente através do WhatsApp."}
-                  </p>
+                  <div className="leading-relaxed font-medium whitespace-pre-wrap">
+                    {!catalogAddress && "Para saber o endereço, pergunte diretamente através do WhatsApp."}
+                    {isLegacyAddress && catalogAddress}
+                    {addressObj && (
+                      <>
+                        {addressObj.logradouro}, {addressObj.numero}
+                        {addressObj.complemento && ` - ${addressObj.complemento}`}
+                        <br />
+                        {addressObj.bairro} - {addressObj.cidade}/{addressObj.estado}
+                        {addressObj.cep && <br />}
+                        {addressObj.cep && `CEP: ${addressObj.cep}`}
+                      </>
+                    )}
+                  </div>
+                  {addressObj?.mapsLink && (
+                    <a href={addressObj.mapsLink} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-sm transition-colors flex items-center justify-center sm:justify-start gap-1 mt-1">
+                      📍 Ver no mapa
+                    </a>
+                  )}
                 </div>
 
                 {/* Coluna 3: Contato */}
@@ -859,7 +886,7 @@ function Index() {
                   <h3 className="font-display font-black text-foreground text-lg uppercase tracking-wide">Contato</h3>
                   <p className="leading-relaxed font-medium">
                     WhatsApp:<br/>
-                    <a href={whatsappLink("Olá! Vim através do Catálogo de Produtos.", whatsNumber)} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-base transition-colors">
+                    <a href={whatsappLink("Olá! Vim pelo catálogo.", whatsNumber)} target="_blank" rel="noreferrer" className="text-primary hover:text-primary/80 font-bold text-base transition-colors">
                       +{whatsNumber}
                     </a>
                   </p>

@@ -46,7 +46,9 @@ export function SettingsPanel() {
   const [showDescModal, setShowDescModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [tempDesc, setTempDesc] = useState("");
-  const [tempAddress, setTempAddress] = useState("");
+  const [tempAddressObj, setTempAddressObj] = useState({
+      cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "", mapsLink: ""
+  });
   const [savingDesc, setSavingDesc] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   
@@ -462,10 +464,21 @@ export function SettingsPanel() {
             <div>
               <h4 className="font-bold text-foreground">Endereço Físico</h4>
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                {catalogAddress || "Padrão: Para saber o endereço, pergunte diretamente através do WhatsApp."}
+                {catalogAddress && catalogAddress.startsWith("{") ? "Estruturado no formato completo." : catalogAddress || "Padrão: Para saber o endereço, pergunte diretamente através do WhatsApp."}
               </p>
             </div>
-            <Button variant="outline" onClick={() => { setTempAddress(catalogAddress); setShowAddressModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
+            <Button variant="outline" onClick={() => { 
+                let parsed = { cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "", mapsLink: "" };
+                if (catalogAddress) {
+                   if (catalogAddress.startsWith("{")) {
+                      try { parsed = JSON.parse(catalogAddress); } catch (e) {}
+                   } else {
+                      parsed.logradouro = catalogAddress;
+                   }
+                }
+                setTempAddressObj(parsed);
+                setShowAddressModal(true); 
+              }} className="rounded-full shadow-sm flex-shrink-0">
               Editar
             </Button>
           </div>
@@ -684,7 +697,7 @@ export function SettingsPanel() {
       {showAddressModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <ScrollLock />
-          <div className="bg-background w-full max-w-md rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-background w-full max-w-xl rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black font-display truncate text-foreground flex items-center gap-2">
                 <PanelBottom className="h-5 w-5 text-primary"/> Endereço da Loja
@@ -692,15 +705,16 @@ export function SettingsPanel() {
               <button onClick={() => setShowAddressModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Este texto aparecerá na coluna central do rodapé da loja. Ideal para informar sua localização física ou de retirada. Se deixar em branco, indicará para perguntar no WhatsApp.
+              Preencha as informações estruturadas da sua loja. Isso formará um bloco de endereço perfeito no rodapé. Apenas os marcados com <span className="text-destructive">*</span> são obrigatórios.
             </p>
             <form onSubmit={async (e) => {
               e.preventDefault();
               setSavingAddress(true);
               try {
-                const { error } = await supabase.from("app_settings").upsert({ key: "catalog_address", value: tempAddress.trim(), updated_at: new Date().toISOString() });
+                const finalString = JSON.stringify(tempAddressObj);
+                const { error } = await supabase.from("app_settings").upsert({ key: "catalog_address", value: finalString, updated_at: new Date().toISOString() });
                 if (error) throw error;
-                setCatalogAddress(tempAddress.trim());
+                setCatalogAddress(finalString);
                 toast.success("Endereço atualizado!");
                 setShowAddressModal(false);
               } catch (err) {
@@ -708,13 +722,85 @@ export function SettingsPanel() {
               }
               setSavingAddress(false);
             }} className="flex flex-col gap-4">
-              <Textarea 
-                value={tempAddress} 
-                onChange={e => setTempAddress(e.target.value)} 
-                maxLength={255} 
-                placeholder="Ex: Rua das Flores, 123 - Centro..." 
-                className="resize-y min-h-[80px]" 
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <Label>CEP</Label>
+                  <Input 
+                    value={tempAddressObj.cep} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, cep: e.target.value})} 
+                    maxLength={9} 
+                    placeholder="Ex: 00000-000" 
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Logradouro <span className="text-destructive">*</span></Label>
+                  <Input 
+                    value={tempAddressObj.logradouro} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, logradouro: e.target.value})} 
+                    maxLength={100} 
+                    required 
+                    placeholder="Rua, Avenida, Alameda..."
+                  />
+                </div>
+                <div>
+                  <Label>Número <span className="text-destructive">*</span></Label>
+                  <Input 
+                    value={tempAddressObj.numero} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, numero: e.target.value})} 
+                    maxLength={10} 
+                    required 
+                    placeholder="Ex: 123 ou S/N"
+                  />
+                </div>
+                <div>
+                  <Label>Complemento</Label>
+                  <Input 
+                    value={tempAddressObj.complemento} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, complemento: e.target.value})} 
+                    maxLength={50} 
+                    placeholder="Apto, Sala, Bloco..."
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Bairro <span className="text-destructive">*</span></Label>
+                  <Input 
+                    value={tempAddressObj.bairro} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, bairro: e.target.value})} 
+                    maxLength={60} 
+                    required 
+                    placeholder="Seu bairro"
+                  />
+                </div>
+                <div>
+                  <Label>Cidade <span className="text-destructive">*</span></Label>
+                  <Input 
+                    value={tempAddressObj.cidade} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, cidade: e.target.value})} 
+                    maxLength={50} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <Label>Estado (UF) <span className="text-destructive">*</span></Label>
+                  <Input 
+                    value={tempAddressObj.estado} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, estado: e.target.value.toUpperCase()})} 
+                    maxLength={2} 
+                    required 
+                    placeholder="Ex: SP"
+                    className="uppercase"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Link do Google Maps</Label>
+                  <Input 
+                    type="url"
+                    value={tempAddressObj.mapsLink} 
+                    onChange={e => setTempAddressObj({...tempAddressObj, mapsLink: e.target.value})} 
+                    placeholder="https://maps.app.goo.gl/..." 
+                  />
+                </div>
+              </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
                  <Button type="button" variant="outline" onClick={() => setShowAddressModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
                  <Button type="submit" disabled={savingAddress} className="rounded-full shadow-sm">{savingAddress ? "Salvando..." : "Salvar"}</Button>
