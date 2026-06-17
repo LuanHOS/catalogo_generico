@@ -19,6 +19,14 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
   const [catSearch, setCatSearch] = useState("");
   const [showAddCatModal, setShowAddCatModal] = useState(false);
 
+  // Limite de exibição simultânea na tela (paginação)
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  // Sempre que buscar mudar, volta para o limite padrão
+  useEffect(() => {
+     setVisibleCount(20);
+  }, [catSearch]);
+
   // Estado para Edição da Categoria no Modal
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editCatName, setEditCatName] = useState("");
@@ -136,6 +144,8 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
     }
   }
 
+  const filteredCats = cats.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase().trim()));
+
   return (
     <div className="space-y-6 min-w-0 max-w-full">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between min-w-0 max-w-full">
@@ -156,10 +166,10 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
 
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm min-w-0 max-w-full">
         {cats.length === 0 && <li className="p-6 text-center text-muted-foreground font-medium truncate">Nenhuma categoria ainda.</li>}
-        {cats.length > 0 && cats.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase().trim())).length === 0 && (
+        {cats.length > 0 && filteredCats.length === 0 && (
           <li className="p-6 text-center text-muted-foreground font-medium truncate">Nenhuma categoria encontrada.</li>
         )}
-        {cats.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase().trim())).map((c) => {
+        {filteredCats.slice(0, visibleCount).map((c) => {
           const originalIdx = cats.findIndex(x => x.id === c.id);
           return (
           <li key={c.id} className="flex items-center justify-between gap-3 p-4 min-w-0 w-full">
@@ -175,6 +185,14 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
           </li>
         )})}
       </ul>
+
+      {visibleCount < filteredCats.length && (
+         <div className="mt-6 flex justify-center w-full min-w-0">
+            <Button variant="outline" onClick={() => setVisibleCount(v => v + 20)} className="rounded-full shadow-sm w-full sm:w-auto">
+               Mostrar mais categorias
+            </Button>
+         </div>
+      )}
 
       {showAddCatModal && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6 backdrop-blur-sm">

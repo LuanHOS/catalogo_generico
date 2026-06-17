@@ -19,6 +19,9 @@ export function AdminsPanel({ currentUserId }: { currentUserId: string }) {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<AdminRow | null>(null);
 
+  // Limite de exibição simultânea na tela (paginação)
+  const [visibleCount, setVisibleCount] = useState(20);
+
   // Estado para Modal de Exclusão
   const [adminToDelete, setAdminToDelete] = useState<AdminRow | null>(null);
   const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
@@ -76,7 +79,7 @@ export function AdminsPanel({ currentUserId }: { currentUserId: string }) {
       <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm min-w-0 max-w-full">
         {loading && <li className="p-6 text-center text-muted-foreground font-semibold truncate">Carregando…</li>}
         {!loading && admins.length === 0 && <li className="p-6 text-center text-muted-foreground font-semibold truncate">Nenhum administrador.</li>}
-        {admins.map((a) => (
+        {admins.slice(0, visibleCount).map((a) => (
           <li key={a.id} className="flex items-center justify-between gap-3 p-4 break-words min-w-0 max-w-full">
             <div className="min-w-0 flex-1">
               <div className="font-semibold flex flex-wrap items-center gap-2 min-w-0 max-w-full">
@@ -96,6 +99,14 @@ export function AdminsPanel({ currentUserId }: { currentUserId: string }) {
           </li>
         ))}
       </ul>
+
+      {visibleCount < admins.length && (
+         <div className="mt-6 flex justify-center w-full min-w-0">
+            <Button variant="outline" onClick={() => setVisibleCount(v => v + 20)} className="rounded-full shadow-sm w-full sm:w-auto">
+               Mostrar mais administradores
+            </Button>
+         </div>
+      )}
 
       {showCreate && (
         <AdminFormModal

@@ -21,6 +21,14 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
   const [search, setSearch] = useState("");
   const [filterOption, setFilterOption] = useState("all");
 
+  // Limite de exibição simultânea na tela (paginação)
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  // Sempre que os filtros mudarem, resetamos a paginação
+  useEffect(() => {
+     setVisibleCount(50);
+  }, [search, filterOption]);
+
   const { data: prods = [] } = useQuery({
     queryKey: ['admin-products'],
     queryFn: async () => {
@@ -113,7 +121,7 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 min-w-0 max-w-full">
-          {filtered.map((p) => {
+          {filtered.slice(0, visibleCount).map((p) => {
             const isInactive = !p.in_stock;
             const outOfStock = p.in_stock && p.track_stock && p.stock <= 0;
             const hasIssue = isInactive || outOfStock;
@@ -166,6 +174,14 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
             );
           })}
         </div>
+      )}
+
+      {visibleCount < filtered.length && (
+         <div className="mt-6 flex justify-center w-full min-w-0">
+            <Button variant="outline" onClick={() => setVisibleCount(v => v + 50)} className="rounded-full shadow-sm w-full sm:w-auto">
+               Mostrar mais produtos
+            </Button>
+         </div>
       )}
 
       {showForm && (

@@ -645,6 +645,9 @@ export function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChang
   const [showManual, setShowManual] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   
+  // Limite de exibição simultânea na tela (paginação)
+  const [visibleCount, setVisibleCount] = useState(20);
+  
   // Modais Rápidos
   const [cancelModalOrder, setCancelModalOrder] = useState<OrderRow | null>(null);
   const [completeModalOrder, setCompleteModalOrder] = useState<OrderRow | null>(null);
@@ -652,6 +655,11 @@ export function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChang
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  // Sempre que os filtros mudarem, resetamos a paginação para exibir o limite padrão
+  useEffect(() => {
+     setVisibleCount(20);
+  }, [searchQuery, statusFilter, startDate, endDate]);
 
   const { data: orders = [] } = useQuery({
     queryKey: ['admin-orders', startDate, endDate],
@@ -755,7 +763,7 @@ export function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChang
 
       <div className="grid gap-3 min-w-0 max-w-full">
         {filtered.length === 0 && <div className="p-12 text-center text-muted-foreground font-semibold border border-dashed border-border rounded-xl">Nenhum pedido encontrado.</div>}
-        {filtered.map(o => (
+        {filtered.slice(0, visibleCount).map(o => (
           <div 
             key={o.id} 
             className="border border-border bg-card p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm cursor-pointer hover:border-primary/30 transition break-words min-w-0 max-w-full"
@@ -797,6 +805,14 @@ export function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChang
           </div>
         ))}
       </div>
+
+      {visibleCount < filtered.length && (
+         <div className="mt-6 flex justify-center w-full min-w-0">
+            <Button variant="outline" onClick={() => setVisibleCount(v => v + 20)} className="rounded-full shadow-sm w-full sm:w-auto">
+               Mostrar mais pedidos
+            </Button>
+         </div>
+      )}
 
       {cancelModalOrder && (
         <CancelOrderModal 
