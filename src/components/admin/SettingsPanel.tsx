@@ -689,13 +689,17 @@ export function SettingsPanel() {
               }
               setSavingDesc(false);
             }} className="flex flex-col gap-4">
-              <Textarea 
-                value={tempDesc} 
-                onChange={e => setTempDesc(e.target.value)} 
-                maxLength={255} 
-                placeholder="Ex: Somos uma loja online especializada em..." 
-                className="resize-y min-h-[100px]" 
-              />
+              <div>
+                <Label>Descrição <span className="text-destructive">*</span></Label>
+                <Textarea 
+                  value={tempDesc} 
+                  onChange={e => setTempDesc(e.target.value)} 
+                  maxLength={255} 
+                  required
+                  placeholder="Ex: Somos uma loja online especializada em..." 
+                  className="resize-y min-h-[100px] mt-1" 
+                />
+              </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-border mt-2">
                  <Button type="button" variant="outline" onClick={() => setShowDescModal(false)} className="rounded-full shadow-sm">Cancelar</Button>
                  <Button type="submit" disabled={savingDesc} className="rounded-full shadow-sm">{savingDesc ? "Salvando..." : "Salvar"}</Button>
