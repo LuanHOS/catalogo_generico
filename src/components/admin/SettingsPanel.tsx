@@ -719,7 +719,7 @@ export function SettingsPanel() {
               <button onClick={() => setShowAddressModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Preencha as informações estruturadas da sua loja. Isso formará um bloco de endereço perfeito no rodapé.
+              Preencha as informações estruturadas da sua loja. Isso formará um bloco de endereço perfeito no rodapé. Se deixar todos os campos em branco, um texto padrão será exibido no rodapé no local do endereço.
             </p>
             <form onSubmit={async (e) => {
               e.preventDefault();
