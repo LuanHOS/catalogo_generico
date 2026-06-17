@@ -690,12 +690,11 @@ export function SettingsPanel() {
               setSavingDesc(false);
             }} className="flex flex-col gap-4">
               <div>
-                <Label>Descrição <span className="text-destructive">*</span></Label>
+                <Label>Descrição</Label>
                 <Textarea 
                   value={tempDesc} 
                   onChange={e => setTempDesc(e.target.value)} 
                   maxLength={255} 
-                  required
                   placeholder="Ex: Somos uma loja online especializada em..." 
                   className="resize-y min-h-[100px] mt-1" 
                 />
@@ -720,7 +719,7 @@ export function SettingsPanel() {
               <button onClick={() => setShowAddressModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4"/></button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Preencha as informações estruturadas da sua loja. Isso formará um bloco de endereço perfeito no rodapé. Apenas os marcados com <span className="text-destructive">*</span> são obrigatórios.
+              Preencha as informações estruturadas da sua loja. Isso formará um bloco de endereço perfeito no rodapé.
             </p>
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -761,22 +760,20 @@ export function SettingsPanel() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Logradouro <span className="text-destructive">*</span></Label>
+                  <Label>Logradouro</Label>
                   <Input 
                     value={tempAddressObj.logradouro} 
                     onChange={e => setTempAddressObj({...tempAddressObj, logradouro: e.target.value})} 
                     maxLength={100} 
-                    required 
                     placeholder="Rua, Avenida, Alameda..."
                   />
                 </div>
                 <div>
-                  <Label>Número <span className="text-destructive">*</span></Label>
+                  <Label>Número</Label>
                   <Input 
                     value={tempAddressObj.numero} 
                     onChange={e => setTempAddressObj({...tempAddressObj, numero: e.target.value})} 
                     maxLength={10} 
-                    required 
                     placeholder="Ex: 123 ou S/N"
                   />
                 </div>
@@ -790,31 +787,28 @@ export function SettingsPanel() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Bairro <span className="text-destructive">*</span></Label>
+                  <Label>Bairro</Label>
                   <Input 
                     value={tempAddressObj.bairro} 
                     onChange={e => setTempAddressObj({...tempAddressObj, bairro: e.target.value})} 
                     maxLength={60} 
-                    required 
                     placeholder="Seu bairro"
                   />
                 </div>
                 <div>
-                  <Label>Cidade <span className="text-destructive">*</span></Label>
+                  <Label>Cidade</Label>
                   <Input 
                     value={tempAddressObj.cidade} 
                     onChange={e => setTempAddressObj({...tempAddressObj, cidade: e.target.value})} 
                     maxLength={50} 
-                    required 
                   />
                 </div>
                 <div>
-                  <Label>Estado (UF) <span className="text-destructive">*</span></Label>
+                  <Label>Estado (UF)</Label>
                   <Input 
                     value={tempAddressObj.estado} 
                     onChange={e => setTempAddressObj({...tempAddressObj, estado: e.target.value.toUpperCase()})} 
                     maxLength={2} 
-                    required 
                     placeholder="Ex: SP"
                     className="uppercase"
                   />
