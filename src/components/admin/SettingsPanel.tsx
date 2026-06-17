@@ -366,8 +366,22 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-4 min-w-0 max-w-full">
-      
-      {/* Bloco de Loja Privada */}
+      <style>{`
+        @keyframes shimmer-btn {
+          0% { background-position: 200% center; }
+          100% { background-position: -200% center; }
+        }
+        .shimmer-btn {
+          background-image: linear-gradient(110deg, var(--primary) 20%, color-mix(in srgb, var(--primary) 50%, white) 50%, var(--primary) 80%);
+          background-size: 200% auto;
+          animation: shimmer-btn 3.5s linear infinite;
+          color: var(--primary-foreground) !important;
+          border-color: transparent !important;
+        }
+        .shimmer-btn:hover { filter: brightness(1.1); }
+      `}</style>
+
+      {/* 1. Bloco de Loja Privada */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-5 mb-5 min-w-0">
           <div className="min-w-0 flex-1">
@@ -412,7 +426,7 @@ export function SettingsPanel() {
         </div>
       </div>
 
-      {/* Bloco de Área Exclusiva (VIP) */}
+      {/* 2. Bloco de Área Exclusiva (VIP) */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-5 mb-5 min-w-0">
           <div className="min-w-0 flex-1">
@@ -432,7 +446,7 @@ export function SettingsPanel() {
                 <h4 className="font-bold text-foreground truncate">Senhas da Área Exclusiva</h4>
                 <p className="text-xs text-muted-foreground break-words whitespace-normal">Senhas criadas aqui liberam apenas as categorias marcadas como VIP.</p>
               </div>
-              <Button onClick={() => setShowVipCodeModal(true)} variant="secondary" className="flex-shrink-0 shadow-sm rounded-full bg-yellow-500/10 text-yellow-700 hover:bg-yellow-500/20 border border-yellow-500/30 font-bold"><Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Nova Senha VIP</span></Button>
+              <Button onClick={() => setShowVipCodeModal(true)} className="flex-shrink-0 shadow-sm rounded-full font-bold shimmer-btn"><Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Nova Senha VIP</span></Button>
            </div>
 
            {loadingCodes ? (
@@ -454,7 +468,88 @@ export function SettingsPanel() {
         </div>
       </div>
 
-      {/* Bloco de Rodapé */}
+      {/* 3. Nome do Catálogo */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <ShoppingBag className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Nome do Catálogo</span>
+        </h3>
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
+          Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
+        </p>
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-foreground break-words whitespace-normal">{catalogName || "Não definido"}</h4>
+          </div>
+          <Button variant="outline" onClick={() => { setTempName(catalogName); setShowNameModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
+            Editar
+          </Button>
+        </div>
+      </div>
+
+      {/* 4. Logo da Loja */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <ImageIcon className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Logo da Loja</span>
+        </h3>
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
+          Adicione a logomarca da sua empresa. Ela aparecerá no cabeçalho do catálogo.
+        </p>
+        <form onSubmit={submitLogo} className="mt-4 flex flex-col gap-4 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+            <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-secondary shadow-sm flex items-center justify-center flex-shrink-0">
+              {previewLogo ? (
+                <img src={previewLogo} className="h-full w-full object-cover" alt="Logo preview" />
+              ) : (
+                <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words min-w-0 max-w-full">
+                  <Upload className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Escolher imagem</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
+                </label>
+                {previewLogo && !isRemovingLogo && (
+                   <Button type="button" variant="outline" size="icon" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 flex-shrink-0">
+                      <Trash2 className="h-4 w-4" />
+                   </Button>
+                )}
+              </div>
+              {hasLogoChanges && (
+                 <Button type="button" variant="ghost" onClick={undoLogoChanges} disabled={savingLogo} className="text-xs h-7 px-2 justify-start w-full sm:w-max text-muted-foreground break-words whitespace-normal text-left min-w-0">
+                    Desfazer mudança de logo
+                 </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-start pt-2 flex-shrink-0">
+            <Button type="submit" disabled={savingLogo || !hasLogoChanges} className="rounded-full shadow-sm w-full sm:w-auto">
+              {savingLogo ? "Salvando…" : "Salvar Logo"}
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* 5. Número do WhatsApp */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
+        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
+          <Phone className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Número do WhatsApp</span>
+        </h3>
+        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
+          Este é o número que receberá os pedidos do site e o botão flutuante.
+        </p>
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-foreground truncate">{number || "Não definido"}</h4>
+          </div>
+          <Button variant="outline" onClick={() => { setTempNumber(number); setShowWhatsAppModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
+            Editar
+          </Button>
+        </div>
+      </div>
+
+      {/* 6. Bloco de Rodapé */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
         <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
           <PanelBottom className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Rodapé da Loja</span>
@@ -501,6 +596,7 @@ export function SettingsPanel() {
         </div>
       </div>
 
+      {/* 7. Cores do Sistema */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
         <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
           <Palette className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Cores do Sistema</span>
@@ -530,83 +626,7 @@ export function SettingsPanel() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
-        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
-          <ShoppingBag className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Nome do Catálogo</span>
-        </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
-          Este é o nome que aparecerá no cabeçalho e na página inicial da loja.
-        </p>
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
-          <div className="min-w-0 flex-1">
-            <h4 className="font-bold text-foreground break-words whitespace-normal">{catalogName || "Não definido"}</h4>
-          </div>
-          <Button variant="outline" onClick={() => { setTempName(catalogName); setShowNameModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
-            Editar
-          </Button>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
-        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
-          <ImageIcon className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Logo da Loja</span>
-        </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
-          Adicione a logomarca da sua empresa. Ela aparecerá no cabeçalho do catálogo.
-        </p>
-        <form onSubmit={submitLogo} className="mt-4 flex flex-col gap-4 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
-            <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-secondary shadow-sm flex items-center justify-center flex-shrink-0">
-              {previewLogo ? (
-                <img src={previewLogo} className="h-full w-full object-cover" alt="Logo preview" />
-              ) : (
-                <span className="text-xl font-black text-muted-foreground uppercase">{catalogName.charAt(0)}</span>
-              )}
-            </div>
-            <div className="flex flex-col gap-2 min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 min-w-0">
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-secondary shadow-sm transition break-words min-w-0 max-w-full">
-                  <Upload className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">Escolher imagem</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} disabled={savingLogo} />
-                </label>
-                {previewLogo && !isRemovingLogo && (
-                   <Button type="button" variant="outline" size="icon" onClick={handleLogoRemoveClick} disabled={savingLogo} className="rounded-full shadow-sm text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 flex-shrink-0">
-                      <Trash2 className="h-4 w-4" />
-                   </Button>
-                )}
-              </div>
-              {hasLogoChanges && (
-                 <Button type="button" variant="ghost" onClick={undoLogoChanges} disabled={savingLogo} className="text-xs h-7 px-2 justify-start w-full sm:w-max text-muted-foreground break-words whitespace-normal text-left min-w-0">
-                    Desfazer mudança de logo
-                 </Button>
-              )}
-            </div>
-          </div>
-          <div className="flex justify-start pt-2 flex-shrink-0">
-            <Button type="submit" disabled={savingLogo || !hasLogoChanges} className="rounded-full shadow-sm w-full sm:w-auto">
-              {savingLogo ? "Salvando…" : "Salvar Logo"}
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm break-words min-w-0 max-w-full">
-        <h3 className="font-display text-lg font-black flex items-center gap-2 truncate">
-          <Phone className="h-5 w-5 text-primary flex-shrink-0" /> <span className="truncate">Número do WhatsApp</span>
-        </h3>
-        <p className="mt-1 text-sm font-medium text-muted-foreground break-words whitespace-normal">
-          Este é o número que receberá os pedidos do site e o botão flutuante.
-        </p>
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg bg-secondary/20 gap-4 min-w-0">
-          <div className="min-w-0 flex-1">
-            <h4 className="font-bold text-foreground truncate">{number || "Não definido"}</h4>
-          </div>
-          <Button variant="outline" onClick={() => { setTempNumber(number); setShowWhatsAppModal(true); }} className="rounded-full shadow-sm flex-shrink-0">
-            Editar
-          </Button>
-        </div>
-      </div>
+      {/* --- MODAIS COMPARTILHADOS E DE CONFIRMAÇÃO --- */}
 
       {showInvalidWhatsApp && (
         <ConfirmActionModal
