@@ -24,7 +24,7 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
   const { data: prods = [] } = useQuery({
     queryKey: ['admin-products'],
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").is("deleted_at", null).order("sort_order");
+      const { data, error } = await supabase.from("active_products").select("*").order("sort_order");
       if (error) throw error;
       return data as Product[];
     }
@@ -33,7 +33,7 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
   const { data: cats = [] } = useQuery({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
+      const { data, error } = await supabase.from("active_categories").select("*").order("sort_order");
       if (error) throw error;
       return data as Category[];
     }

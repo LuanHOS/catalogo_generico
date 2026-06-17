@@ -229,7 +229,119 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      active_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          deleted_at: string | null
+          created_by_name: string | null
+          deleted_by_name: string | null
+          is_vip: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
+          is_vip?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
+          is_vip?: boolean | null
+        }
+        Relationships: []
+      }
+      active_products: {
+        Row: {
+          category_id: string | null
+          cost: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          in_stock: boolean
+          max_per_cart: number
+          name: string
+          price: number
+          sale_price: number | null
+          sort_order: number
+          stock: number
+          min_stock: number
+          barcode: string | null
+          sales_count: number
+          updated_at: string
+          deleted_at: string | null
+          created_by_name: string | null
+          deleted_by_name: string | null
+          track_stock: boolean | null
+        }
+        Insert: {
+          category_id?: string | null
+          cost?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          in_stock?: boolean
+          max_per_cart?: number
+          name: string
+          price?: number
+          sale_price?: number | null
+          sort_order?: number
+          stock?: number
+          min_stock?: number
+          barcode?: string | null
+          sales_count?: number
+          updated_at?: string
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
+          track_stock?: boolean | null
+        }
+        Update: {
+          category_id?: string | null
+          cost?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          in_stock?: boolean
+          max_per_cart?: number
+          name?: string
+          price?: number
+          sale_price?: number | null
+          sort_order?: number
+          stock?: number
+          min_stock?: number
+          barcode?: string | null
+          sales_count?: number
+          updated_at?: string
+          deleted_at?: string | null
+          created_by_name?: string | null
+          deleted_by_name?: string | null
+          track_stock?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Functions: {
       check_vip_status: {

@@ -389,7 +389,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const { data: products = [] } = useQuery({
     queryKey: ['admin-products-alphabetical'],
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").is("deleted_at", null).order("name");
+      const { data, error } = await supabase.from("active_products").select("*").order("name");
       if (error) throw error;
       return (data as Product[]) || [];
     }

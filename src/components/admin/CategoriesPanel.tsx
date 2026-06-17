@@ -31,7 +31,7 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
   const { data: cats = [] } = useQuery({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("*").is("deleted_at", null).order("sort_order");
+      const { data, error } = await supabase.from("active_categories").select("*").order("sort_order");
       if (error) throw error;
       return data as Category[];
     }
@@ -81,7 +81,7 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
   }
 
   async function initiateDelete(c: Category) {
-    const { count, error: countErr } = await supabase.from("products").select("id", { count: 'exact', head: true }).eq("category_id", c.id).is("deleted_at", null);
+    const { count, error: countErr } = await supabase.from("active_products").select("id", { count: 'exact', head: true }).eq("category_id", c.id);
     if (countErr) return toast.error("Erro ao verificar produtos vinculados.");
     
     if ((count ?? 0) > 0) {
@@ -96,7 +96,7 @@ export function CategoriesPanel({ isMaster, currentUserName }: { isMaster: boole
     setIsDeleting(true);
     const c = deletingCat.cat;
     
-    await supabase.from("products").update({ category_id: null }).eq("category_id", c.id).is("deleted_at", null);
+    await supabase.from("products").update({ category_id: null }).eq("category_id", c.id);
     const { error } = await supabase.from("categories").update({ deleted_at: new Date().toISOString(), deleted_by_name: currentUserName }).eq("id", c.id);
     
     setIsDeleting(false);
