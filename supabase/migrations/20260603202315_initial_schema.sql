@@ -195,7 +195,7 @@ CREATE POLICY "Admins delete product images" ON storage.objects FOR DELETE TO au
 
 
 -- ==============================================================================
--- 8. VIEWS (Catálogo Ativo)
+-- 8. VIEWS (Catálogo Ativo) E SUAS PERMISSÕES
 -- ==============================================================================
 
 CREATE OR REPLACE VIEW active_products AS
@@ -203,6 +203,13 @@ SELECT * FROM products WHERE deleted_at IS NULL;
 
 CREATE OR REPLACE VIEW active_categories AS
 SELECT * FROM categories WHERE deleted_at IS NULL;
+
+-- Permissões das views para a API conseguir ler os dados no front-end
+GRANT SELECT ON public.active_products TO anon, authenticated;
+GRANT ALL ON public.active_products TO service_role;
+
+GRANT SELECT ON public.active_categories TO anon, authenticated;
+GRANT ALL ON public.active_categories TO service_role;
 
 
 -- ==============================================================================
