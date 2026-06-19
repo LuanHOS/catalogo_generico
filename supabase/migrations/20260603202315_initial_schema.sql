@@ -1,23 +1,8 @@
 -- ==============================================================================
--- 1. TIPOS E FUNÇÕES AUXILIARES
+-- 1. TIPOS
 -- ==============================================================================
 
 CREATE TYPE public.app_role AS ENUM ('admin');
-
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role)
-$$;
-
-REVOKE EXECUTE ON FUNCTION public.has_role(uuid, app_role) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.has_role(uuid, app_role) TO authenticated, service_role;
-
-CREATE OR REPLACE FUNCTION public.tg_set_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
-
 
 -- ==============================================================================
 -- 2. CRIAÇÃO DAS TABELAS (Com todas as colunas finais)
@@ -101,9 +86,27 @@ CREATE TABLE IF NOT EXISTS public.orders (
     canceled_at timestamptz
 );
 
+-- ==============================================================================
+-- 3. FUNÇÕES AUXILIARES
+-- ==============================================================================
+
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role)
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, app_role) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, app_role) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.tg_set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
+
 
 -- ==============================================================================
--- 3. PERMISSÕES BÁSICAS (GRANTS)
+-- 4. PERMISSÕES BÁSICAS (GRANTS)
 -- ==============================================================================
 
 GRANT SELECT ON public.user_roles TO authenticated;
@@ -123,7 +126,7 @@ GRANT ALL ON public.products TO service_role;
 
 
 -- ==============================================================================
--- 4. TRIGGERS
+-- 5. TRIGGERS
 -- ==============================================================================
 
 CREATE TRIGGER tg_app_settings_updated_at BEFORE UPDATE ON public.app_settings
@@ -134,7 +137,7 @@ CREATE TRIGGER products_updated_at BEFORE UPDATE ON public.products
 
 
 -- ==============================================================================
--- 5. ROW LEVEL SECURITY E POLICIES
+-- 6. ROW LEVEL SECURITY E POLICIES
 -- ==============================================================================
 
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
@@ -170,7 +173,7 @@ CREATE POLICY "Admins manage orders" ON public.orders FOR ALL TO authenticated U
 
 
 -- ==============================================================================
--- 6. STORAGE (Imagens dos Produtos)
+-- 7. STORAGE (Imagens dos Produtos)
 -- ==============================================================================
 
 INSERT INTO storage.buckets (id, name, public) 
@@ -184,7 +187,7 @@ CREATE POLICY "Admins delete product images" ON storage.objects FOR DELETE TO au
 
 
 -- ==============================================================================
--- 7. VIEWS (Catálogo Ativo)
+-- 8. VIEWS (Catálogo Ativo)
 -- ==============================================================================
 
 CREATE OR REPLACE VIEW active_products AS
@@ -195,10 +198,10 @@ SELECT * FROM categories WHERE deleted_at IS NULL;
 
 
 -- ==============================================================================
--- 8. FUNÇÕES RPC (Versões finais combinadas da regra de negócio)
+-- 9. FUNÇÕES RPC (Versões finais combinadas da regra de negócio)
 -- ==============================================================================
 
--- 8.1. Obter catálogo de forma segura (com suporte a senha, admin bypass e soft delete)
+-- 9.1. Obter catálogo de forma segura (com suporte a senha, admin bypass e soft delete)
 CREATE OR REPLACE FUNCTION public.get_catalog_secure(p_store_code TEXT DEFAULT NULL, p_vip_code TEXT DEFAULT NULL)
 RETURNS TABLE (
     id uuid,
@@ -261,7 +264,7 @@ END;
 $$;
 
 
--- 8.2. Checar validade de senha exclusiva
+-- 9.2. Checar validade de senha exclusiva
 CREATE OR REPLACE FUNCTION public.verify_exclusive_code(p_code TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql SECURITY DEFINER
@@ -278,7 +281,7 @@ END;
 $$;
 
 
--- 8.3. Checar se existem códigos VIP criados
+-- 9.3. Checar se existem códigos VIP criados
 CREATE OR REPLACE FUNCTION public.has_vip_codes()
 RETURNS BOOLEAN
 LANGUAGE plpgsql SECURITY DEFINER
@@ -292,7 +295,7 @@ END;
 $$;
 
 
--- 8.4. Validar se a loja está em modo VIP ativo (tem produtos VIP e tem senha VIP)
+-- 9.4. Validar se a loja está em modo VIP ativo (tem produtos VIP e tem senha VIP)
 CREATE OR REPLACE FUNCTION public.check_vip_status()
 RETURNS BOOLEAN
 LANGUAGE plpgsql SECURITY DEFINER
@@ -314,7 +317,7 @@ END;
 $$;
 
 
--- 8.5. Checkout do Cliente (com salvamento de snapshot do estoque)
+-- 9.5. Checkout do Cliente (com salvamento de snapshot do estoque)
 CREATE OR REPLACE FUNCTION public.checkout_order(order_items jsonb, p_vip_code text DEFAULT NULL)
 RETURNS text
 LANGUAGE plpgsql
@@ -374,7 +377,7 @@ END;
 $$;
 
 
--- 8.6. Checkout do Admin/Presencial (com desconto seguro e snapshot de estoque)
+-- 9.6. Checkout do Admin/Presencial (com desconto seguro e snapshot de estoque)
 CREATE OR REPLACE FUNCTION public.checkout_presential_order(order_items jsonb, discount_amount numeric DEFAULT 0)
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER
@@ -437,7 +440,7 @@ END;
 $$;
 
 
--- 8.7. Atualizar Status do Pedido (Gerenciando estorno/recálculo de estoque baseado no snapshot, tracking do cancelamento e datas de ação)
+-- 9.7. Atualizar Status do Pedido (Gerenciando estorno/recálculo de estoque baseado no snapshot, tracking do cancelamento e datas de ação)
 CREATE OR REPLACE FUNCTION public.update_order_status(order_id uuid, new_status text, p_discount_amount numeric DEFAULT NULL, p_reason text DEFAULT NULL, p_canceled_by text DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
@@ -523,10 +526,10 @@ $$;
 
 
 -- ==============================================================================
--- 9. CONFIGURAÇÕES INICIAIS (SEED)
+-- 10. CONFIGURAÇÕES INICIAIS (SEED)
 -- ==============================================================================
 
-INSERT INTO public.app_settings (key, value) VALUES ('whatsapp_number', '5545984311918') ON CONFLICT (key) DO NOTHING;
+INSERT INTO public.app_settings (key, value) VALUES ('whatsapp_number', '5545999999999') ON CONFLICT (key) DO NOTHING;
 INSERT INTO public.app_settings (key, value) VALUES ('vip_mode', 'true') ON CONFLICT (key) DO NOTHING;
 INSERT INTO public.app_settings (key, value, updated_at) VALUES ('catalog_description', '', now()), ('catalog_address', '', now()) ON CONFLICT (key) DO NOTHING;
 
