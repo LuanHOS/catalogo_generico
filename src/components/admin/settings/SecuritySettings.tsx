@@ -52,6 +52,7 @@ export function SecuritySettings() {
       if (error) throw error;
       setAccessCodes(data as any);
     } catch(e) {
+      console.error("Erro no fetchCodes:", e);
       toast.error("Erro ao carregar senhas VIP.");
     }
     setLoadingCodes(false);

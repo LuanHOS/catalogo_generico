@@ -124,6 +124,14 @@ GRANT SELECT ON public.products TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.products TO authenticated;
 GRANT ALL ON public.products TO service_role;
 
+GRANT SELECT ON public.access_codes TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.access_codes TO authenticated;
+GRANT ALL ON public.access_codes TO service_role;
+
+GRANT SELECT ON public.orders TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.orders TO authenticated;
+GRANT ALL ON public.orders TO service_role;
+
 
 -- ==============================================================================
 -- 5. TRIGGERS
