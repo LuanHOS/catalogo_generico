@@ -408,7 +408,7 @@ function ProductForm({
           {product && (
             <div className="sm:col-span-2 min-w-0">
               <Label className="truncate block">Código</Label>
-              <Input value={product.short_id} readOnly disabled className="w-full min-w-0 font-bold bg-secondary/50 text-muted-foreground" />
+              <div className="mt-1 text-base font-bold text-foreground">{product.short_id}</div>
             </div>
           )}
 
