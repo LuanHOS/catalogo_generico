@@ -81,7 +81,7 @@ export function FinancesPanel() {
   
   let totalItemsSold = 0;
   let totalCosts = 0;
-  const itemStats: Record<string, { name: string, qty: number, revenue: number }> = {};
+  const itemStats: Record<string, { name: string, qty: number, revenue: number, short_id?: number }> = {};
   const soldProductIds = new Set<string>();
 
   orders.forEach(o => {
@@ -98,7 +98,7 @@ export function FinancesPanel() {
               if (i.id) soldProductIds.add(i.id);
 
               if (!itemStats[i.id]) {
-                  itemStats[i.id] = { name: i.name, qty: 0, revenue: 0 };
+                  itemStats[i.id] = { name: i.name, qty: 0, revenue: 0, short_id: p?.short_id };
               }
               itemStats[i.id].qty += qty;
               itemStats[i.id].revenue += (price * qty);
@@ -140,7 +140,7 @@ export function FinancesPanel() {
   const chartData = Array.from(chartMap.entries()).map(([date, total]) => ({ date, total }));
   const maxChartVal = chartData.length > 0 ? Math.max(...chartData.map(d => d.total)) : 1;
 
-  const top10 = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 10);
+  const rankingProdutos = Object.values(itemStats).sort((a, b) => b.qty - a.qty);
 
   return (
       <div className="space-y-6 min-w-0">
@@ -237,20 +237,22 @@ export function FinancesPanel() {
 
                     <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm flex flex-col break-words min-w-0 max-w-full">
                        <div className="bg-secondary/50 px-5 py-3 border-b border-border min-w-0">
-                           <h3 className="text-sm font-bold uppercase tracking-wide truncate">Top 10 Produtos (Curva ABC)</h3>
+                           <h3 className="text-sm font-bold uppercase tracking-wide truncate">Ranking de Produtos (Curva ABC)</h3>
                        </div>
-                       <div className="flex-1 overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '240px' }}>
-                          {top10.length === 0 ? (
+                       <div className="flex-1 overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '400px' }}>
+                          {rankingProdutos.length === 0 ? (
                               <p className="p-5 text-center text-muted-foreground text-xs font-semibold truncate">Nenhuma venda no período.</p>
                           ) : (
                               <div className="divide-y divide-border min-w-0">
-                                  {top10.map((item, idx) => (
+                                  {rankingProdutos.map((item, idx) => (
                                       <div key={idx} className="flex items-center justify-between p-3 px-5 hover:bg-secondary/20 transition gap-2 min-w-0 max-w-full">
                                           <div className="flex items-center gap-3 min-w-0 flex-1">
                                               <span className="flex items-center justify-center h-6 w-6 flex-shrink-0 rounded-full bg-secondary text-xs font-black text-muted-foreground">
                                                   {idx + 1}
                                               </span>
-                                              <span className="font-semibold text-sm truncate w-full" title={item.name}>{item.name}</span>
+                                              <span className="font-semibold text-sm truncate w-full" title={item.name}>
+                                                  {item.short_id && <span className="text-muted-foreground mr-1.5">#{item.short_id}</span>}{item.name}
+                                              </span>
                                           </div>
                                           <div className="text-right flex-shrink-0 min-w-0 max-w-[100px]">
                                               <div className="font-black text-primary text-sm truncate max-w-full">{item.qty} un.</div>
@@ -270,14 +272,16 @@ export function FinancesPanel() {
                            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                            <h3 className="text-sm font-bold uppercase tracking-wide truncate">Alerta de Estoque Crítico</h3>
                        </div>
-                       <div className="overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '200px' }}>
+                       <div className="overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '400px' }}>
                            {criticalStock.length === 0 ? (
                               <p className="p-5 text-center text-muted-foreground text-xs font-semibold truncate">Nenhum produto em nível crítico de estoque.</p>
                            ) : (
                               <div className="divide-y divide-border min-w-0">
                                  {criticalStock.map(p => (
                                     <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2 min-w-0">
-                                       <span className="font-semibold text-foreground truncate w-full flex-1" title={p.name}>{p.name}</span>
+                                       <span className="font-semibold text-foreground truncate w-full flex-1" title={p.name}>
+                                          <span className="text-muted-foreground mr-1.5">#{p.short_id}</span>{p.name}
+                                       </span>
                                        <span className="font-black text-red-600 whitespace-nowrap flex-shrink-0 truncate">{p.stock} un.</span>
                                     </div>
                                  ))}
@@ -291,22 +295,19 @@ export function FinancesPanel() {
                            <Clock className="h-4 w-4 flex-shrink-0" />
                            <h3 className="text-sm font-bold uppercase tracking-wide truncate">Baixo Giro Físico (Encalhados)</h3>
                        </div>
-                       <div className="overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '200px' }}>
+                       <div className="overflow-y-auto min-w-0 max-w-full" style={{ maxHeight: '400px' }}>
                            {deadStock.length === 0 ? (
                               <p className="p-5 text-center text-muted-foreground text-xs font-semibold whitespace-normal break-words">Todos os produtos físicos em estoque tiveram saída no período.</p>
                            ) : (
                               <div className="divide-y divide-border min-w-0">
-                                 {deadStock.slice(0, 50).map(p => (
+                                 {deadStock.map(p => (
                                     <div key={p.id} className="flex justify-between p-3 px-5 text-sm hover:bg-secondary/20 transition gap-2 min-w-0">
-                                       <span className="font-semibold text-foreground truncate w-full flex-1" title={p.name}>{p.name}</span>
+                                       <span className="font-semibold text-foreground truncate w-full flex-1" title={p.name}>
+                                          <span className="text-muted-foreground mr-1.5">#{p.short_id}</span>{p.name}
+                                       </span>
                                        <span className="font-black text-orange-600 whitespace-nowrap flex-shrink-0 truncate">Estoque: {p.stock}</span>
                                     </div>
                                  ))}
-                                 {deadStock.length > 50 && (
-                                    <div className="p-2 text-center text-xs font-bold text-muted-foreground bg-secondary/30 truncate">
-                                       + {deadStock.length - 50} outros itens
-                                    </div>
-                                 )}
                               </div>
                            )}
                        </div>
