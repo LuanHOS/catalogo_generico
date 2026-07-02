@@ -40,6 +40,7 @@ export type Product = {
   sales_count: number;
   max_per_cart: number;
   sort_order: number;
+  short_id: number;
   track_stock: boolean;
 };
 export type OrderRow = { 

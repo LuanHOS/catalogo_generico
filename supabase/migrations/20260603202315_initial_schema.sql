@@ -50,6 +50,7 @@ CREATE TABLE public.categories (
 CREATE TABLE public.products (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL,
+  short_id SERIAL UNIQUE,
   name text NOT NULL,
   description text,
   image_url text,
@@ -221,6 +222,7 @@ CREATE OR REPLACE FUNCTION public.get_catalog_secure(p_store_code TEXT DEFAULT N
 RETURNS TABLE (
     id uuid,
     category_id uuid,
+    short_id int,
     name text,
     description text,
     image_url text,
@@ -270,7 +272,7 @@ BEGIN
     END IF;
 
     RETURN QUERY
-    SELECT p.id, p.category_id, p.name, p.description, p.image_url, p.price, p.sale_price, p.in_stock, p.stock, p.min_stock, p.barcode, p.max_per_cart, p.sort_order, p.created_at, p.updated_at, p.sales_count, p.track_stock
+    SELECT p.id, p.category_id, p.short_id, p.name, p.description, p.image_url, p.price, p.sale_price, p.in_stock, p.stock, p.min_stock, p.barcode, p.max_per_cart, p.sort_order, p.created_at, p.updated_at, p.sales_count, p.track_stock
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.deleted_at IS NULL AND p.in_stock = TRUE
@@ -370,6 +372,7 @@ BEGIN
 
         v_final_items := v_final_items || jsonb_build_object(
             'id', v_product.id,
+            'short_id', v_product.short_id,
             'name', v_product.name,
             'price', v_final_price,
             'quantity', v_qty,
@@ -433,6 +436,7 @@ BEGIN
 
         v_final_items := v_final_items || jsonb_build_object(
             'id', v_product.id,
+            'short_id', v_product.short_id,
             'name', v_product.name,
             'price', v_final_price,
             'quantity', v_qty,

@@ -60,6 +60,7 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
   
   const filtered = prods.filter((p) => {
     const matchesSearch = !q ||
+      (p.short_id && p.short_id.toString() === exactQ) ||
       (p.barcode && p.barcode === exactQ) ||
       p.name.toLowerCase().includes(q) ||
       (p.description ?? "").toLowerCase().includes(q);
@@ -84,7 +85,7 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou código de barras..."
+              placeholder="Buscar por código, nome ou código de barras..."
               className="pl-9 shadow-sm w-full"
               maxLength={100}
             />
@@ -145,6 +146,7 @@ export function ProductsPanel({ isMaster, currentUserName }: { isMaster: boolean
                 <div className={"flex flex-1 flex-col min-w-0 break-words " + (hasIssue ? "opacity-60" : "")}>
                   <div className="font-bold line-clamp-2 break-words w-full" title={p.name}>
                      {isVipProd && <span title="Área Exclusiva" className="inline-block mr-1 align-text-bottom"><Crown className="h-3.5 w-3.5 text-yellow-500" /></span>}
+                     <span className="text-muted-foreground mr-1.5">#{p.short_id}</span>
                      {p.name}
                   </div>
                   <div className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
@@ -397,12 +399,19 @@ function ProductForm({
         className="flex w-full max-w-2xl max-h-[100dvh] flex-col rounded-t-2xl bg-background shadow-2xl sm:max-h-[90vh] sm:rounded-2xl min-w-0"
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4 flex-shrink-0 min-w-0">
-          <h3 className="font-display text-xl font-black truncate">{product ? "Editar" : "Novo"} produto</h3>
+          <h3 className="font-display text-xl font-black truncate">{product ? "Editar produto" : "Novo produto"}</h3>
           <button type="button" onClick={handleAttemptClose} className="text-sm font-semibold text-muted-foreground flex-shrink-0 ml-2">Fechar</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 min-w-0">
         <div className="grid gap-4 sm:grid-cols-2 min-w-0 max-w-full">
+          {product && (
+            <div className="sm:col-span-2 min-w-0">
+              <Label className="truncate block">Código</Label>
+              <Input value={product.short_id} readOnly disabled className="w-full min-w-0 font-bold bg-secondary/50 text-muted-foreground" />
+            </div>
+          )}
+
           <div className="sm:col-span-2 min-w-0">
             <Label className="truncate block">Foto</Label>
             <div className="mt-1 flex items-center gap-3 min-w-0">

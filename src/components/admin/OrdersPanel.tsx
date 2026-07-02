@@ -447,7 +447,8 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
           name: c.product.name,
           price: Number(c.product.sale_price) || Number(c.product.price),
           quantity: c.quantity,
-          category_id: c.product.category_id
+          category_id: c.product.category_id,
+          short_id: c.product.short_id
       }));
       
       const { error } = await supabase.rpc("checkout_presential_order", { discount_amount: discountVal, order_items: itemsJson });
@@ -463,6 +464,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
   const filteredProducts = products.filter(p => {
      if (!p.in_stock) return false;
      if (!exactSearch) return false;
+     if (p.short_id && p.short_id.toString() === exactSearch) return true;
      if (p.barcode && p.barcode === exactSearch) return true;
      return p.name.toLowerCase().includes(q);
   });
@@ -481,14 +483,14 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-3 flex-shrink-0 truncate">Produtos Disponíveis</h3>
                      <div className="relative mb-4 flex-shrink-0 min-w-0">
                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                         <Input placeholder="Buscar por nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-full min-w-0" maxLength={100} />
+                         <Input placeholder="Buscar por código, nome ou código de barras..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-full min-w-0" maxLength={100} />
                      </div>
                      <div className="grid gap-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 min-w-0 max-w-full">
                      {!exactSearch ? (
                          <div className="flex flex-col items-center justify-center py-10 text-center px-4 h-full min-h-[150px]">
                              <Search className="h-8 w-8 text-muted-foreground/30 mb-3" />
                              <p className="text-sm font-semibold text-muted-foreground break-words whitespace-normal">
-                                 Digite o nome ou código de barras acima para buscar os produtos.
+                                 Digite o código, nome ou código de barras acima para buscar os produtos.
                              </p>
                          </div>
                      ) : filteredProducts.length === 0 ? (
@@ -510,7 +512,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                         onClick={() => setProductDetailsToShow(p)} 
                                         title="Clique para ver os detalhes"
                                     >
-                                        {p.name}
+                                        <span className="text-muted-foreground mr-1.5">#{p.short_id}</span>{p.name}
                                     </div>
                                     <div className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">Estoque: {p.track_stock ? p.stock : '∞ Ilimitado'}</div>
                                  </div>
@@ -535,7 +537,7 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                                 onClick={() => setProductDetailsToShow(c.product)}
                                 title="Clique para ver os detalhes"
                              >
-                                {c.product.name}
+                                <span className="text-muted-foreground mr-1.5">#{c.product.short_id}</span>{c.product.name}
                              </div>
                              <div className="flex justify-between items-center mt-2 gap-2 min-w-0">
                                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -600,7 +602,9 @@ function ManualOrderModal({ onClose, onSaved }: { onClose: () => void, onSaved: 
                 <ScrollLock />
                 <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] break-words min-w-0">
                     <div className="flex items-start justify-between gap-3 border-b border-border pb-3 min-w-0">
-                        <h3 className="text-lg font-black font-display break-words whitespace-normal leading-tight flex-1 min-w-0">{productDetailsToShow.name}</h3>
+                        <h3 className="text-lg font-black font-display break-words whitespace-normal leading-tight flex-1 min-w-0">
+                           <span className="text-muted-foreground mr-1.5">#{productDetailsToShow.short_id}</span>{productDetailsToShow.name}
+                        </h3>
                         <button onClick={() => setProductDetailsToShow(null)} className="text-muted-foreground hover:text-foreground flex-shrink-0 mt-1"><X className="h-5 w-5"/></button>
                     </div>
                     
@@ -760,7 +764,7 @@ export function OrdersPanel({ onStatusChange, currentUserName }: { onStatusChang
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Buscar por ID, produto ou senha VIP..." 
+            placeholder="Buscar por ID do pedido, produto ou senha VIP..." 
             value={searchQuery} 
             onChange={e => setSearchQuery(e.target.value)} 
             className="pl-9 h-10 w-full min-w-0" 
